@@ -1,0 +1,71 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:2:1-30:12
+INJECTED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:2:1-30:12
+INJECTED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:2:1-30:12
+	package
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:3:5-41
+		INJECTED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml
+		INJECTED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:2:11-69
+uses-permission#android.permission.INTERNET
+ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:5:5-67
+	android:name
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:5:22-64
+uses-permission#android.permission.REQUEST_INSTALL_PACKAGES
+ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:6:5-83
+	android:name
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:6:22-80
+application
+ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:8:5-28:19
+service#com.miaadrajabi.downloader.DownloadForegroundService
+ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:9:9-12:56
+	android:exported
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:11:13-37
+	android:foregroundServiceType
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:12:13-53
+	android:name
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:10:13-54
+receiver#com.miaadrajabi.downloader.DownloadAlarmReceiver
+ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:13:9-15:40
+	android:exported
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:15:13-37
+	android:name
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:14:13-50
+receiver#com.miaadrajabi.downloader.DownloadNotificationActionReceiver
+ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:16:9-18:40
+	android:exported
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:18:13-37
+	android:name
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:17:13-63
+provider#androidx.core.content.FileProvider
+ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:19:9-27:20
+	android:grantUriPermissions
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:23:13-47
+	android:authorities
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:21:13-71
+	android:exported
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:22:13-37
+	android:name
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:20:13-62
+meta-data#android.support.FILE_PROVIDER_PATHS
+ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:24:13-26:65
+	android:resource
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:26:17-62
+	android:name
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml:25:17-67
+uses-sdk
+INJECTED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml
+INJECTED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml
+INJECTED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml
+INJECTED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml
+		INJECTED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml
+		ADDED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml
+		INJECTED from /Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/src/main/AndroidManifest.xml

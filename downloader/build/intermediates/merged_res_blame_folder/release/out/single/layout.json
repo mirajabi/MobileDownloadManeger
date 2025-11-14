@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "/Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/build/intermediates/res/merged/release/layout/custom_dialog.xml",
+        "source": "/Users/mm/.gradle/caches/transforms-2/files-2.1/317b6607685dadba37310625a96ebdd6/core-1.6.0/res/layout/custom_dialog.xml"
+    },
+    {
+        "merged": "/Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/build/intermediates/res/merged/release/layout/notification_template_part_chronometer.xml",
+        "source": "/Users/mm/.gradle/caches/transforms-2/files-2.1/317b6607685dadba37310625a96ebdd6/core-1.6.0/res/layout/notification_template_part_chronometer.xml"
+    },
+    {
+        "merged": "/Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/build/intermediates/res/merged/release/layout/notification_template_part_time.xml",
+        "source": "/Users/mm/.gradle/caches/transforms-2/files-2.1/317b6607685dadba37310625a96ebdd6/core-1.6.0/res/layout/notification_template_part_time.xml"
+    }
+]

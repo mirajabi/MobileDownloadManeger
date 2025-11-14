@@ -1,0 +1,34 @@
+{
+    "logs": [
+        {
+            "outputFile": "/Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/build/intermediates/incremental/mergeReleaseResources/merged.dir/values-ur/values-ur.xml",
+            "map": [
+                {
+                    "source": "/Users/mm/.gradle/caches/transforms-2/files-2.1/317b6607685dadba37310625a96ebdd6/core-1.6.0/res/values-ur/values-ur.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    }
+                }
+            ]
+        },
+        {
+            "outputFile": "/Users/mm/Desktop/Repository/MobileDownloadManeger/downloader/build/intermediates/res/merged/release/values-ur/values-ur.xml",
+            "map": [
+                {
+                    "source": "/Users/mm/.gradle/caches/transforms-2/files-2.1/317b6607685dadba37310625a96ebdd6/core-1.6.0/res/values-ur/values-ur.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    }
+                }
+            ]
+        }
+    ]
+}

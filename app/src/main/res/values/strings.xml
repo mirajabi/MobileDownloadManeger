@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">MobileDownloadManeger</string>
+    <string name="sample_config_hint">Configuration details will update here as we progress through each stage.</string>
+    <string name="sample_start_download">Start Sample Download</string>
+    <string name="sample_pause_download">Pause</string>
+    <string name="sample_resume_download">Resume</string>
+    <string name="sample_schedule_download">Schedule Tuesday 00:30 Download</string>
+    <string name="sample_schedule_exact">Schedule Exact Date (Tomorrow 12:30)</string>
+    <string name="sample_schedule_hint">No scheduled job yet.</string>
+</resources>

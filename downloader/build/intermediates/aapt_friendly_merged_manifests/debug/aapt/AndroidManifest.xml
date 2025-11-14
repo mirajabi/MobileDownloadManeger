@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.miaadrajabi.downloader" >
+
+    <uses-sdk
+        android:minSdkVersion="23"
+        android:targetSdkVersion="30" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <application>
+        <service
+            android:name="com.miaadrajabi.downloader.DownloadForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <receiver
+            android:name="com.miaadrajabi.downloader.DownloadAlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name="com.miaadrajabi.downloader.DownloadNotificationActionReceiver"
+            android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="dollar_openBracket_applicationId_closeBracket.downloader.provider"
+            android:exported="false"
+            android:grantUriPermissions="true" >
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/downloader_file_paths" />
+        </provider>
+    </application>
+
+</manifest>
