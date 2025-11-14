@@ -197,6 +197,7 @@ internal class ChunkedDownloader(
         private var lastBytes = downloaded.get()
         private var smoothedSpeed = 0.0
         @Volatile private var totalBytesSnapshot: Long? = totalBytes
+        private var lastEmissionTime = System.currentTimeMillis()
 
         fun updateTotalIfAbsent(value: Long?) {
             if (value == null || value <= 0) return
@@ -225,6 +226,12 @@ internal class ChunkedDownloader(
             val remaining = totalBytes?.let { max(0L, it - total) }
             val percent = totalBytes?.takeIf { it > 0L }?.let { ((total * 100) / it).toInt().coerceIn(0, 100) }
 
+            val shouldEmit = now - lastEmissionTime >= MIN_INTERVAL_MS || bytesDelta >= MIN_BYTES_STEP || percent == 100 || totalBytes == null
+            if (!shouldEmit) {
+                return
+            }
+            lastEmissionTime = now
+
             val progress = DownloadProgress(
                 bytesDownloaded = total,
                 totalBytes = totalBytes,
@@ -237,7 +244,9 @@ internal class ChunkedDownloader(
         }
 
         companion object {
-            private const val SMOOTHING_ALPHA = 0.35
+            private const val SMOOTHING_ALPHA = 0.55
+            private const val MIN_INTERVAL_MS = 250L
+            private const val MIN_BYTES_STEP = 32 * 1024L
         }
     }
 

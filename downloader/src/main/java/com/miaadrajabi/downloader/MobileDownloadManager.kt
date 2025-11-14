@@ -215,6 +215,7 @@ class MobileDownloadManager private constructor(
     private fun markDownloadFinished() {
         val remaining = activeDownloads.decrementAndGet().coerceAtLeast(0)
         if (remaining <= 0) {
+            DownloadNotificationRegistry.helper?.cancel()
             DownloadForegroundService.stopService(appContext)
         }
     }

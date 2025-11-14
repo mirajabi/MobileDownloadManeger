@@ -177,6 +177,10 @@ class DownloadManagerBuilder internal constructor(
         )
     }
 
+    fun storageUsePublicDownloads(enable: Boolean = true) = apply {
+        storage = storage.copy(preferExternalPublic = enable)
+    }
+
     fun installerPromptOnCompletion(
         enabled: Boolean = true,
         fallbackMimeType: String = installer.fallbackMimeType

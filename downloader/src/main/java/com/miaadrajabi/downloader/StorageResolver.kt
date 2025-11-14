@@ -1,9 +1,9 @@
 package com.miaadrajabi.downloader
 
 import android.content.Context
-import android.os.Environment
 import android.os.StatFs
 import java.io.File
+import android.os.Environment
 
 /**
  * 1. Resolves destination directories and files based on StorageConfig rules.
@@ -14,11 +14,21 @@ class StorageResolver(
 ) {
 
     private val appContext = context.applicationContext ?: context
-    private val defaultLocations: List<File> = listOfNotNull(
-        appContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
-        appContext.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
-        File(appContext.filesDir, "downloads")
-    )
+    private val defaultLocations: List<File>
+    private val publicDownloadDir: File? = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+
+    init {
+        val internalDefaults = listOfNotNull(
+            appContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+            appContext.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
+            File(appContext.filesDir, "downloads")
+        )
+        defaultLocations = if (storageConfig.preferExternalPublic && publicDownloadDir != null) {
+            listOf(publicDownloadDir) + internalDefaults
+        } else {
+            internalDefaults
+        }
+    }
 
     /**
      * 2. Computes the final file that should receive the download payload.

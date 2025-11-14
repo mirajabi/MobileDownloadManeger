@@ -103,11 +103,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun defaultDownloadPath(): String {
-        val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        return (publicDir ?: File(filesDir, "Download")).apply { mkdirs() }.absolutePath
-    }
-
     private fun extractBaseName(url: String): String {
         val cleanUrl = url.substringBefore('?')
         val raw = cleanUrl.substringAfterLast('/')
@@ -273,7 +268,7 @@ class MainActivity : AppCompatActivity() {
             id = UUID.randomUUID().toString(),
             url = SAMPLE_URL,
             fileName = fileName,
-            destination = DownloadDestination.Custom(defaultDownloadPath())
+            destination = DownloadDestination.Auto
         )
     }
 
@@ -388,9 +383,9 @@ class MainActivity : AppCompatActivity() {
                 useAlarmManager = false
             ),
             storage = StorageConfig(
-                downloadDirs = listOf(DownloadDestination.Custom(defaultDownloadPath())),
                 overwriteExisting = true,
-                validateFreeSpace = true
+                validateFreeSpace = true,
+                preferExternalPublic = true
             ),
             installer = InstallerConfig(
                 promptOnCompletion = true

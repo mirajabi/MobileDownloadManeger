@@ -4,7 +4,6 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
@@ -244,7 +243,7 @@ public class JavaSampleActivity extends AppCompatActivity {
         return new DownloadRequest(
                 SAMPLE_URL,
                 fileName,
-                new DownloadDestination.Custom(defaultDownloadPath()),
+                DownloadDestination.Auto.INSTANCE,
                 UUID.randomUUID().toString(),
                 Collections.emptyMap()
         );
@@ -263,10 +262,11 @@ public class JavaSampleActivity extends AppCompatActivity {
         );
         SchedulerConfig schedulerConfig = new SchedulerConfig(60L, null, true, false);
         StorageConfig storageConfig = new StorageConfig(
-                Collections.singletonList(new DownloadDestination.Custom(defaultDownloadPath())),
+                Collections.singletonList(DownloadDestination.Auto.INSTANCE),
                 true,
                 true,
-                10 * 1024 * 1024L
+                10 * 1024 * 1024L,
+                true
         );
         InstallerConfig installerConfig = new InstallerConfig(true, true, "application/vnd.android.package-archive");
         return new DownloadConfig(
@@ -356,14 +356,6 @@ public class JavaSampleActivity extends AppCompatActivity {
         return raw.isEmpty() ? "download.bin" : raw;
     }
 
-    private String defaultDownloadPath() {
-        File publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        File dir = publicDir != null ? publicDir : new File(getFilesDir(), "Download");
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-        return dir.getAbsolutePath();
-    }
 
     private String toHumanReadable(long bytes) {
         if (bytes <= 0) return "0 B";

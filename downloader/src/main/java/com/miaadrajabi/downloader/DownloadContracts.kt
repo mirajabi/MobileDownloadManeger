@@ -88,7 +88,8 @@ data class StorageConfig(
     val downloadDirs: List<DownloadDestination> = listOf(DownloadDestination.Auto),
     val overwriteExisting: Boolean = true,
     val validateFreeSpace: Boolean = true,
-    val minFreeSpaceBytes: Long = 10 * 1024 * 1024L
+    val minFreeSpaceBytes: Long = 10 * 1024 * 1024L,
+    val preferExternalPublic: Boolean = false
 )
 
 data class InstallerConfig(

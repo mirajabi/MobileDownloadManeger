@@ -61,16 +61,17 @@ private fun enqueueSampleDownload() {
     val request = DownloadRequest(
         url = SAMPLE_URL,
         fileName = "sample-${System.currentTimeMillis()}.apk",
-        destination = DownloadDestination.Custom(defaultDownloadPath())
+        destination = DownloadDestination.Auto
     )
 
     DownloadForegroundService.setNotificationIcon(R.mipmap.ic_launcher)
     DownloadForegroundService.enqueueDownload(this, request)
 }
 
-private fun defaultDownloadPath(): String {
-    val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-    return (publicDir ?: File(filesDir, "Download")).apply { mkdirs() }.absolutePath
+// During setup, prefer the public Downloads folder:
+MobileDownloadManager.create(this) {
+    storageUsePublicDownloads(true)
+    installerPromptOnCompletion(true)
 }
 ```
 
@@ -80,7 +81,7 @@ private void enqueueSampleDownload() {
     DownloadRequest request = new DownloadRequest(
             SAMPLE_URL,
             "sample-" + System.currentTimeMillis() + ".apk",
-            new DownloadDestination.Custom(defaultDownloadPath()),
+            DownloadDestination.Auto.INSTANCE,
             UUID.randomUUID().toString(),
             Collections.emptyMap()
     );
@@ -89,11 +90,10 @@ private void enqueueSampleDownload() {
     DownloadForegroundService.enqueueDownload(this, request);
 }
 
-private String defaultDownloadPath() {
-    File publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-    File dir = publicDir != null ? publicDir : new File(getFilesDir(), "Download");
-    if (!dir.exists()) dir.mkdirs();
-    return dir.getAbsolutePath();
-}
+// During setup:
+MobileDownloadManager.builder(this)
+        .storageUsePublicDownloads(true)
+        .installerPromptOnCompletion(true)
+        .build();
 ```
 
