@@ -216,18 +216,22 @@ internal class DownloadNotificationHelper(
         )
     }
 
-    private fun actionPendingIntent(action: String, handle: DownloadHandle) =
-        PendingIntent.getBroadcast(
+    private fun actionPendingIntent(action: String, handle: DownloadHandle): PendingIntent {
+        val flags = if (Build.VERSION.SDK_INT >= ANDROID_12) {
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
+        return PendingIntent.getBroadcast(
             context,
             (action + handle.id).hashCode(),
             Intent(context, DownloadNotificationActionReceiver::class.java).apply {
                 this.action = action
                 putExtra(DownloadNotificationActionReceiver.EXTRA_HANDLE_ID, handle.id)
             },
-            PendingIntent.FLAG_UPDATE_CURRENT or mutableFlag()
+            flags
         )
-
-    private fun mutableFlag(): Int = 0
+    }
 
     private fun buildProgressText(progress: DownloadProgress): String {
         val builder = StringBuilder()
@@ -277,6 +281,7 @@ internal class DownloadNotificationHelper(
     }
 
     companion object {
+        private const val ANDROID_12 = 31
         const val FOREGROUND_NOTIFICATION_ID = 7001
         private const val DEFAULT_ICON = android.R.drawable.stat_sys_download
     }

@@ -1,12 +1,18 @@
 import com.android.build.gradle.LibraryExtension
 import org.gradle.api.Action
 import org.gradle.kotlin.dsl.configure
+import org.gradle.kotlin.dsl.create
+import org.gradle.api.publish.maven.MavenPublication
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("maven-publish")
 }
+
+group = "com.github.mirajabi"
+version = "1.0.0"
 
 configure<LibraryExtension> {
     compileSdkVersion(30)
@@ -48,5 +54,18 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.3")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                groupId = group.toString()
+                artifactId = "mobile-download-manager"
+                version = project.version.toString()
+                from(components["release"])
+            }
+        }
+    }
 }
 
