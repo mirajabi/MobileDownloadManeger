@@ -1,13 +1,12 @@
-name: Android CI
+name: Release & JitPack Publish
 
 on:
   push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+    tags:
+      - "v*.*.*"
 
 jobs:
-  build:
+  build-publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,9 +21,9 @@ jobs:
       - name: Grant execute permission for Gradle
         run: chmod +x gradlew
 
-      - name: Assemble Debug Artifacts
-        run: ./gradlew :downloader:assembleDebug :app:assembleDebug --stacktrace
+      - name: Build release artifacts
+        run: ./gradlew :downloader:assembleRelease :app:assembleRelease --stacktrace
 
-      - name: Run Unit Tests
-        run: ./gradlew :downloader:testDebugUnitTest --stacktrace
+      - name: Publish to Maven local (for JitPack verification)
+        run: ./gradlew :downloader:publishToMavenLocal --stacktrace
 
