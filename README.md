@@ -26,17 +26,74 @@ Modular Android download manager targeting API 23+ with support for chunked tran
 ## Continuous Integration
 GitHub Actions (`.github/workflows/ci.yml`) runs `./gradlew assemble` on every push/PR with JDK 11 (Temurin). This mirrors the JitPack environment and guarantees the sample + library remain compatible with the requested Gradle/AGP versions.
 
-## Publishing via JitPack
-1. Push your changes to GitHub and create a tag (e.g. `git tag v1.0.0 && git push origin v1.0.0`).
-2. In your consuming project add the repository:
-   ```kotlin
-   repositories {
-       maven { url = uri("https://jitpack.io") }
-   }
-   ```
-3. Depend on the tagged artifact:
-   ```kotlin
-   implementation("com.github.mirajabi:MobileDownloadManeger:v1.0.0")
-   ```
-JitPack honors the `jitpack.yml` file at the repo root, so the build runs with OpenJDK 11 after a quick `./gradlew clean`.
+## JitPack Consumption
+Add the JitPack repository once:
+
+```kotlin
+repositories {
+    maven("https://jitpack.io")
+}
+```
+
+Then pull whichever tag you want (example: `v1.0.0`):
+
+```kotlin
+dependencies {
+    implementation("com.github.mirajabi:MobileDownloadManeger:v1.0.0")
+}
+```
+
+The same coordinate works for Groovy Gradle scripts:
+
+```groovy
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.0.0'
+}
+```
+
+## Kotlin Usage Example
+```kotlin
+private fun enqueueSampleDownload() {
+    val request = DownloadRequest(
+        url = SAMPLE_URL,
+        fileName = "sample-${System.currentTimeMillis()}.apk",
+        destination = DownloadDestination.Custom(defaultDownloadPath())
+    )
+
+    DownloadForegroundService.setNotificationIcon(R.mipmap.ic_launcher)
+    DownloadForegroundService.enqueueDownload(this, request)
+}
+
+private fun defaultDownloadPath(): String {
+    val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+    return (publicDir ?: File(filesDir, "Download")).apply { mkdirs() }.absolutePath
+}
+```
+
+## Java Usage Example
+```java
+private void enqueueSampleDownload() {
+    DownloadRequest request = new DownloadRequest(
+            SAMPLE_URL,
+            "sample-" + System.currentTimeMillis() + ".apk",
+            new DownloadDestination.Custom(defaultDownloadPath()),
+            UUID.randomUUID().toString(),
+            Collections.emptyMap()
+    );
+
+    DownloadForegroundService.setNotificationIcon(R.mipmap.ic_launcher);
+    DownloadForegroundService.enqueueDownload(this, request);
+}
+
+private String defaultDownloadPath() {
+    File publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+    File dir = publicDir != null ? publicDir : new File(getFilesDir(), "Download");
+    if (!dir.exists()) dir.mkdirs();
+    return dir.getAbsolutePath();
+}
+```
 
