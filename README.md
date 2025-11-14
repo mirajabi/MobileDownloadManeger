@@ -2,9 +2,18 @@
 
 Modular Android download manager targeting API 23+ with support for chunked transfers, background scheduling, notification progress, and configurable storage policies. The project is built incrementally—each stage introduces new capabilities alongside matching documentation and sample-app demos.
 
+## Highlights (v1.1.0)
+- **True pause/resume**: chunk-level state is persisted so APKs resume exactly from the last downloaded byte even across service restarts.
+- **Real-time foreground notification**: merged service/download notification shows speed, remaining bytes, and live buttons (Pause/Resume/Stop).
+- **Public downloads + installer prompt**: storage now defaults to the shared `Download/` folder and can automatically launch the installer for APK/APKS packages.
+- **Scheduler support**: WorkManager + AlarmManager enable weekly and exact date scheduling with persisted config.
+- **Extensive logging & sample UI**: Kotlin and Java activities demonstrate enqueue/pause/resume/schedule flows end-to-end.
+
 ## Modules
 - `downloader`: reusable library that exposes `MobileDownloadManager`, configuration DSL, and (later) the execution engine.
 - `app`: sample client that exercises every stage of the library. The UI evolves in lockstep with the feature set so manual tests stay straightforward.
+
+The sample module ships with **both** `MainActivity` (Kotlin) and `JavaSampleActivity`, so you can copy/paste snippets in whichever language you prefer. Both screens expose the same controls (enqueue, pause, resume, stop, weekday schedule, exact schedule) and log the detailed progress coming from the service.
 
 ## Documentation
 - See `docs/README.md` for the current table of contents.  
@@ -35,11 +44,11 @@ repositories {
 }
 ```
 
-Then pull whichever tag you want (example: `v1.0.0`):
+Then pull whichever tag you want (example: `v1.1.0`):
 
 ```kotlin
 dependencies {
-    implementation("com.github.mirajabi:MobileDownloadManeger:v1.0.0")
+    implementation("com.github.mirajabi:MobileDownloadManeger:v1.1.0")
 }
 ```
 
@@ -51,7 +60,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.0.0'
+    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.1.0'
 }
 ```
 
