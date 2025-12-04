@@ -19,6 +19,7 @@ import com.miaadrajabi.downloader.DownloadHandle;
 import com.miaadrajabi.downloader.DownloadListener;
 import com.miaadrajabi.downloader.DownloadProgress;
 import com.miaadrajabi.downloader.DownloadRequest;
+import com.miaadrajabi.downloader.ChecksumAlgorithm;
 import com.miaadrajabi.downloader.RetryPolicy;
 import com.miaadrajabi.downloader.ScheduleTime;
 import com.miaadrajabi.downloader.SchedulerConfig;
@@ -30,6 +31,7 @@ import com.miaadrajabi.downloader.Weekday;
 import com.miaadrajabi.downloader.ChunkingConfig;
 import com.miaadrajabi.downloader.NotificationConfig;
 import com.miaadrajabi.downloader.InstallerConfig;
+import com.miaadrajabi.downloader.IntegrityConfig;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -245,7 +247,9 @@ public class JavaSampleActivity extends AppCompatActivity {
                 fileName,
                 DownloadDestination.Auto.INSTANCE,
                 UUID.randomUUID().toString(),
-                Collections.emptyMap()
+                Collections.emptyMap(),
+                null,  // expectedChecksum (optional)
+                ChecksumAlgorithm.SHA256  // checksumAlgorithm (default)
         );
     }
 
@@ -269,6 +273,7 @@ public class JavaSampleActivity extends AppCompatActivity {
                 true
         );
         InstallerConfig installerConfig = new InstallerConfig(true, true, "application/vnd.android.package-archive");
+        IntegrityConfig integrityConfig = new IntegrityConfig(true, true, true, false, false);
         return new DownloadConfig(
                 chunkingConfig,
                 retryPolicy,
@@ -277,6 +282,7 @@ public class JavaSampleActivity extends AppCompatActivity {
                 schedulerConfig,
                 storageConfig,
                 installerConfig,
+                integrityConfig,
                 Collections.emptyList()
         );
     }

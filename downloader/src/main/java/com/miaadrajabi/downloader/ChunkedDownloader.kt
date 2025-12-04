@@ -37,7 +37,10 @@ internal class ChunkedDownloader(
         callTracker: CallTracker? = null,
         existingChunkStates: List<ChunkStateData> = emptyList(),
         chunkStateUpdater: ((ChunkStateData) -> Unit)? = null
-    ) = withContext(Dispatchers.IO) {
+    ): DownloadResult = withContext(Dispatchers.IO) {
+        // Reset captured Content-Type for this download
+        capturedContentType = null
+        
         val totalBytes = fetchContentLength(request, callTracker)
         
         // Validate startOffset against actual file size
@@ -54,7 +57,7 @@ internal class ChunkedDownloader(
         val chunkPlans = ChunkPlanner.plan(totalBytes, config.chunking, validatedOffset, existingChunkStates)
         if (chunkPlans.isEmpty()) {
             Log.d(TAG, "No chunk plans generated; nothing to download.")
-            return@withContext
+            return@withContext DownloadResult(totalBytes, null)
         }
         Log.d(TAG, "Chunk plans: ${chunkPlans.map { "${it.index}:${it.start}-${it.endInclusive} resume=${it.resumeOffset}" }}")
         chunkStateUpdater?.let { updater ->
@@ -98,6 +101,10 @@ internal class ChunkedDownloader(
                 }
             }
         }
+        
+        // Extract Content-Type from the first chunk response
+        val contentType = extractContentType(request, callTracker)
+        DownloadResult(totalBytes, contentType)
     }
 
     private fun fetchContentLength(request: DownloadRequest, callTracker: CallTracker?): Long? {
@@ -117,6 +124,8 @@ internal class ChunkedDownloader(
         }
     }
 
+    private var capturedContentType: String? = null
+    
     private fun downloadChunk(
         request: DownloadRequest,
         plan: ChunkPlan,
@@ -138,6 +147,10 @@ internal class ChunkedDownloader(
         call.execute().use { response ->
             if (!response.isSuccessful) {
                 throw IOException("Download failed for chunk ${plan.index} with code ${response.code}")
+            }
+            // Capture Content-Type from first chunk (usually all chunks have same type)
+            if (capturedContentType == null) {
+                capturedContentType = response.header("Content-Type")
             }
             dispatcher.updateTotalIfAbsent(extractTotalBytes(response, plan))
             val body = response.body ?: throw IOException("Empty response body for chunk ${plan.index}")
@@ -362,10 +375,41 @@ internal class ChunkedDownloader(
         }
         return null
     }
+    
+    private fun extractContentType(request: DownloadRequest, callTracker: CallTracker?): String? {
+        // Use captured Content-Type if available
+        if (capturedContentType != null) {
+            return capturedContentType
+        }
+        
+        // Fallback: try HEAD request to get Content-Type
+        return try {
+            val headRequest = baseRequestBuilder(request).head().build()
+            val call = client.newCall(headRequest)
+            callTracker?.register(call)
+            call.execute().use { response ->
+                if (response.isSuccessful) {
+                    response.header("Content-Type")
+                } else {
+                    null
+                }
+            }
+        } catch (_: IOException) {
+            null
+        }
+    }
 
     private companion object {
         private const val DEFAULT_BUFFER_SIZE = 16 * 1024
         private const val TAG = "ChunkedDownloader"
     }
 }
+
+/**
+ * Result of a download operation containing metadata.
+ */
+internal data class DownloadResult(
+    val totalBytes: Long?,
+    val contentType: String?
+)
 

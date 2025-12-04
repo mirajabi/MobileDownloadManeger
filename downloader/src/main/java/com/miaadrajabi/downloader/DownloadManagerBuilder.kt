@@ -17,6 +17,7 @@ class DownloadManagerBuilder internal constructor(
     private var scheduler: SchedulerConfig = SchedulerConfig()
     private var storage: StorageConfig = StorageConfig()
     private var installer: InstallerConfig = InstallerConfig()
+    private var integrity: IntegrityConfig = IntegrityConfig()
     private val listeners = mutableListOf<DownloadListener>()
 
     /**
@@ -192,21 +193,61 @@ class DownloadManagerBuilder internal constructor(
     }
 
     /**
-     * 17. Adds a listener that receives download lifecycle callbacks.
+     * 17. Configures file integrity validation.
+     * Recommended: Enable file size and checksum validation for APK downloads.
+     * 
+     * @param verifyFileSize If true, verifies downloaded file size matches Content-Length (recommended: true)
+     * @param verifyChecksum If true, verifies file checksum if provided in DownloadRequest (recommended: true for APKs)
+     * @param verifyApkStructure If true, validates APK structure for .apk/.apks files (recommended: true)
+     * @param verifyContentType If true, validates Content-Type header (recommended: false)
+     * @param verifyApkSignature If true, verifies APK signature (expensive, recommended: false)
+     */
+    fun integrityValidation(
+        verifyFileSize: Boolean? = null,
+        verifyChecksum: Boolean? = null,
+        verifyApkStructure: Boolean? = null,
+        verifyContentType: Boolean? = null,
+        verifyApkSignature: Boolean? = null
+    ) = apply {
+        integrity = integrity.copy(
+            verifyFileSize = verifyFileSize ?: integrity.verifyFileSize,
+            verifyChecksum = verifyChecksum ?: integrity.verifyChecksum,
+            verifyApkStructure = verifyApkStructure ?: integrity.verifyApkStructure,
+            verifyContentType = verifyContentType ?: integrity.verifyContentType,
+            verifyApkSignature = verifyApkSignature ?: integrity.verifyApkSignature
+        )
+    }
+
+    /**
+     * 18. Enables recommended integrity validation for APK downloads.
+     * This enables: file size, checksum, and APK structure validation.
+     */
+    fun integrityValidationForApk() = apply {
+        integrity = IntegrityConfig(
+            verifyFileSize = true,
+            verifyChecksum = true,
+            verifyApkStructure = true,
+            verifyContentType = false,
+            verifyApkSignature = false
+        )
+    }
+
+    /**
+     * 19. Adds a listener that receives download lifecycle callbacks.
      */
     fun addListener(listener: DownloadListener) = apply {
         listeners += listener
     }
 
     /**
-     * 18. Clears all listeners accumulated so far.
+     * 20. Clears all listeners accumulated so far.
      */
     fun clearListeners() = apply {
         listeners.clear()
     }
 
     /**
-     * 19. Builds the immutable config representation.
+     * 21. Builds the immutable config representation.
      */
     fun buildConfig(): DownloadConfig = DownloadConfig(
         chunking = chunking,
@@ -216,6 +257,7 @@ class DownloadManagerBuilder internal constructor(
         scheduler = scheduler,
         storage = storage,
         installer = installer,
+        integrity = integrity,
         listeners = listeners.toList()
     )
 

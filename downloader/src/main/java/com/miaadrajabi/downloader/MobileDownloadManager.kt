@@ -1,6 +1,7 @@
 package com.miaadrajabi.downloader
 
 import android.content.Context
+import android.util.Log
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -289,36 +290,102 @@ class MobileDownloadManager private constructor(
         var delayMs = policy.initialDelayMillis
         var shouldFinalize = true
         var plannedChunkStates = existingChunkStates
+        var currentStartOffset = startOffset
         try {
             while (attempt <= policy.maxAttempts) {
                 try {
                     val allListeners = listeners + extraListeners
                     allListeners.forEach { it.onStarted(handle) }
-                    chunkedDownloader.download(
+                    val downloadResult = chunkedDownloader.download(
                         request,
                         resolution,
                         handle,
                         config,
                         allListeners,
-                        startOffset,
+                        currentStartOffset,
                         callTracker,
                         plannedChunkStates,
                         chunkStateUpdater
                     )
+                    
+                    // Perform integrity validation if configured
+                    if (config.integrity.verifyFileSize || 
+                        config.integrity.verifyChecksum || 
+                        config.integrity.verifyApkStructure ||
+                        config.integrity.verifyContentType ||
+                        config.integrity.verifyApkSignature) {
+                        
+                        val integrityResult = FileIntegrityVerifier.verifyFile(
+                            file = resolution.file,
+                            config = config.integrity,
+                            request = request,
+                            expectedSize = downloadResult.totalBytes,
+                            contentType = downloadResult.contentType,
+                            context = appContext
+                        )
+                        
+                        if (!integrityResult.isValid) {
+                            val errorMessage = "File integrity validation failed: ${integrityResult.errors.joinToString(", ")}"
+                            Log.e("MobileDownloadManager", errorMessage)
+                            
+                            // Delete corrupted file before throwing exception
+                            if (resolution.file.exists()) {
+                                val deleted = resolution.file.delete()
+                                if (deleted) {
+                                    Log.d("MobileDownloadManager", "Deleted corrupted file: ${resolution.file.absolutePath}")
+                                } else {
+                                    Log.w("MobileDownloadManager", "Failed to delete corrupted file: ${resolution.file.absolutePath}")
+                                }
+                            }
+                            
+                            // Clear chunk states for retry from start
+                            chunkStateSnapshots.remove(handle.id)
+                            lastProgress.remove(handle.id)
+                            
+                            throw IntegrityValidationException(
+                                message = errorMessage,
+                                errors = integrityResult.errors,
+                                file = resolution.file
+                            )
+                        }
+                    }
+                    
                     if (config.installer.promptOnCompletion) {
                         DownloadInstaller.maybePromptInstall(appContext, resolution.file, config.installer)
                     }
                     listeners.forEach { it.onCompleted(handle) }
                     pendingDestinations.remove(handle.id)
                     return
-                } catch (error: IOException) {
+                } catch (error: IntegrityValidationException) {
+                    // Integrity error: file already deleted, retry from start
                     if (attempt >= policy.maxAttempts) {
                         listeners.forEach { it.onFailed(handle, error) }
                         pendingDestinations.remove(handle.id)
                         return
                     } else {
                         listeners.forEach { it.onRetry(handle, attempt) }
+                        // Reset states for retry from start (not resume)
+                        plannedChunkStates = emptyList()
+                        currentStartOffset = 0L
+                        chunkStateSnapshots.remove(handle.id)
+                        lastProgress.remove(handle.id)
+                        delay(delayMs)
+                        delayMs = (delayMs * policy.backoffMultiplier).toLong().coerceAtLeast(1_000L)
+                        attempt++
+                    }
+                } catch (error: IOException) {
+                    // Network error: keep file and resume from last position
+                    if (attempt >= policy.maxAttempts) {
+                        listeners.forEach { it.onFailed(handle, error) }
+                        pendingDestinations.remove(handle.id)
+                        return
+                    } else {
+                        listeners.forEach { it.onRetry(handle, attempt) }
+                        // Resume from last position for network errors
                         plannedChunkStates = currentChunkStates(handle.id)
+                        // Update startOffset based on current progress
+                        val lastProgressBytes = lastProgress[handle.id] ?: 0L
+                        currentStartOffset = if (lastProgressBytes > 0) lastProgressBytes else currentStartOffset
                         delay(delayMs)
                         delayMs = (delayMs * policy.backoffMultiplier).toLong().coerceAtLeast(1_000L)
                         attempt++
