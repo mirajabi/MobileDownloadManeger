@@ -1,2 +1,0 @@
-com/miaadrajabi/downloader/BuildConfig.java
- com.miaadrajabi.downloader.BuildConfig
