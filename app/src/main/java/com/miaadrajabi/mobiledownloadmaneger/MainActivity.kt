@@ -118,6 +118,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Configure the download service before using it
+        configureDownloadService()
+
         DownloadForegroundService.setNotificationIcon(R.mipmap.ic_launcher)
 
         summaryView = findViewById(R.id.tvBuilderSummary)
@@ -354,6 +357,60 @@ class MainActivity : AppCompatActivity() {
         }
         pendingPermissionAction = onGranted
         requestPermissions(REQUIRED_PERMISSIONS, REQUEST_STORAGE_PERMISSIONS)
+    }
+
+    /**
+     * Example function showing how to configure the DownloadForegroundService.
+     * This configuration is persisted and will be used whenever the service starts.
+     * 
+     * Call this method once during app initialization (e.g., in onCreate) before
+     * using any download functionality.
+     */
+    private fun configureDownloadService() {
+        DownloadForegroundService.configureService(this) {
+            // Chunking configuration
+            chunkCount(4)
+            chunkParallel(true)
+            chunkMinSize(256 * 1024L)
+
+            // Retry policy
+            retryPolicy(
+                maxAttempts = 5,
+                initialDelayMillis = 3_000L,
+                backoffMultiplier = 1.5f
+            )
+
+            // Notification configuration
+            notificationChannel(
+                id = "sample_downloads",
+                name = "Sample Downloads",
+                description = "Foreground sample channel"
+            )
+            notificationShowProgress(true)
+            notificationPersistent(true)
+
+            // Scheduler configuration (optional)
+            periodicSchedule(intervalMinutes = 60)
+
+            // Storage configuration
+            storageDestinations(listOf(DownloadDestination.Custom(getDefaultDownloadPath())))
+            storageOverwrite(true)
+            storageValidateFreeSpace(true)
+
+            // Installer configuration
+            installerPromptOnCompletion(true)
+        }
+
+        Log.d(TAG, "Download service configured successfully")
+    }
+
+    /**
+     * Helper function to get the default download path.
+     */
+    private fun getDefaultDownloadPath(): String {
+        val dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: filesDir
+        if (!dir.exists()) dir.mkdirs()
+        return dir.absolutePath
     }
 
     private fun buildPreviewConfig(): DownloadConfig {

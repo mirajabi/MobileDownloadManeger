@@ -25,24 +25,60 @@ class DownloadForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        manager = MobileDownloadManager.create(this) {
-            chunkCount(4)
-            chunkParallel(true)
-            chunkMinSize(256 * 1024L)
-            retryPolicy(maxAttempts = 5, initialDelayMillis = 3_000L, backoffMultiplier = 1.5f)
-            notificationChannel(
-                id = "sample_downloads",
-                name = "Sample Downloads",
-                description = "Foreground sample channel"
+        manager = createManagerFromConfig()
+        Log.d(TAG, "Download manager initialized from stored configuration")
+    }
+
+    /**
+     * Creates the MobileDownloadManager by loading configuration from DownloadConfigStore.
+     * If no configuration exists, throws an exception to prevent the service from running
+     * without proper setup. Users must call configureService() before starting the service.
+     */
+    private fun createManagerFromConfig(): MobileDownloadManager {
+        val savedConfig = DownloadConfigStore.load(applicationContext)
+            ?: throw IllegalStateException(
+                "DownloadForegroundService requires configuration. " +
+                "Call DownloadForegroundService.configureService() before starting the service."
             )
-            notificationShowProgress(true)
-            notificationPersistent(true)
-            periodicSchedule(intervalMinutes = 60)
-            storageDestinations(listOf(DownloadDestination.Custom(defaultDownloadPath(applicationContext))))
-            storageOverwrite(true)
-            storageValidateFreeSpace(true)
-            installerPromptOnCompletion(true)
-            notificationIcon(notificationIconRes ?: android.R.drawable.stat_sys_download)
+
+        return MobileDownloadManager.create(this) {
+            // Apply chunking configuration
+            chunkCount(savedConfig.chunking.chunkCount)
+            chunkParallel(savedConfig.chunking.preferParallel)
+            chunkMinSize(savedConfig.chunking.minChunkSizeBytes)
+
+            // Apply retry policy
+            retryPolicy(
+                maxAttempts = savedConfig.retryPolicy.maxAttempts,
+                initialDelayMillis = savedConfig.retryPolicy.initialDelayMillis,
+                backoffMultiplier = savedConfig.retryPolicy.backoffMultiplier
+            )
+
+            // Apply notification configuration
+            notificationChannel(
+                id = savedConfig.notification.channelId,
+                name = savedConfig.notification.channelName,
+                description = savedConfig.notification.channelDescription
+            )
+            notificationShowProgress(savedConfig.notification.showProgressPercentage)
+            notificationPersistent(savedConfig.notification.persistent)
+            savedConfig.notification.smallIconRes?.let { notificationIcon(it) }
+                ?: notificationIcon(notificationIconRes ?: android.R.drawable.stat_sys_download)
+
+            // Apply scheduler configuration
+            savedConfig.scheduler.periodicIntervalMinutes?.let { 
+                periodicSchedule(intervalMinutes = it) 
+            }
+
+            // Apply storage configuration
+            storageDestinations(savedConfig.storage.downloadDirs)
+            storageOverwrite(savedConfig.storage.overwriteExisting)
+            storageValidateFreeSpace(savedConfig.storage.validateFreeSpace)
+
+            // Apply installer configuration
+            installerPromptOnCompletion(savedConfig.installer.promptOnCompletion)
+
+            // Add relay listener for UI communication
             addListener(object : DownloadListener {
                 override fun onQueued(handle: DownloadHandle) = relay { it.onQueued(handle) }
                 override fun onStarted(handle: DownloadHandle) = relay { it.onStarted(handle) }
@@ -58,7 +94,6 @@ class DownloadForegroundService : Service() {
                     relay { it.onRetry(handle, attempt) }
             })
         }
-        Log.d(TAG, "Download manager initialized inside service")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -144,6 +179,29 @@ class DownloadForegroundService : Service() {
 
         private var notificationIconRes: Int? = null
         private val uiListeners = CopyOnWriteArrayList<DownloadListener>()
+
+        /**
+         * Configures the download service with the specified settings.
+         * This must be called before starting the service to define how downloads should behave.
+         * The configuration is persisted and will be used when the service starts.
+         *
+         * Example usage:
+         * ```
+         * DownloadForegroundService.configureService(context) {
+         *     chunkCount(4)
+         *     chunkParallel(true)
+         *     retryPolicy(maxAttempts = 5)
+         *     notificationChannel("downloads", "Downloads", "Download notifications")
+         *     storageDestinations(listOf(DownloadDestination.Downloads))
+         * }
+         * ```
+         */
+        @JvmStatic
+        fun configureService(context: Context, configure: DownloadManagerBuilder.() -> Unit) {
+            val tempManager = MobileDownloadManager.create(context, configure)
+            // Configuration is automatically saved by MobileDownloadManager.create()
+            // The saved config will be loaded when DownloadForegroundService starts
+        }
 
         @JvmStatic
         fun setNotificationIcon(resId: Int) {
