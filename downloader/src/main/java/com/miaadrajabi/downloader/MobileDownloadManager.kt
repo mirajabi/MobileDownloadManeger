@@ -275,6 +275,14 @@ class MobileDownloadManager private constructor(
         DownloadManagerRegistry.manager = null
     }
 
+    internal fun hasRunningDownloads(): Boolean {
+        return activeSessions.isNotEmpty() || activeDownloads.get() > 0
+    }
+
+    internal fun clearPendingNotificationUpdates() {
+        notificationHelper.clearPendingUpdates()
+    }
+
     private suspend fun runDownloadWithRetry(
         request: DownloadRequest,
         handle: DownloadHandle,
@@ -413,7 +421,8 @@ class MobileDownloadManager private constructor(
     private fun markDownloadFinished() {
         val remaining = activeDownloads.decrementAndGet().coerceAtLeast(0)
         if (remaining <= 0) {
-            DownloadNotificationRegistry.helper?.cancel()
+            // Keep the completion or failure notification. stopService detaches the
+            // service from that notification instead of dismissing the result.
             DownloadForegroundService.stopService(appContext)
         }
     }

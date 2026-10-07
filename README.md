@@ -2,9 +2,11 @@
 
 Modular Android download manager targeting API 23+ with support for chunked transfers, background scheduling, notification progress, and configurable storage policies. The project is built incrementally—each stage introduces new capabilities alongside matching documentation and sample-app demos.
 
-## Highlights (v1.3.0)
-- **Persistent configuration**: download manager configuration is now loaded from `DownloadConfigStore` and persists across app restarts and process deaths.
-- **Service configuration API**: new `configureService()` method allows flexible configuration before service startup with full control over all options.
+## Highlights (v1.3.1)
+- **Foreground service contract**: the service calls `startForeground()` before loading saved configuration or touching the network, so `startForegroundService()` no longer crashes when progress has not arrived yet.
+- **Coalesced progress notifications**: progress updates at most once per second and keeps the latest value. Completion, failure, pause, and cancel notifications stay immediate.
+- **Persistent configuration**: download manager configuration is loaded from `DownloadConfigStore` and persists across app restarts and process deaths.
+- **Service configuration API**: `configureService()` sets chunking, retry, notification, storage, and installer options before the service starts.
 - **True pause/resume**: chunk-level state is persisted so APKs resume exactly from the last downloaded byte even across service restarts.
 - **Real-time foreground notification**: merged service/download notification shows speed, remaining bytes, and live buttons (Pause/Resume/Stop).
 - **Public downloads + installer prompt**: storage now defaults to the shared `Download/` folder and can automatically launch the installer for APK/APKS packages.
@@ -27,7 +29,7 @@ The sample module ships with **both** `MainActivity` (Kotlin) and `JavaSampleAct
 - Stage 5 (`docs/05-scheduler.md`) explains WorkManager/AlarmManager scheduling, persisted config, and the sample's Tuesday 00:30 scheduling demo.
 - Stage 6 (`docs/06-pause-resume.md`) introduces resumable downloads, session tracking, and the sample's Pause/Resume controls.
 - Stage 7 (`docs/07-foreground-notify-installer.md`) unifies the notification, enables true parallel downloads, requests storage permissions, and adds the optional post-download installer prompt.
-- Stage 8 (`docs/08-service-configuration.md`) explains the persistent configuration system: how to use `configureService()`, configuration persistence via `DownloadConfigStore`, and best practices for setup.
+- Stage 8 (`docs/08-service-configuration.md`) explains `configureService()`, persistence through `DownloadConfigStore`, and why the service enters the foreground before that configuration is read.
 
 ### File Integrity & Validation
 - [`docs/APK_INTEGRITY_GUIDE.md`](docs/APK_INTEGRITY_GUIDE.md) - Complete guide for ensuring APK download integrity with checksum verification, file size validation, and APK structure validation.
@@ -56,11 +58,11 @@ repositories {
 }
 ```
 
-Then pull whichever tag you want (example: `v1.2.0`):
+Then pull whichever tag you want (example: `v1.3.1`):
 
 ```kotlin
 dependencies {
-    implementation("com.github.mirajabi:MobileDownloadManeger:v1.2.0")
+    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.1")
 }
 ```
 
@@ -72,7 +74,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.2.0'
+    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.1'
 }
 ```
 

@@ -11,6 +11,7 @@
 | 5 | [Scheduler Integration](05-scheduler.md) | WorkManager periodic jobs, AlarmManager exact triggers, config persistence, and sample scheduling UI. |
 | 6 | [Pause/Resume](06-pause-resume.md) | Session tracking, resumable ranges, and sample pause/resume controls. |
 | 7 | [Notifications, Parallelism & Installer](07-foreground-notify-installer.md) | Unified foreground notification, parallel chunking, storage permissions, and optional post-download installer prompt. |
+| 8 | [Service Configuration](08-service-configuration.md) | Persisted `configureService()` settings and the foreground-service startup contract. |
 
 ## File Integrity & Validation
 

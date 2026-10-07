@@ -1,10 +1,12 @@
 package com.miaadrajabi.downloader
 
 import android.app.Notification
-import android.app.Service
 import android.app.NotificationManager
+import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build
 import android.os.Environment
 import android.os.IBinder
 import android.util.Log
@@ -13,6 +15,9 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Foreground service that owns the MobileDownloadManager lifecycle and processes commands.
+ *
+ * startForegroundService must be followed by startForeground before any disk or network work.
+ * The first notification is a local placeholder; download progress replaces it later.
  */
 class DownloadForegroundService : Service() {
 
@@ -21,10 +26,16 @@ class DownloadForegroundService : Service() {
     private val notificationManager by lazy {
         getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     }
+    @Volatile
     private var foregroundStarted = false
+    @Volatile
+    private var destroyed = false
 
     override fun onCreate() {
         super.onCreate()
+        runningInstance = this
+        // Satisfy the foreground-service contract before config, files, or the network.
+        promoteToForegroundImmediately()
         manager = createManagerFromConfig()
         Log.d(TAG, "Download manager initialized from stored configuration")
     }
@@ -38,7 +49,7 @@ class DownloadForegroundService : Service() {
         val savedConfig = DownloadConfigStore.load(applicationContext)
             ?: throw IllegalStateException(
                 "DownloadForegroundService requires configuration. " +
-                "Call DownloadForegroundService.configureService() before starting the service."
+                    "Call DownloadForegroundService.configureService() before starting the service."
             )
 
         return MobileDownloadManager.create(this) {
@@ -89,63 +100,95 @@ class DownloadForegroundService : Service() {
                 override fun onCompleted(handle: DownloadHandle) = relay { it.onCompleted(handle) }
                 override fun onFailed(handle: DownloadHandle, error: Throwable?) =
                     relay { it.onFailed(handle, error) }
-                override fun onCancelled(handle: DownloadHandle) = relay { it.onCancelled(handle) }
                 override fun onRetry(handle: DownloadHandle, attempt: Int) =
                     relay { it.onRetry(handle, attempt) }
+                override fun onCancelled(handle: DownloadHandle) = relay { it.onCancelled(handle) }
             })
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent == null) return START_NOT_STICKY
-        when (intent.action) {
-            ACTION_UPDATE_NOTIFICATION -> {
-                val notification: Notification = intent.getParcelableExtra(EXTRA_NOTIFICATION)
-                    ?: return START_NOT_STICKY
-                updateForeground(notification)
+        val accepted = handleCommand(intent)
+        val running = if (::manager.isInitialized) manager.hasRunningDownloads() else false
+        return when (
+            foregroundContinuation(
+                action = intent?.action,
+                commandAccepted = accepted,
+                hasRunningDownloads = running
+            )
+        ) {
+            ForegroundContinuation.StopIdle -> {
+                Log.d(TAG, "No active download for action=${intent?.action}; stopping foreground service")
+                leaveForeground(removeNotification = true)
+                stopSelf(startId)
+                START_NOT_STICKY
             }
-            ACTION_ENQUEUE -> {
-                val request = DownloadRequestAdapter.fromIntent(intent)
-                if (request != null) {
-                    Log.d(TAG, "Enqueue request ${request.id}")
-                    manager.enqueue(request)
-                }
-            }
-            ACTION_PAUSE -> {
-                val id = intent.getStringExtra(EXTRA_HANDLE_ID)
-                if (id != null) {
-                    Log.d(TAG, "Pause request $id")
-                    manager.pause(id)
-                }
-            }
-            ACTION_RESUME -> {
-                val id = intent.getStringExtra(EXTRA_HANDLE_ID)
-                if (id != null) {
-                    Log.d(TAG, "Resume request $id")
-                    manager.resume(id)
-                }
-            }
-            ACTION_STOP -> {
-                val id = intent.getStringExtra(EXTRA_HANDLE_ID)
-                if (id != null) {
-                    Log.d(TAG, "Stop request $id")
-                    manager.stop(id)
-                    manager.cancelScheduled(id)
-                }
-            }
-            ACTION_SCHEDULE -> {
-                val request = DownloadRequestAdapter.fromIntent(intent)
-                val schedule = intent.readScheduleTime()
-                if (request != null && schedule != null) {
-                    Log.d(TAG, "Schedule request ${request.id} for $schedule")
-                    manager.schedule(request, schedule)
-                }
-            }
+            ForegroundContinuation.AlreadyStopping -> START_NOT_STICKY
+            ForegroundContinuation.KeepRunning -> START_STICKY
         }
-        return START_STICKY
+    }
+
+    override fun onDestroy() {
+        destroyed = true
+        if (::manager.isInitialized) {
+            manager.clearPendingNotificationUpdates()
+        }
+        if (runningInstance === this) {
+            runningInstance = null
+        }
+        super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun handleCommand(intent: Intent?): Boolean {
+        if (intent == null || !::manager.isInitialized) {
+            return false
+        }
+        return when (intent.action) {
+            ACTION_UPDATE_NOTIFICATION -> {
+                val notification: Notification? = intent.getParcelableExtra(EXTRA_NOTIFICATION)
+                if (notification == null) {
+                    Log.w(TAG, "Foreground notification extra was missing; keeping the startup notification")
+                    true
+                } else {
+                    updateForeground(notification)
+                    true
+                }
+            }
+            ACTION_ENQUEUE -> {
+                val request = DownloadRequestAdapter.fromIntent(intent) ?: return false
+                Log.d(TAG, "Enqueue request ${request.id}")
+                manager.enqueue(request)
+                true
+            }
+            ACTION_PAUSE -> {
+                val id = intent.getStringExtra(EXTRA_HANDLE_ID) ?: return false
+                Log.d(TAG, "Pause request $id")
+                manager.pause(id)
+            }
+            ACTION_RESUME -> {
+                val id = intent.getStringExtra(EXTRA_HANDLE_ID) ?: return false
+                Log.d(TAG, "Resume request $id")
+                manager.resume(id)
+            }
+            ACTION_STOP -> {
+                val id = intent.getStringExtra(EXTRA_HANDLE_ID) ?: return false
+                Log.d(TAG, "Stop request $id")
+                val stopped = manager.stop(id)
+                manager.cancelScheduled(id)
+                stopped
+            }
+            ACTION_SCHEDULE -> {
+                val request = DownloadRequestAdapter.fromIntent(intent) ?: return false
+                val schedule = intent.readScheduleTime() ?: return false
+                Log.d(TAG, "Schedule request ${request.id} for $schedule")
+                manager.schedule(request, schedule)
+                true
+            }
+            else -> false
+        }
+    }
 
     private fun relay(block: (DownloadListener) -> Unit) {
         uiListeners.forEach { listener ->
@@ -157,12 +200,54 @@ class DownloadForegroundService : Service() {
         }
     }
 
+    private fun promoteToForegroundImmediately() {
+        enterForeground(
+            DownloadNotificationHelper.buildStartupNotification(
+                this,
+                android.R.drawable.stat_sys_download
+            )
+        )
+        Log.d(TAG, "Entered foreground before download manager initialization")
+    }
+
     private fun updateForeground(notification: Notification) {
         if (!foregroundStarted) {
-            startForeground(DownloadNotificationHelper.FOREGROUND_NOTIFICATION_ID, notification)
-            foregroundStarted = true
+            enterForeground(notification)
         } else {
-            notificationManager.notify(DownloadNotificationHelper.FOREGROUND_NOTIFICATION_ID, notification)
+            notificationManager.notify(
+                DownloadNotificationHelper.FOREGROUND_NOTIFICATION_ID,
+                notification
+            )
+        }
+    }
+
+    private fun enterForeground(notification: Notification) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                DownloadNotificationHelper.FOREGROUND_NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            )
+        } else {
+            startForeground(
+                DownloadNotificationHelper.FOREGROUND_NOTIFICATION_ID,
+                notification
+            )
+        }
+        foregroundStarted = true
+    }
+
+    private fun leaveForeground(removeNotification: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val flags = if (removeNotification) {
+                STOP_FOREGROUND_REMOVE
+            } else {
+                STOP_FOREGROUND_DETACH
+            }
+            stopForeground(flags)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(removeNotification)
         }
     }
 
@@ -179,6 +264,26 @@ class DownloadForegroundService : Service() {
 
         private var notificationIconRes: Int? = null
         private val uiListeners = CopyOnWriteArrayList<DownloadListener>()
+
+        @Volatile
+        private var runningInstance: DownloadForegroundService? = null
+
+        /**
+         * Updates the already-foreground notification in-process.
+         * Returns false only when the service is not running, so the caller can start it.
+         * A destroyed instance returns true to avoid restarting the service from a late callback.
+         */
+        internal fun postNotification(notification: Notification): Boolean {
+            val service = runningInstance ?: return false
+            if (service.destroyed) {
+                return true
+            }
+            service.notificationManager.notify(
+                DownloadNotificationHelper.FOREGROUND_NOTIFICATION_ID,
+                notification
+            )
+            return true
+        }
 
         /**
          * Configures the download service with the specified settings.
@@ -263,9 +368,14 @@ class DownloadForegroundService : Service() {
 
         @JvmStatic
         fun stopService(context: Context) {
-            context.stopService(Intent(context, DownloadForegroundService::class.java))
+            val service = runningInstance
+            if (service != null && !service.destroyed) {
+                service.leaveForeground(removeNotification = false)
+                service.stopSelf()
+            } else {
+                context.stopService(Intent(context, DownloadForegroundService::class.java))
+            }
         }
-
     }
 }
 
@@ -303,4 +413,3 @@ private fun defaultDownloadPath(context: Context): String {
     if (!dir.exists()) dir.mkdirs()
     return dir.absolutePath
 }
-

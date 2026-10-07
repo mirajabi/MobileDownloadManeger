@@ -196,6 +196,12 @@ DownloadForegroundService.enqueueDownload(context, request)
 ### Installer
 - `installerPromptOnCompletion(boolean)` - Auto-prompt to install APKs
 
+## Foreground startup (v1.3.1)
+
+`enqueue`, `pause`, `resume`, `stop`, and `schedule` all start the service with `startForegroundService()`. Android requires `startForeground()` shortly after that call. The service posts a startup notification immediately in `onCreate()`, before `createManagerFromConfig()` reads saved settings or opens files. Download progress later replaces that notification, at most once per second. Completion, failure, pause, and cancel updates are not delayed.
+
+Call `configureService()` before the first command. The startup notification does not depend on that saved configuration, so a missing or slow config read cannot produce `Context.startForegroundService() did not then call Service.startForeground()`.
+
 ## See Also
 
 - [Configuration Documentation](01-configuration.md)
