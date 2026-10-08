@@ -8,6 +8,8 @@ on:
 jobs:
   build-publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -21,8 +23,21 @@ jobs:
       - name: Grant execute permission for Gradle
         run: chmod +x gradlew
 
-      - name: Build release artifacts
-        run: ./gradlew :downloader:assembleRelease :app:assembleRelease --stacktrace
+      - name: Build, test, and pack the reference files
+        run: |
+          ./gradlew :downloader:assembleRelease :downloader:testDebugUnitTest :showcase:assembleDebug :app:assembleRelease --stacktrace
+          tag="${GITHUB_REF_NAME}"
+          mkdir -p dist
+          cp downloader/build/outputs/aar/downloader-release.aar "dist/mobile-download-manager-${tag}.aar"
+          cp showcase/build/outputs/apk/debug/showcase-debug.apk "dist/fetch-${tag}.apk"
+          (cd dist && sha256sum ./* > SHA256SUMS)
+
+      - name: Attach the built files to this tag
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to Maven local (for JitPack verification)
         run: ./gradlew :downloader:publishToMavenLocal --stacktrace

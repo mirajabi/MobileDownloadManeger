@@ -38,6 +38,18 @@ dependencies {
 
 The library manifest already merges `INTERNET`, the foreground-service permissions, the download service, the alarm and notification receivers, and a `FileProvider`. Call `configureService` once before the first download so those components load your settings instead of the defaults.
 
+## Download the built tag
+
+Each tag is built and unit-tested on GitHub Actions, then the output is attached to that release. JitPack builds the same tag when Gradle asks for it. The release files are the reference copies:
+
+| File | What it is |
+|---|---|
+| `mobile-download-manager-<tag>.aar` | The library, release build |
+| `fetch-<tag>.apk` | The Fetch sample, debug-signed so it can be installed |
+| `SHA256SUMS` | Checksums of those files |
+
+The current files are on the [v1.3.6 release](https://github.com/mirajabi/MobileDownloadManeger/releases/tag/v1.3.6).
+
 ## Read the guide
 
 The guide is numbered. Every step has a Kotlin sample and a Java sample, and every section ends with that section filled in, including the optional fields.
