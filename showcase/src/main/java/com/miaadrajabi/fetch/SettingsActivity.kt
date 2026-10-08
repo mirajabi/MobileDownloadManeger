@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -48,8 +49,16 @@ class SettingsActivity : AppCompatActivity() {
         binding.save.setOnClickListener { saveAndClose() }
         binding.aboutMail.setOnClickListener { openMail() }
         binding.aboutGithub.setOnClickListener { openGithub() }
+        binding.floatBubble.setOnCheckedChangeListener { _, checked ->
+            if (bindingBubble || !checked) return@setOnCheckedChangeListener
+            if (!BubbleService.canDrawOver(this)) {
+                openOverlaySettings()
+            }
+        }
         lockDestinationChoices()
     }
+
+    private var bindingBubble = false
 
     override fun onStart() {
         super.onStart()
@@ -59,6 +68,12 @@ class SettingsActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         ClipOffer.present(this)
+        if (binding.floatBubble.isChecked && !BubbleService.canDrawOver(this)) {
+            bindingBubble = true
+            binding.floatBubble.isChecked = false
+            bindingBubble = false
+            Toast.makeText(this, "Allow Fetch to display over other apps.", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onStop() {
@@ -101,6 +116,9 @@ class SettingsActivity : AppCompatActivity() {
         }
         if (saved.useAlarm) binding.defaultAlarm.isChecked = true else binding.defaultWork.isChecked = true
         binding.watchClipboard.isChecked = saved.watchClipboard
+        bindingBubble = true
+        binding.floatBubble.isChecked = saved.floatBubble
+        bindingBubble = false
         val customFolder = saved.destination != EngineSettings.DEST_AUTO
         binding.folderLayout.visibility = if (customFolder) View.VISIBLE else View.GONE
         binding.folderLayout.hint = if (saved.destination == EngineSettings.DEST_CUSTOM) {
@@ -158,7 +176,8 @@ class SettingsActivity : AppCompatActivity() {
             verifyType = binding.verifyType.isChecked,
             verifySignature = binding.verifySignature.isChecked,
             useAlarm = binding.defaultAlarm.isChecked,
-            watchClipboard = binding.watchClipboard.isChecked
+            watchClipboard = binding.watchClipboard.isChecked,
+            floatBubble = binding.floatBubble.isChecked && BubbleService.canDrawOver(this)
         )
         settings.save(this)
         DownloadDesk.apply(this, settings)
@@ -167,7 +186,24 @@ class SettingsActivity : AppCompatActivity() {
         } else {
             ClipWatchService.stopWatching(this)
         }
+        if (settings.floatBubble) {
+            BubbleService.start(this)
+        } else {
+            BubbleService.stop(this)
+        }
         finish()
+    }
+
+    private fun openOverlaySettings() {
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:$packageName")
+        )
+        try {
+            startActivity(intent)
+        } catch (error: ActivityNotFoundException) {
+            Toast.makeText(this, "Open Settings and allow display over other apps.", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun openMail() {

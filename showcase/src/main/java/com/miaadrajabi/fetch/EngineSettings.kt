@@ -32,7 +32,8 @@ data class EngineSettings(
     val verifyType: Boolean = false,
     val verifySignature: Boolean = false,
     val useAlarm: Boolean = false,
-    val watchClipboard: Boolean = false
+    val watchClipboard: Boolean = false,
+    val floatBubble: Boolean = false
 ) {
     fun notificationIcon(): Int {
         return when (iconKey) {
@@ -83,6 +84,7 @@ data class EngineSettings(
             .putBoolean(KEY_SIGNATURE, verifySignature)
             .putBoolean(KEY_ALARM, useAlarm)
             .putBoolean(KEY_WATCH, watchClipboard)
+            .putBoolean(KEY_BUBBLE, floatBubble)
             .apply()
     }
 
@@ -121,6 +123,7 @@ data class EngineSettings(
         private const val KEY_SIGNATURE = "signature"
         private const val KEY_ALARM = "alarm"
         private const val KEY_WATCH = "watchClipboard"
+        private const val KEY_BUBBLE = "floatBubble"
 
         fun load(context: Context): EngineSettings {
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -149,7 +152,8 @@ data class EngineSettings(
                 verifyType = prefs.getBoolean(KEY_TYPE, false),
                 verifySignature = prefs.getBoolean(KEY_SIGNATURE, false),
                 useAlarm = prefs.getBoolean(KEY_ALARM, false),
-                watchClipboard = prefs.getBoolean(KEY_WATCH, false)
+                watchClipboard = prefs.getBoolean(KEY_WATCH, false),
+                floatBubble = prefs.getBoolean(KEY_BUBBLE, false)
             )
         }
     }

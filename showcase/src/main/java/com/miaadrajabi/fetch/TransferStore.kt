@@ -56,6 +56,13 @@ class TransferStore(context: Context) {
         }
 
         override fun onCompleted(handle: DownloadHandle) {
+            val known = snapshot().firstOrNull { it.id == handle.id }
+            val bytes = when {
+                known == null -> 0L
+                known.total > 0L -> known.total
+                else -> known.bytes
+            }
+            Haul.record(appContext, handle.id, bytes)
             updateActive(handle.id, allowTerminal = true) {
                 it.copy(status = STATUS_DONE, percent = 100, speed = 0L, message = "Saved")
             }

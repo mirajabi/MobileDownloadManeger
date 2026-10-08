@@ -71,6 +71,34 @@ object DownloadDesk {
         }
     }
 
+    fun startPlain(context: Context, links: List<String>) {
+        if (links.isEmpty()) return
+        val settings = EngineSettings.load(context)
+        val names = LinkParser.uniqueNames(links, "")
+        val store = (context.applicationContext as FetchApp).store
+        for (index in links.indices) {
+            val request = newRequest(
+                url = links[index],
+                fileName = names[index],
+                headers = emptyMap(),
+                checksum = null,
+                algorithm = ChecksumAlgorithm.SHA256,
+                rangeStart = null,
+                rangeEndInclusive = null
+            )
+            store.insert(
+                Transfer(
+                    id = request.id,
+                    url = request.url,
+                    fileName = request.fileName,
+                    status = TransferStore.STATUS_QUEUED,
+                    message = "Waiting to start"
+                )
+            )
+            enqueue(context, settings, request)
+        }
+    }
+
     fun newRequest(
         url: String,
         fileName: String,

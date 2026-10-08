@@ -17,5 +17,8 @@ class FetchApp : Application() {
         if (settings.watchClipboard) {
             ClipWatchService.start(this)
         }
+        if (settings.floatBubble && BubbleService.canDrawOver(this)) {
+            BubbleService.start(this)
+        }
     }
 }

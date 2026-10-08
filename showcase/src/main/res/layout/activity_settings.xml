@@ -532,6 +532,26 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="22dp"
+                android:text="Floating orb" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/floatBubble"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Keep Fetch on top" />
+
+            <TextView
+                style="@style/Text.Fetch.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="A small orb stays above other apps. Drag it to move, flick it upward to open, and drop a copied link in to start. Android asks once for permission to draw over other apps. A quiet notification keeps the orb alive. Finished files raise a rank: Scout, Runner, Courier, Pilot, Captain." />
+
+            <TextView
+                style="@style/Text.Fetch.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
                 android:text="About" />
 
             <TextView
