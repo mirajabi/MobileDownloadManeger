@@ -19,6 +19,8 @@ internal object DownloadRequestAdapter {
             .putString(KEY_CHECKSUM_ALGORITHM, request.checksumAlgorithm.name)
             .apply {
                 request.expectedChecksum?.let { putString(KEY_CHECKSUM, it) }
+                request.rangeStart?.let { putString(KEY_RANGE_START, it.toString()) }
+                request.rangeEndInclusive?.let { putString(KEY_RANGE_END, it.toString()) }
             }
             .build()
     }
@@ -40,7 +42,9 @@ internal object DownloadRequestAdapter {
             checksumAlgorithm = checksumAlgorithm(
                 data.getString(KEY_CHECKSUM_ALGORITHM),
                 data.getString(KEY_CHECKSUM)
-            )
+            ),
+            rangeStart = data.getString(KEY_RANGE_START)?.toLongOrNull(),
+            rangeEndInclusive = data.getString(KEY_RANGE_END)?.toLongOrNull()
         )
     }
 
@@ -52,6 +56,8 @@ internal object DownloadRequestAdapter {
         intent.putExtra(KEY_ID, request.id)
         request.expectedChecksum?.let { intent.putExtra(KEY_CHECKSUM, it) }
         intent.putExtra(KEY_CHECKSUM_ALGORITHM, request.checksumAlgorithm.name)
+        request.rangeStart?.let { intent.putExtra(KEY_RANGE_START, it) }
+        request.rangeEndInclusive?.let { intent.putExtra(KEY_RANGE_END, it) }
     }
 
     fun fromIntent(intent: Intent): DownloadRequest? {
@@ -71,7 +77,9 @@ internal object DownloadRequestAdapter {
             checksumAlgorithm = checksumAlgorithm(
                 intent.getStringExtra(KEY_CHECKSUM_ALGORITHM),
                 intent.getStringExtra(KEY_CHECKSUM)
-            )
+            ),
+            rangeStart = if (intent.hasExtra(KEY_RANGE_START)) intent.getLongExtra(KEY_RANGE_START, 0L) else null,
+            rangeEndInclusive = if (intent.hasExtra(KEY_RANGE_END)) intent.getLongExtra(KEY_RANGE_END, 0L) else null
         )
     }
 
@@ -120,5 +128,7 @@ internal object DownloadRequestAdapter {
     private const val KEY_ID = "download_id"
     private const val KEY_CHECKSUM = "download_checksum"
     private const val KEY_CHECKSUM_ALGORITHM = "download_checksum_algorithm"
+    private const val KEY_RANGE_START = "download_range_start"
+    private const val KEY_RANGE_END = "download_range_end"
 }
 

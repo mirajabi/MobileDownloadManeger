@@ -52,7 +52,18 @@ internal class ChunkedDownloader(
         }
         val layout = if (singleStream) emptyList() else existingChunkStates
 
-        val totalBytes = validators?.totalBytes ?: fetchContentLength(request, callTracker)
+        val remoteTotal = validators?.totalBytes ?: fetchContentLength(request, callTracker)
+        val window = byteWindowOf(request.rangeStart, request.rangeEndInclusive)
+        if (remoteTotal != null && window.start >= remoteTotal && window.start > 0L) {
+            throw IOException("rangeStart ${window.start} is outside the file of $remoteTotal bytes")
+        }
+        if (window.endInclusive != null && remoteTotal != null && window.endInclusive >= remoteTotal) {
+            throw IOException("rangeEndInclusive ${window.endInclusive} is outside the file of $remoteTotal bytes")
+        }
+        val sliceLength = window.sliceLength(remoteTotal)
+        if (sliceLength == 0L) {
+            throw IOException("Requested range does not include any bytes")
+        }
         
         // Validate startOffset against actual file size
         val actualFileSize = resolution.file.length()
@@ -64,11 +75,11 @@ internal class ChunkedDownloader(
             startOffset
         }
         
-        Log.d(TAG, "Download: totalBytes=$totalBytes, startOffset=$startOffset, actualFileSize=$actualFileSize, validatedOffset=$validatedOffset")
-        val chunkPlans = ChunkPlanner.plan(totalBytes, effectiveConfig.chunking, validatedOffset, layout)
+        Log.d(TAG, "Download: remoteTotal=$remoteTotal, sliceLength=$sliceLength, window=${window.start}-${window.endInclusive}, startOffset=$startOffset, actualFileSize=$actualFileSize, validatedOffset=$validatedOffset")
+        val chunkPlans = ChunkPlanner.plan(sliceLength, effectiveConfig.chunking, validatedOffset, layout)
         if (chunkPlans.isEmpty()) {
             Log.d(TAG, "No chunk plans generated; nothing to download.")
-            return@withContext DownloadResult(totalBytes, null)
+            return@withContext DownloadResult(remoteTotal, null)
         }
         Log.d(TAG, "Chunk plans: ${chunkPlans.map { "${it.index}:${it.start}-${it.endInclusive} resume=${it.resumeOffset}" }}")
         chunkStateUpdater?.let { updater ->
@@ -78,7 +89,7 @@ internal class ChunkedDownloader(
         }
         try {
         RandomAccessFile(resolution.file, "rw").use { raf ->
-            val dispatcher = ProgressDispatcher(listeners, handle, totalBytes, validatedOffset)
+            val dispatcher = ProgressDispatcher(listeners, handle, sliceLength, validatedOffset)
             val channel = raf.channel
             if (!singleStream && effectiveConfig.chunking.preferParallel && chunkPlans.size > 1) {
                 coroutineScope {
@@ -98,7 +109,8 @@ internal class ChunkedDownloader(
                                     artifactHolder,
                                     validators,
                                     resolution.file.length(),
-                                    onCheckpoint
+                                    onCheckpoint,
+                                    window
                                 )
                             }
                         }
@@ -118,7 +130,8 @@ internal class ChunkedDownloader(
                         artifactHolder,
                         validators,
                         resolution.file.length(),
-                        onCheckpoint
+                        onCheckpoint,
+                        window
                     )
                 }
             }
@@ -129,7 +142,7 @@ internal class ChunkedDownloader(
         }
         val contentType = contentTypeHolder.value ?: fetchContentType(request, callTracker)
         DownloadResult(
-            totalBytes = artifactHolder.totalBytes ?: totalBytes,
+            totalBytes = artifactHolder.totalBytes ?: remoteTotal,
             contentType = contentType,
             strongEtag = artifactHolder.strongEtag,
             lastModified = artifactHolder.lastModified
@@ -164,15 +177,18 @@ internal class ChunkedDownloader(
         artifactHolder: ArtifactHolder,
         validators: ArtifactValidators?,
         localFileLength: Long,
-        onCheckpoint: (() -> Unit)?
+        onCheckpoint: (() -> Unit)?,
+        window: ByteWindow
     ) {
         val builder = baseRequestBuilder(request)
-        val rangeStart = plan.resumeOffset
-        val rangeRequested = plan.endInclusive != null || rangeStart > 0
-        if (plan.endInclusive != null) {
-            builder.addHeader("Range", "bytes=${rangeStart}-${plan.endInclusive}")
-        } else if (rangeStart > 0) {
-            builder.addHeader("Range", "bytes=${rangeStart}-")
+        val localStart = plan.resumeOffset
+        val remoteStart = window.remoteStart(localStart)
+        val remoteEnd = window.remoteEnd(plan.endInclusive)
+        val rangeRequested = remoteEnd != null || remoteStart > 0
+        if (remoteEnd != null) {
+            builder.header("Range", "bytes=${remoteStart}-${remoteEnd}")
+        } else if (remoteStart > 0) {
+            builder.header("Range", "bytes=${remoteStart}-")
         }
         if (rangeRequested) {
             builder.header("Accept-Encoding", "identity")
@@ -197,12 +213,12 @@ internal class ChunkedDownloader(
             if (rangeRequested) {
                 when (
                     classifyRangeResponse(
-                        requestedStart = rangeStart,
-                        requestedEndInclusive = plan.endInclusive,
+                        requestedStart = remoteStart,
+                        requestedEndInclusive = remoteEnd,
                         statusCode = response.code,
                         contentRangeHeader = response.header("Content-Range"),
                         knownTotal = validators?.totalBytes ?: artifactHolder.totalBytes,
-                        localFileLength = localFileLength
+                        localFileLength = if (window.isWholeFile()) localFileLength else 0L
                     )
                 ) {
                     RangeOutcome.RestartFromZero ->
@@ -218,19 +234,21 @@ internal class ChunkedDownloader(
             if (contentTypeHolder.value == null) {
                 contentTypeHolder.value = response.header("Content-Type")
             }
-            dispatcher.updateTotalIfAbsent(extractTotalBytes(response, plan))
+            if (window.isWholeFile()) {
+                dispatcher.updateTotalIfAbsent(extractTotalBytes(response, plan))
+            }
             val body = response.body ?: throw IOException("Empty response body for chunk ${plan.index}")
-            val expectedBytes = plan.endInclusive?.let { end -> end - rangeStart + 1 }
+            val expectedBytes = plan.endInclusive?.let { end -> end - localStart + 1 }
             body.byteStream().use { source ->
                 val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                var position = rangeStart
+                var position = localStart
                 var sinceCheckpoint = 0L
                 chunkStateUpdater?.invoke(plan.toState(position))
                 var read = source.read(buffer)
                 while (read != -1) {
                     var writable = read
                     if (expectedBytes != null) {
-                        val remaining = expectedBytes - (position - rangeStart)
+                        val remaining = expectedBytes - (position - localStart)
                         if (remaining <= 0L) {
                             throw IOException("Chunk ${plan.index} is longer than its requested range")
                         }
@@ -253,9 +271,9 @@ internal class ChunkedDownloader(
                     }
                     read = source.read(buffer)
                 }
-                if (expectedBytes != null && position != rangeStart + expectedBytes) {
+                if (expectedBytes != null && position != localStart + expectedBytes) {
                     throw IOException(
-                        "Chunk ${plan.index} ended at $position before ${rangeStart + expectedBytes}"
+                        "Chunk ${plan.index} ended at $position before ${localStart + expectedBytes}"
                     )
                 }
                 channel.force(false)
@@ -284,7 +302,9 @@ internal class ChunkedDownloader(
     private fun baseRequestBuilder(request: DownloadRequest): Request.Builder {
         val builder = Request.Builder().url(request.url)
         request.headers.forEach { (key, value) ->
-            builder.addHeader(key, value)
+            if (!key.equals("Range", ignoreCase = true) && !key.equals("Content-Range", ignoreCase = true)) {
+                builder.addHeader(key, value)
+            }
         }
         return builder
     }

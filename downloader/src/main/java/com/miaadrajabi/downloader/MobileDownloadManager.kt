@@ -106,6 +106,7 @@ class MobileDownloadManager private constructor(
      */
     fun enqueue(incoming: DownloadRequest): DownloadHandle {
         val request = try {
+            byteWindowOf(incoming.rangeStart, incoming.rangeEndInclusive)
             incoming.copy(
                 expectedChecksum = validatedChecksum(
                     incoming.expectedChecksum,
@@ -500,11 +501,12 @@ class MobileDownloadManager private constructor(
                     config.integrity.verifyContentType ||
                     config.integrity.verifyApkSignature) {
 
+                    val window = byteWindowOf(request.rangeStart, request.rangeEndInclusive)
                     val integrityResult = FileIntegrityVerifier.verifyFile(
                         file = resolution.file,
                         config = config.integrity,
                         request = request,
-                        expectedSize = downloadResult.totalBytes,
+                        expectedSize = window.sliceLength(downloadResult.totalBytes),
                         contentType = downloadResult.contentType,
                         context = appContext
                     )

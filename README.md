@@ -2,7 +2,7 @@
 
 [![JitPack](https://www.jitpack.io/v/mirajabi/MobileDownloadManeger.svg)](https://www.jitpack.io/#mirajabi/MobileDownloadManeger)
 
-Android library for large file downloads: parallel ranges, pause and resume, a foreground notification, and a schedule that survives process death. The current release is `v1.3.3`. Minimum SDK is 23.
+Android library for large file downloads: parallel ranges, pause and resume, a foreground notification, and a schedule that survives process death. The current release is `v1.3.4`. Minimum SDK is 23.
 
 The host app keeps ownership of extraction, package identity, and installation. The library downloads a file and can optionally open the system installer. It does not install a package by itself.
 
@@ -18,7 +18,7 @@ repositories {
 
 ```kotlin
 dependencies {
-    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.3")
+    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.4")
 }
 ```
 
@@ -32,7 +32,7 @@ repositories {
 
 ```groovy
 dependencies {
-    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.3'
+    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.4'
 }
 ```
 
@@ -49,7 +49,8 @@ The switch runs on GitHub Pages. One control at the top shows either Kotlin or J
 
 ## What a download does
 
-- A ranged response is written only when the status is 206 and `Content-Range` matches the requested bytes. Any other ranged result discards the partial file and downloads the whole file once from byte zero.
+- A request can keep a byte window. `rangeStart` and `rangeEndInclusive` are both inclusive. Leave them unset to take the whole file. The saved file contains only that window, and the checksum covers those bytes.
+- Several connections run together when `chunkCount` is greater than one. Headers, including `Cookie`, travel on `DownloadRequest.headers`.
 - A changed strong ETag or a changed total size starts again from byte zero. A missing or weak ETag keeps the partial file. The checksum is the final check.
 - A manual pause stays paused across reboot. A download that was queued, running, or waiting to retry continues from the last flushed checkpoint. There is no boot receiver. After a force-stop, Android allows that work again when the app may run.
 - A second request for the same file is rejected while the first one is queued, running, waiting to retry, or paused. If the first one already failed or was cancelled, the new request starts from byte zero.
@@ -57,6 +58,10 @@ The switch runs on GitHub Pages. One control at the top shows either Kotlin or J
 - A missing or corrupt saved configuration uses `DownloadConfig` defaults. The service does not crash in `onCreate`.
 
 ## Changelog
+
+### v1.3.4
+
+A download can keep a chosen byte window. Set `rangeStart` and `rangeEndInclusive` on `DownloadRequest`; both ends are inclusive, and either one can be left open. The file on disk contains only that window. Parallel connections stay on `chunkCount`, and cookies stay in `headers` under the name `Cookie`.
 
 ### v1.3.3
 
@@ -67,6 +72,6 @@ Interrupted downloads continue from the last checkpoint. A ranged response is ke
 | | |
 |---|---|
 | minSdk | 23 |
-| Artifact | `com.github.mirajabi:MobileDownloadManeger:v1.3.3` |
+| Artifact | `com.github.mirajabi:MobileDownloadManeger:v1.3.4` |
 | Foreground service type | `dataSync` |
 | Periodic schedule floor | 15 minutes |

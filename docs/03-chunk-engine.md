@@ -16,11 +16,13 @@ Bytes are checkpointed every 256 KB. A finite range is complete only when the by
 | `fileName` | yes | — | File name only. The directory comes from storage config or `destination` |
 | `destination` | no | `Auto` | `Auto`, `Custom`, or `Scoped` |
 | `id` | no | random UUID | Same id and same artifact resumes. Same id and a different URL, file name, or checksum is rejected while the first is healthy |
-| `headers` | no | empty | Sent on every request. Do not put `Range` here |
-| `expectedChecksum` | no | null | Hex. SHA-256 is 64 chars, SHA-512 is 128, MD5 is 32. Blank means omitted |
+| `headers` | no | empty | Sent on every request. Put `Cookie` here. The library owns `Range` |
+| `expectedChecksum` | no | null | Hex. SHA-256 is 64 chars, SHA-512 is 128, MD5 is 32. Blank means omitted. A byte window checksums the saved window |
 | `checksumAlgorithm` | no | `SHA256` | An unknown name fails the request when a checksum is present |
+| `rangeStart` | no | null | First remote byte to keep, inclusive. Null starts at byte zero |
+| `rangeEndInclusive` | no | null | Last remote byte to keep, inclusive. Null reads through the end of the file |
 
-`DownloadRequest` has no `@JvmOverloads`. Java passes all seven arguments. Use `null` for an omitted checksum.
+`@JvmOverloads` keeps the older Java constructor. Pass `null` for a side of the window you want left open. The saved file contains only that window, written from local byte zero. Parallel connections are `chunkCount` on the service config, not a field on the request.
 
 **Kotlin**
 

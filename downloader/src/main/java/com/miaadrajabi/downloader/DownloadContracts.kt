@@ -179,8 +179,9 @@ enum class ChecksumAlgorithm {
 
 /**
  * 8. Request model describing what and where to download.
+ * [JvmOverloads] keeps the previous Java constructor so existing callers still compile.
  */
-data class DownloadRequest(
+data class DownloadRequest @JvmOverloads constructor(
     val url: String,
     val fileName: String,
     val destination: DownloadDestination = DownloadDestination.Auto,
@@ -199,7 +200,19 @@ data class DownloadRequest(
      * Algorithm used to calculate the expectedChecksum.
      * Default: SHA256 (recommended)
      */
-    val checksumAlgorithm: ChecksumAlgorithm = ChecksumAlgorithm.SHA256
+    val checksumAlgorithm: ChecksumAlgorithm = ChecksumAlgorithm.SHA256,
+
+    /**
+     * First remote byte to keep, inclusive. Null starts at byte zero.
+     * The output file contains only this window, starting at local byte zero.
+     */
+    val rangeStart: Long? = null,
+
+    /**
+     * Last remote byte to keep, inclusive. Null reads through the end of the file.
+     * A checksum then covers the saved window, not the rest of the remote file.
+     */
+    val rangeEndInclusive: Long? = null
 )
 
 /**

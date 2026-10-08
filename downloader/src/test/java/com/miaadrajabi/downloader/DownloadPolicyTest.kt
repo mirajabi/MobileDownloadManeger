@@ -199,4 +199,52 @@ class DownloadPolicyTest {
         val file = File("download.bin")
         assertTrue(canonicalPath(file).endsWith("download.bin"))
     }
+
+    @Test
+    fun omittedRangeIsTheWholeFile() {
+        val window = byteWindowOf(null, null)
+        assertTrue(window.isWholeFile())
+        assertEquals(100L, window.sliceLength(100L))
+        assertEquals(0L, window.remoteStart(0L))
+    }
+
+    @Test
+    fun inclusiveWindowBecomesTheRemoteRange() {
+        val window = byteWindowOf(100L, 149L)
+        assertFalse(window.isWholeFile())
+        assertEquals(50L, window.sliceLength(10_000L))
+        assertEquals(100L, window.remoteStart(0L))
+        assertEquals(149L, window.remoteEnd(49L))
+        assertEquals(120L, window.remoteStart(20L))
+    }
+
+    @Test
+    fun openEndedWindowUsesTheRemainder() {
+        val window = byteWindowOf(100L, null)
+        assertEquals(900L, window.sliceLength(1_000L))
+        assertNull(window.remoteEnd(null))
+    }
+
+    @Test
+    fun reversedOrNegativeRangeIsRejected() {
+        try {
+            byteWindowOf(-1L, null)
+            throw AssertionError("negative start was accepted")
+        } catch (error: IllegalArgumentException) {
+            assertTrue(error.message!!.contains("rangeStart"))
+        }
+        try {
+            byteWindowOf(20L, 10L)
+            throw AssertionError("reversed range was accepted")
+        } catch (error: IllegalArgumentException) {
+            assertTrue(error.message!!.contains("rangeEndInclusive"))
+        }
+    }
+
+    @Test
+    fun differentWindowsAreDifferentArtifacts() {
+        val base = DownloadRequest(url = "https://example.com/a.apk", fileName = "a.apk", id = "1")
+        assertTrue(sameArtifact(base, base.copy()))
+        assertFalse(sameArtifact(base, base.copy(rangeStart = 10L, rangeEndInclusive = 20L)))
+    }
 }

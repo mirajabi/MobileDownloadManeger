@@ -78,16 +78,45 @@
   th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
   th { color: var(--muted); font-weight: 600; }
   pre {
-    background: var(--code);
-    color: var(--code-ink);
+    position: relative;
+    margin: 0 0 16px;
+    background: #282c34;
+    border: 1px solid #2d2d2d;
     border-radius: 10px;
-    padding: 14px 16px;
+    padding: 34px 0 0;
+    overflow: hidden;
+    box-shadow: 0 10px 28px rgba(30, 24, 16, 0.08);
+  }
+  pre::before {
+    content: "";
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ff5f57;
+    box-shadow: 16px 0 0 #febc2e, 32px 0 0 #28c840;
+  }
+  pre::after {
+    content: "Kotlin";
+    position: absolute;
+    top: 8px;
+    left: 62px;
+    color: #9a9488;
+    font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
+  }
+  pre.java::after { content: "Java"; }
+  pre code {
+    display: block;
+    padding: 8px 16px 16px;
     overflow: auto;
-    font: 13px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font: 13px/1.55 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    background: transparent !important;
   }
   body[data-lang="kotlin"] pre.java,
   body[data-lang="java"] pre.kotlin { display: none; }
-  .lang-label { color: var(--muted); font-size: 12px; margin: 0 0 6px; }
+  .lang-label { display: none; }
   body[data-lang="kotlin"] .lang-label.java,
   body[data-lang="java"] .lang-label.kotlin { display: none; }
   @media (max-width: 800px) {
@@ -99,10 +128,11 @@
     header { padding: 12px 16px; }
   }
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 </head>
 <body data-lang="kotlin">
 <header>
-  <a class="brand" href="#top">Mobile Download Manager<small>v1.3.3 · one control switches every sample</small></a>
+  <a class="brand" href="#top">Mobile Download Manager<small>v1.3.4 · one control switches every sample</small></a>
   <div class="switch" role="group" aria-label="Language">
     <button type="button" id="kotlin" aria-pressed="true">Kotlin</button>
     <button type="button" id="java" aria-pressed="false">Java</button>
@@ -110,6 +140,12 @@
 </header>
 <div class="layout">
 <nav>
+  <div class="group">In an app</div>
+  <a href="#host-activity">Activity</a>
+  <a href="#host-fragment">Fragment</a>
+  <a href="#host-worker">Worker</a>
+  <a href="#host-service">Your service</a>
+  <a href="#host-full">Every feature</a>
   <div class="group">Setup</div>
   <a href="#s1">1. Dependency</a>
   <a href="#s2">2. First call</a>
@@ -154,16 +190,390 @@
   <h1>Step by step</h1>
   <p class="lede">Configure the service once, then enqueue. Optional fields are filled with a real value and the default is named beside them. The host still extracts and installs. The library only downloads.</p>
 
+  <article id="host-activity">
+    <h2>From an Activity</h2>
+    <p>Call <code>configureService</code> once, usually from the Activity that owns the screen, or from <code>Application</code>. After that the Activity only builds a request and listens. The byte window is part of the request. Parallel connections are part of the saved config, through <code>chunkCount</code>.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">class DownloadActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Parallel connections. chunkCount is how many ranges run together.
+        DownloadForegroundService.configureService(this) {
+            chunkCount(4)
+            chunkParallel(true)
+        }
+
+        // Headers, including Cookie. There is no separate cookie field.
+        val request = DownloadRequest(
+            url = "https://downloads.example.com/tms/app-release.apk",
+            fileName = "app-release.apk",
+            id = "tms-app-release",
+            headers = mapOf(
+                "Authorization" to "Bearer token",
+                "Cookie" to "session=abc"
+            ),
+            // Byte range. Both ends are inclusive. The saved file starts at local byte zero.
+            rangeStart = 1_048_576L,
+            rangeEndInclusive = 2_097_151L
+        )
+
+        DownloadForegroundService.registerListener(object : DownloadListener {
+            override fun onCompleted(handle: DownloadHandle) {
+                Log.i("MDM", "ready ${handle.id}")
+            }
+            override fun onFailed(handle: DownloadHandle, error: Throwable?) {
+                Log.e("MDM", "failed ${handle.id}", error)
+            }
+        })
+        DownloadForegroundService.enqueueDownload(this, request)
+    }
+}</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">public class DownloadActivity extends AppCompatActivity {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        // Parallel connections. chunkCount is how many ranges run together.
+        DownloadForegroundService.configureService(this, builder -> {
+            builder.chunkCount(4);
+            builder.chunkParallel(true);
+            return kotlin.Unit.INSTANCE;
+        });
+
+        Map&lt;String, String&gt; headers = new HashMap&lt;&gt;();
+        // Headers, including Cookie. There is no separate cookie field.
+        headers.put("Authorization", "Bearer token");
+        headers.put("Cookie", "session=abc");
+
+        DownloadRequest request = new DownloadRequest(
+                "https://downloads.example.com/tms/app-release.apk",
+                "app-release.apk",
+                DownloadDestination.Auto.INSTANCE,
+                "tms-app-release",
+                headers,
+                null,
+                ChecksumAlgorithm.SHA256,
+                // Byte range. Both ends are inclusive.
+                1_048_576L,
+                2_097_151L
+        );
+
+        DownloadForegroundService.registerListener(new DownloadListener() {
+            @Override public void onQueued(DownloadHandle handle) { }
+            @Override public void onStarted(DownloadHandle handle) { }
+            @Override public void onProgress(DownloadHandle handle, DownloadProgress progress) { }
+            @Override public void onPaused(DownloadHandle handle) { }
+            @Override public void onResumed(DownloadHandle handle) { }
+            @Override public void onCompleted(DownloadHandle handle) {
+                Log.i("MDM", "ready " + handle.getId());
+            }
+            @Override public void onFailed(DownloadHandle handle, Throwable error) {
+                Log.e("MDM", "failed " + handle.getId(), error);
+            }
+            @Override public void onRetry(DownloadHandle handle, int attempt) { }
+            @Override public void onCancelled(DownloadHandle handle) { }
+        });
+        DownloadForegroundService.enqueueDownload(this, request);
+    }
+}</pre>
+  </article>
+
+  <article id="host-fragment">
+    <h2>From a Fragment</h2>
+    <p>A Fragment does not own the process. Use <code>requireContext()</code> and keep the download id in the Fragment so a button can pause the same transfer. Configure the service in the Activity, once. Doing it again from every Fragment just rewrites the same file.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">class DownloadFragment : Fragment() {
+    private val downloadId = "tms-app-release"
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        val context = requireContext()
+        DownloadForegroundService.enqueueDownload(context, DownloadRequest(
+            url = "https://downloads.example.com/tms/app-release.apk",
+            fileName = "app-release.apk",
+            id = downloadId,
+            // Byte range, same meaning as in the Activity.
+            rangeStart = 0L,
+            rangeEndInclusive = 4_194_303L
+        ))
+        view.findViewById&lt;Button&gt;(R.id.pause).setOnClickListener {
+            DownloadForegroundService.pauseDownload(context, downloadId)
+        }
+    }
+}</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">public class DownloadFragment extends Fragment {
+    private final String downloadId = "tms-app-release";
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        Context context = requireContext();
+        DownloadForegroundService.enqueueDownload(context, new DownloadRequest(
+                "https://downloads.example.com/tms/app-release.apk",
+                "app-release.apk",
+                DownloadDestination.Auto.INSTANCE,
+                downloadId,
+                Collections.&lt;String, String&gt;emptyMap(),
+                null,
+                ChecksumAlgorithm.SHA256,
+                // Byte range. Both ends are inclusive.
+                0L,
+                4_194_303L
+        ));
+        view.findViewById(R.id.pause).setOnClickListener(v ->
+                DownloadForegroundService.pauseDownload(context, downloadId));
+    }
+}</pre>
+  </article>
+
+  <article id="host-worker">
+    <h2>From a Worker</h2>
+    <p>WorkManager should hand the file to the foreground service and return. The transfer itself keeps running after <code>doWork</code> ends. Build the request from the input data, including the byte window, so a retry of the work does not invent a different range.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">class EnqueueDownloadWorker(
+    context: Context,
+    params: WorkerParameters
+) : Worker(context, params) {
+    override fun doWork(): Result {
+        val start = inputData.getLong(KEY_START, -1L)
+        val end = inputData.getLong(KEY_END, -1L)
+        val request = DownloadRequest(
+            url = inputData.getString(KEY_URL) ?: return Result.failure(),
+            fileName = "app-release.apk",
+            id = "tms-app-release",
+            // Byte range carried in the work input. -1 means "not set".
+            rangeStart = start.takeIf { it >= 0L },
+            rangeEndInclusive = end.takeIf { it >= 0L }
+        )
+        DownloadForegroundService.enqueueDownload(applicationContext, request)
+        return Result.success()
+    }
+
+    companion object {
+        const val KEY_URL = "url"
+        const val KEY_START = "range_start"
+        const val KEY_END = "range_end"
+    }
+}</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">public class EnqueueDownloadWorker extends Worker {
+    static final String KEY_URL = "url";
+    static final String KEY_START = "range_start";
+    static final String KEY_END = "range_end";
+
+    public EnqueueDownloadWorker(@NonNull Context context, @NonNull WorkerParameters params) {
+        super(context, params);
+    }
+
+    @NonNull
+    @Override
+    public Result doWork() {
+        String url = getInputData().getString(KEY_URL);
+        if (url == null) return Result.failure();
+        long start = getInputData().getLong(KEY_START, -1L);
+        long end = getInputData().getLong(KEY_END, -1L);
+        DownloadRequest request = new DownloadRequest(
+                url,
+                "app-release.apk",
+                DownloadDestination.Auto.INSTANCE,
+                "tms-app-release",
+                Collections.&lt;String, String&gt;emptyMap(),
+                null,
+                ChecksumAlgorithm.SHA256,
+                // Byte range from the work input. Null leaves that end open.
+                start >= 0L ? Long.valueOf(start) : null,
+                end >= 0L ? Long.valueOf(end) : null
+        );
+        DownloadForegroundService.enqueueDownload(getApplicationContext(), request);
+        return Result.success();
+    }
+}</pre>
+  </article>
+
+  <article id="host-service">
+    <h2>From your own background service</h2>
+    <p>If another component already runs in the background, it should not open the socket itself. It asks <code>DownloadForegroundService</code> to start. That service calls <code>startForeground</code> before it reads config or touches the network.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">class TmsHandoffService : Service() {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val url = intent?.getStringExtra("url") ?: return START_NOT_STICKY
+        DownloadForegroundService.enqueueDownload(this, DownloadRequest(
+            url = url,
+            fileName = "app-release.apk",
+            id = "tms-app-release",
+            // Byte range passed in by the caller. Omit both to take the whole file.
+            rangeStart = if (intent.hasExtra("rangeStart")) intent.getLongExtra("rangeStart", 0L) else null,
+            rangeEndInclusive = if (intent.hasExtra("rangeEnd")) intent.getLongExtra("rangeEnd", 0L) else null
+        ))
+        stopSelf(startId)
+        return START_NOT_STICKY
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+}</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">public class TmsHandoffService extends Service {
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent == null || intent.getStringExtra("url") == null) return START_NOT_STICKY;
+        Long start = intent.hasExtra("rangeStart") ? intent.getLongExtra("rangeStart", 0L) : null;
+        Long end = intent.hasExtra("rangeEnd") ? intent.getLongExtra("rangeEnd", 0L) : null;
+        DownloadForegroundService.enqueueDownload(this, new DownloadRequest(
+                intent.getStringExtra("url"),
+                "app-release.apk",
+                DownloadDestination.Auto.INSTANCE,
+                "tms-app-release",
+                Collections.&lt;String, String&gt;emptyMap(),
+                null,
+                ChecksumAlgorithm.SHA256,
+                // Byte range. Null means that side is open.
+                start,
+                end
+        ));
+        stopSelf(startId);
+        return START_NOT_STICKY;
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+}</pre>
+  </article>
+
+  <article id="host-full">
+    <h2>Every feature in one place</h2>
+    <p>This is the shape to copy when you want the whole library, not a slice of it. Comments name the feature. The byte window is optional: leave both ends null and the download is the whole file, which is what you want for an APK the host will install.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">class TmsDownloadActivity : AppCompatActivity() {
+    private val downloadId = "tms-app-release"
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        DownloadForegroundService.setNotificationIcon(R.drawable.ic_stat_download)
+        DownloadForegroundService.configureService(this) {
+            chunkCount(4) // Parallel connections.
+            chunkParallel(true)
+            chunkMinSize(256 * 1024L)
+            retryPolicy(maxAttempts = 5, initialDelayMillis = 2_000L, backoffMultiplier = 2f)
+            enforceForeground(true) // Foreground service while bytes move.
+            notificationChannel("tms_downloads", "TMS downloads", "Package downloads")
+            notificationIcon(R.drawable.ic_stat_download)
+            notificationShowProgress(true)
+            notificationPersistent(true)
+            storageOverwrite(true)
+            storageValidateFreeSpace(validate = true, minBytes = 32L * 1024 * 1024)
+            storageUsePublicDownloads(false)
+            installerPromptOnCompletion(enabled = false, fallbackMimeType = "application/vnd.android.package-archive")
+            integrityValidation(
+                verifyFileSize = true,
+                verifyChecksum = true, // Checksum of the saved bytes, which is the window when one is set.
+                verifyApkStructure = true,
+                verifyContentType = false,
+                verifyApkSignature = false
+            )
+        }
+
+        val request = DownloadRequest(
+            url = "https://downloads.example.com/tms/app-release.apk",
+            fileName = "app-release.apk",
+            destination = DownloadDestination.Scoped("tms/packages"),
+            id = downloadId,
+            headers = mapOf(
+                "Authorization" to "Bearer token", // Headers.
+                "Cookie" to "session=abc" // Cookie travels as a header.
+            ),
+            expectedChecksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            checksumAlgorithm = ChecksumAlgorithm.SHA256,
+            rangeStart = null, // Byte range. Null and null means the whole file.
+            rangeEndInclusive = null
+        )
+
+        DownloadForegroundService.registerListener(object : DownloadListener {
+            override fun onCompleted(handle: DownloadHandle) { }
+            override fun onPaused(handle: DownloadHandle) { }
+            override fun onFailed(handle: DownloadHandle, error: Throwable?) { }
+        })
+        DownloadForegroundService.enqueueDownload(this, request)
+    }
+
+    fun pause() = DownloadForegroundService.pauseDownload(this, downloadId)
+    fun resume() = DownloadForegroundService.resumeDownload(this, downloadId)
+    fun stop() = DownloadForegroundService.stopDownload(this, downloadId)
+}</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">public class TmsDownloadActivity extends AppCompatActivity {
+    private final String downloadId = "tms-app-release";
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        DownloadForegroundService.setNotificationIcon(R.drawable.ic_stat_download);
+        DownloadForegroundService.configureService(this, builder -> {
+            builder.chunkCount(4); // Parallel connections.
+            builder.chunkParallel(true);
+            builder.chunkMinSize(256 * 1024L);
+            builder.retryPolicy(5, 2_000L, 2f);
+            builder.enforceForeground(true); // Foreground service while bytes move.
+            builder.notificationChannel("tms_downloads", "TMS downloads", "Package downloads");
+            builder.notificationIcon(R.drawable.ic_stat_download);
+            builder.notificationShowProgress(true);
+            builder.notificationPersistent(true);
+            builder.storageOverwrite(true);
+            builder.storageValidateFreeSpace(true, 32L * 1024 * 1024);
+            builder.storageUsePublicDownloads(false);
+            builder.installerPromptOnCompletion(false, "application/vnd.android.package-archive");
+            builder.integrityValidation(true, true, true, false, false);
+            return kotlin.Unit.INSTANCE;
+        });
+
+        Map&lt;String, String&gt; headers = new HashMap&lt;&gt;();
+        headers.put("Authorization", "Bearer token"); // Headers.
+        headers.put("Cookie", "session=abc"); // Cookie travels as a header.
+
+        DownloadRequest request = new DownloadRequest(
+                "https://downloads.example.com/tms/app-release.apk",
+                "app-release.apk",
+                new DownloadDestination.Scoped("tms/packages"),
+                downloadId,
+                headers,
+                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                ChecksumAlgorithm.SHA256,
+                null, // Byte range. Null and null means the whole file.
+                null
+        );
+        DownloadForegroundService.registerListener(new DownloadListener() {
+            @Override public void onQueued(DownloadHandle handle) { }
+            @Override public void onStarted(DownloadHandle handle) { }
+            @Override public void onProgress(DownloadHandle handle, DownloadProgress progress) { }
+            @Override public void onPaused(DownloadHandle handle) { }
+            @Override public void onResumed(DownloadHandle handle) { }
+            @Override public void onCompleted(DownloadHandle handle) { }
+            @Override public void onFailed(DownloadHandle handle, Throwable error) { }
+            @Override public void onRetry(DownloadHandle handle, int attempt) { }
+            @Override public void onCancelled(DownloadHandle handle) { }
+        });
+        DownloadForegroundService.enqueueDownload(this, request);
+    }
+
+    void pause() { DownloadForegroundService.pauseDownload(this, downloadId); }
+    void resume() { DownloadForegroundService.resumeDownload(this, downloadId); }
+    void stop() { DownloadForegroundService.stopDownload(this, downloadId); }
+}</pre>
+  </article>
+
   <article id="s1">
     <h2><span>1</span>Add the library</h2>
-    <p>Put JitPack in the repository list, then depend on tag <code>v1.3.3</code>.</p>
+    <p>Put JitPack in the repository list, then depend on tag <code>v1.3.4</code>.</p>
     <p class="lang-label kotlin">Kotlin</p>
     <pre class="kotlin">repositories {
     maven("https://jitpack.io")
 }
 
 dependencies {
-    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.3")
+    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.4")
 }</pre>
     <p class="lang-label java">Java / Groovy</p>
     <pre class="java">repositories {
@@ -171,7 +581,7 @@ dependencies {
 }
 
 dependencies {
-    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.3'
+    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.4'
 }</pre>
   </article>
 
@@ -363,7 +773,7 @@ DownloadForegroundService.configureService(this, builder -> {
 
   <article id="s8">
     <h2><span>8</span>Build the request</h2>
-    <p><code>url</code> and <code>fileName</code> are required. Checksum hex length is 64 for SHA-256, 128 for SHA-512, and 32 for MD5. Blank or null means no checksum. A bad length fails in <code>onFailed</code> before any byte is written. Java has no default arguments on <code>DownloadRequest</code>, so pass all seven.</p>
+    <p><code>url</code> and <code>fileName</code> are required. Checksum hex length is 64 for SHA-256, 128 for SHA-512, and 32 for MD5. Blank or null means no checksum. A bad length fails in <code>onFailed</code> before any byte is written. <code>rangeStart</code> and <code>rangeEndInclusive</code> are optional and inclusive. Leave either one null to leave that end open. The older Java constructor still works; pass the two range arguments only when you want a window.</p>
     <table>
       <tr><th>Field</th><th>Default</th></tr>
       <tr><td>destination</td><td>Auto</td></tr>
@@ -876,7 +1286,18 @@ stopButton.setOnClickListener(v -> DownloadForegroundService.stopDownload(this, 
   </article>
 </main>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
 <script>
+  document.querySelectorAll("pre.kotlin, pre.java").forEach(function (pre) {
+    var code = document.createElement("code");
+    code.className = pre.classList.contains("java") ? "language-java" : "language-kotlin";
+    code.textContent = pre.textContent;
+    pre.textContent = "";
+    pre.appendChild(code);
+  });
+  hljs.highlightAll();
   var key = "mdm-lang";
   function apply(lang) {
     document.body.setAttribute("data-lang", lang);

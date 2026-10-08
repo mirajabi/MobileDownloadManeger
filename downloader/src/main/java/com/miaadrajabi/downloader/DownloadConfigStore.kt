@@ -319,6 +319,8 @@ internal object DownloadConfigStore {
             put("expectedChecksum", expectedChecksum)
         }
         put("checksumAlgorithm", checksumAlgorithm.name)
+        if (rangeStart != null) put("rangeStart", rangeStart)
+        if (rangeEndInclusive != null) put("rangeEndInclusive", rangeEndInclusive)
     }
 
     private fun JSONObject.toDownloadRequest(): DownloadRequest {
@@ -349,7 +351,9 @@ internal object DownloadConfigStore {
             destination = destination,
             headers = headers,
             expectedChecksum = checksum,
-            checksumAlgorithm = algorithm
+            checksumAlgorithm = algorithm,
+            rangeStart = if (has("rangeStart") && !isNull("rangeStart")) getLong("rangeStart") else null,
+            rangeEndInclusive = if (has("rangeEndInclusive") && !isNull("rangeEndInclusive")) getLong("rangeEndInclusive") else null
         )
     }
 

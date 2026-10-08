@@ -142,6 +142,8 @@ private fun DownloadRequest.toRecoveryJson(): JSONObject {
         put("headers", JSONObject(headers))
         if (expectedChecksum != null) put("expectedChecksum", expectedChecksum)
         put("checksumAlgorithm", checksumAlgorithm.name)
+        if (rangeStart != null) put("rangeStart", rangeStart)
+        if (rangeEndInclusive != null) put("rangeEndInclusive", rangeEndInclusive)
     }
 }
 
@@ -164,7 +166,9 @@ private fun JSONObject.toRecoveryRequest(): DownloadRequest {
         destination = destination,
         headers = headers,
         expectedChecksum = checksum?.let { validatedChecksum(it, algorithm) },
-        checksumAlgorithm = algorithm
+        checksumAlgorithm = algorithm,
+        rangeStart = if (has("rangeStart") && !isNull("rangeStart")) getLong("rangeStart") else null,
+        rangeEndInclusive = if (has("rangeEndInclusive") && !isNull("rangeEndInclusive")) getLong("rangeEndInclusive") else null
     )
 }
 

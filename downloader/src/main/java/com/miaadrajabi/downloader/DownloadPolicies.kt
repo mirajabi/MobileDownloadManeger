@@ -80,7 +80,48 @@ internal fun sameArtifact(existing: DownloadRequest, incoming: DownloadRequest):
     return existing.url == incoming.url &&
         existing.fileName == incoming.fileName &&
         existing.expectedChecksum == incoming.expectedChecksum &&
-        existing.checksumAlgorithm == incoming.checksumAlgorithm
+        existing.checksumAlgorithm == incoming.checksumAlgorithm &&
+        existing.rangeStart == incoming.rangeStart &&
+        existing.rangeEndInclusive == incoming.rangeEndInclusive
+}
+
+/**
+ * The remote byte window a request keeps. Both ends are inclusive.
+ * A null start is byte zero. A null end reads through the remote file.
+ */
+internal data class ByteWindow(
+    val start: Long,
+    val endInclusive: Long?
+) {
+    fun isWholeFile(): Boolean = start == 0L && endInclusive == null
+
+    fun remoteStart(localOffset: Long): Long = start + localOffset
+
+    fun remoteEnd(localEndInclusive: Long?): Long? = localEndInclusive?.let { start + it }
+
+    fun sliceLength(remoteTotal: Long?): Long? {
+        if (endInclusive != null) {
+            val span = endInclusive - start
+            if (span == Long.MAX_VALUE) {
+                throw IllegalArgumentException("Requested range is too large")
+            }
+            return span + 1L
+        }
+        if (remoteTotal == null || start == 0L) return remoteTotal
+        if (remoteTotal <= start) return 0L
+        return remoteTotal - start
+    }
+}
+
+internal fun byteWindowOf(start: Long?, endInclusive: Long?): ByteWindow {
+    val origin = start ?: 0L
+    if (origin < 0L) {
+        throw IllegalArgumentException("rangeStart must be zero or greater")
+    }
+    if (endInclusive != null && endInclusive < origin) {
+        throw IllegalArgumentException("rangeEndInclusive must be greater than or equal to rangeStart")
+    }
+    return ByteWindow(origin, endInclusive)
 }
 
 internal fun canonicalPath(file: File): String {
