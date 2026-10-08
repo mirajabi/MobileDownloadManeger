@@ -2,7 +2,7 @@
 
 [![JitPack](https://www.jitpack.io/v/mirajabi/MobileDownloadManeger.svg)](https://www.jitpack.io/#mirajabi/MobileDownloadManeger)
 
-Android library for large file downloads: parallel ranges, pause and resume, a foreground notification, and a schedule that survives process death. The current release is `v1.3.6`. Minimum SDK is 23.
+Android library for large file downloads: parallel ranges, pause and resume, a foreground notification, and a schedule that survives process death. The current release is `v1.3.7`. Minimum SDK is 23.
 
 The host app keeps ownership of extraction, package identity, and installation. The library downloads a file and can optionally open the system installer. It does not install a package by itself.
 
@@ -18,7 +18,7 @@ repositories {
 
 ```kotlin
 dependencies {
-    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.6")
+    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.7")
 }
 ```
 
@@ -32,7 +32,7 @@ repositories {
 
 ```groovy
 dependencies {
-    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.6'
+    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.7'
 }
 ```
 
@@ -48,7 +48,7 @@ Each tag is built and unit-tested on GitHub Actions, then the output is attached
 | `fetch-<tag>.apk` | The Fetch sample, debug-signed so it can be installed |
 | `SHA256SUMS` | Checksums of those files |
 
-The current files are on the [v1.3.6 release](https://github.com/mirajabi/MobileDownloadManeger/releases/tag/v1.3.6).
+The current files are on the [v1.3.7 release](https://github.com/mirajabi/MobileDownloadManeger/releases/tag/v1.3.7).
 
 ## Read the guide
 
@@ -85,6 +85,10 @@ Run the `showcase` module from Android Studio. The [guide](https://mirajabi.gith
 
 ## Changelog
 
+### v1.3.7
+
+JitPack can build the tag again. Its image points `JAVA_HOME` at `/usr/lib/jvm/jdk-11` and does not let the build user create that directory, so Gradle never started. Temurin 11 is installed under the home directory, and the wrapper uses it when the exported home has no `java`. The published coordinates follow the tag JitPack requests.
+
 ### v1.3.6
 
 `resume` continues a failed download from its recovery record. A new enqueue of that id still starts at byte zero, and reboot still does not auto-start a failure. The guide walks the Fetch sample from process start through the queue, clipboard offer, and home-screen widget.
@@ -106,6 +110,6 @@ Interrupted downloads continue from the last checkpoint. A ranged response is ke
 | | |
 |---|---|
 | minSdk | 23 |
-| Artifact | `com.github.mirajabi:MobileDownloadManeger:v1.3.6` |
+| Artifact | `com.github.mirajabi:MobileDownloadManeger:v1.3.7` |
 | Foreground service type | `dataSync` |
 | Periodic schedule floor | 15 minutes |

@@ -11,8 +11,11 @@ plugins {
     id("maven-publish")
 }
 
-group = "com.github.mirajabi"
-version = "1.0.0"
+// Local builds stay on 1.0.0. JitPack passes -Pgroup and -Pversion for the tag,
+// and those must be the coordinates it later looks up. Reading them from the
+// start parameters keeps an explicit assignment in this file from wiping the tag.
+group = gradle.startParameter.projectProperties["group"] ?: "com.github.mirajabi"
+version = gradle.startParameter.projectProperties["version"] ?: "1.0.0"
 
 configure<LibraryExtension> {
     compileSdkVersion(30)
@@ -61,7 +64,7 @@ afterEvaluate {
         publications {
             create<MavenPublication>("release") {
                 groupId = group.toString()
-                artifactId = "mobile-download-manager"
+                artifactId = "MobileDownloadManeger"
                 version = project.version.toString()
                 from(components["release"])
             }

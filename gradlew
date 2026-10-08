@@ -82,6 +82,15 @@ esac
 
 CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
 
+# JitPack points JAVA_HOME at /usr/lib/jvm/jdk-11, which the image does not
+# contain and the build user cannot create. ensure-jdk11.sh installs Temurin 11
+# under the home directory. Use that JDK when the exported home is unusable.
+if [ -n "$JAVA_HOME" ] ; then
+    if [ ! -x "$JAVA_HOME/bin/java" ] && [ -x "$HOME/.jitpack-jdk11/bin/java" ] ; then
+        JAVA_HOME="$HOME/.jitpack-jdk11"
+        export JAVA_HOME
+    fi
+fi
 
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then

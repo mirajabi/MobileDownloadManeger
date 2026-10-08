@@ -179,7 +179,7 @@
 </head>
 <body data-lang="kotlin">
 <header>
-  <a class="brand" href="#top">Mobile Download Manager<small>v1.3.6 · Fetch course, then the library</small></a>
+  <a class="brand" href="#top">Mobile Download Manager<small>v1.3.7 · Fetch course, then the library</small></a>
   <div class="switch" role="group" aria-label="Language">
     <button type="button" id="kotlin" aria-pressed="true">Kotlin</button>
     <button type="button" id="java" aria-pressed="false">Java</button>
@@ -286,7 +286,7 @@
     <p class="path">showcase/build.gradle.kts</p>
     <p>The Gradle module is <code>:showcase</code>. Its application id is <code>com.miaadrajabi.fetch</code>, the launcher name is Fetch, and <code>minSdk</code> is 23, the same floor as the library. Inside this repository the app depends on the library as a project module:</p>
     <pre class="sample">implementation(project(":downloader"))</pre>
-    <p>An app that is not this repository uses the published coordinate instead. That coordinate is <code>com.github.mirajabi:MobileDownloadManeger:v1.3.6</code>. Fetch never reaches into library internals. If a screen needs a download, it asks <code>DownloadDesk</code>.</p>
+    <p>An app that is not this repository uses the published coordinate instead. That coordinate is <code>com.github.mirajabi:MobileDownloadManeger:v1.3.7</code>. Fetch never reaches into library internals. If a screen needs a download, it asks <code>DownloadDesk</code>.</p>
     <p>The host still owns extraction and install. Fetch can open the system installer only when the engine switch <code>promptInstaller</code> is on. The library default, and the Fetch default, is off. An <code>.apkm</code> bundle is not an installable APK, so leaving that switch off is the right choice for a bundle.</p>
     <div class="shots">
       <figure>
@@ -994,14 +994,14 @@ onStop = { item ->
 
   <article id="s1">
     <h2><span>1</span>Add the library</h2>
-    <p>Put JitPack in the repository list, then depend on tag <code>v1.3.6</code>.</p>
+    <p>Put JitPack in the repository list, then depend on tag <code>v1.3.7</code>.</p>
     <p class="lang-label kotlin">Kotlin</p>
     <pre class="kotlin">repositories {
     maven("https://jitpack.io")
 }
 
 dependencies {
-    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.6")
+    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.7")
 }</pre>
     <p class="lang-label java">Java / Groovy</p>
     <pre class="java">repositories {
@@ -1009,7 +1009,7 @@ dependencies {
 }
 
 dependencies {
-    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.6'
+    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.7'
 }</pre>
   </article>
 
