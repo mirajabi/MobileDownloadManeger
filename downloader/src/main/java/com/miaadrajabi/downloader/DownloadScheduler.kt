@@ -4,8 +4,11 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.util.Log
+import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -42,7 +45,7 @@ internal class DownloadScheduler(
             context,
             requestId.hashCode(),
             Intent(context, DownloadAlarmReceiver::class.java),
-            PendingIntent.FLAG_NO_CREATE
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
         )
         pendingIntent?.let {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -53,11 +56,18 @@ internal class DownloadScheduler(
     }
 
     private fun schedulePeriodic(request: DownloadRequest) {
-        val interval = schedulerConfig.periodicIntervalMinutes ?: return
+        val requested = schedulerConfig.periodicIntervalMinutes ?: return
+        val interval = requested.coerceAtLeast(MIN_PERIODIC_INTERVAL_MINUTES)
+        if (interval != requested) {
+            Log.w(
+                TAG,
+                "Periodic interval of $requested minutes is below the WorkManager minimum; using $interval minutes"
+            )
+        }
         val data = DownloadRequestAdapter.toData(request)
         val workRequest = PeriodicWorkRequestBuilder<ScheduledDownloadWorker>(
             interval, TimeUnit.MINUTES
-        ).setInputData(data).build()
+        ).setInputData(data).setConstraints(connectedConstraint()).build()
         workManager.enqueueUniquePeriodicWork(
             uniqueWorkName(request.id),
             ExistingPeriodicWorkPolicy.REPLACE,
@@ -70,6 +80,7 @@ internal class DownloadScheduler(
         val delay = triggerAt - System.currentTimeMillis()
         val builder = OneTimeWorkRequestBuilder<ScheduledDownloadWorker>()
             .setInputData(DownloadRequestAdapter.toData(request))
+            .setConstraints(connectedConstraint())
         if (delay > 0) {
             builder.setInitialDelay(delay, TimeUnit.MILLISECONDS)
         }
@@ -89,14 +100,29 @@ internal class DownloadScheduler(
             context,
             request.id.hashCode(),
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        if (schedulerConfig.allowWhileIdle) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
-        } else {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+        try {
+            if (schedulerConfig.allowWhileIdle) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+            }
+        } catch (error: SecurityException) {
+            Log.w(TAG, "Exact alarm was not permitted; scheduling an inexact alarm", error)
+            if (schedulerConfig.allowWhileIdle) {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+            }
         }
+    }
+
+    private fun connectedConstraint(): Constraints {
+        return Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
     }
 
     private fun computeTriggerMillis(time: ScheduleTime): Long {
@@ -141,5 +167,10 @@ internal class DownloadScheduler(
     private fun uniqueWorkName(requestId: String) = "${ScheduledDownloadWorker.UNIQUE_WORK_PREFIX}$requestId"
 
     private fun oneTimeWorkName(requestId: String) = "one-time-$requestId"
+
+    private companion object {
+        private const val TAG = "DownloadScheduler"
+        private const val MIN_PERIODIC_INTERVAL_MINUTES = 15L
+    }
 }
 

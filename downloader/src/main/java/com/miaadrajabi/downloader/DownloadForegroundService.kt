@@ -303,9 +303,10 @@ class DownloadForegroundService : Service() {
          */
         @JvmStatic
         fun configureService(context: Context, configure: DownloadManagerBuilder.() -> Unit) {
+            val previousManager = DownloadManagerRegistry.manager
+            val previousHelper = DownloadNotificationRegistry.helper
             val tempManager = MobileDownloadManager.create(context, configure)
-            // Configuration is automatically saved by MobileDownloadManager.create()
-            // The saved config will be loaded when DownloadForegroundService starts
+            tempManager.discardKeeping(previousManager, previousHelper)
         }
 
         @JvmStatic
@@ -334,6 +335,10 @@ class DownloadForegroundService : Service() {
 
         @JvmStatic
         fun pauseDownload(context: Context, handleId: String) {
+            val manager = DownloadManagerRegistry.manager
+            if (manager != null && manager.pause(handleId)) {
+                return
+            }
             ContextCompat.startForegroundService(context, Intent(context, DownloadForegroundService::class.java).apply {
                 action = ACTION_PAUSE
                 putExtra(EXTRA_HANDLE_ID, handleId)
@@ -342,6 +347,10 @@ class DownloadForegroundService : Service() {
 
         @JvmStatic
         fun resumeDownload(context: Context, handleId: String) {
+            val manager = DownloadManagerRegistry.manager
+            if (manager != null && manager.resume(handleId)) {
+                return
+            }
             ContextCompat.startForegroundService(context, Intent(context, DownloadForegroundService::class.java).apply {
                 action = ACTION_RESUME
                 putExtra(EXTRA_HANDLE_ID, handleId)
@@ -360,6 +369,10 @@ class DownloadForegroundService : Service() {
 
         @JvmStatic
         fun stopDownload(context: Context, handleId: String) {
+            val manager = DownloadManagerRegistry.manager
+            if (manager != null && manager.stop(handleId)) {
+                return
+            }
             ContextCompat.startForegroundService(context, Intent(context, DownloadForegroundService::class.java).apply {
                 action = ACTION_STOP
                 putExtra(EXTRA_HANDLE_ID, handleId)

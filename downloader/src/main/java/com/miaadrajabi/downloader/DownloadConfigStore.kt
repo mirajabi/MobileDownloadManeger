@@ -253,6 +253,10 @@ internal object DownloadConfigStore {
         put("fileName", fileName)
         put("destination", destination.toJson())
         put("headers", JSONObject(headers))
+        if (expectedChecksum != null) {
+            put("expectedChecksum", expectedChecksum)
+        }
+        put("checksumAlgorithm", checksumAlgorithm.name)
     }
 
     private fun JSONObject.toDownloadRequest(): DownloadRequest {
@@ -267,12 +271,25 @@ internal object DownloadConfigStore {
         headersJson.keys().forEach { key ->
             headers[key] = headersJson.getString(key)
         }
+        val checksum = if (has("expectedChecksum") && !isNull("expectedChecksum")) {
+            getString("expectedChecksum")
+        } else {
+            null
+        }
+        val algorithm = if (has("checksumAlgorithm") && !isNull("checksumAlgorithm")) {
+            runCatching { ChecksumAlgorithm.valueOf(getString("checksumAlgorithm")) }
+                .getOrDefault(ChecksumAlgorithm.SHA256)
+        } else {
+            ChecksumAlgorithm.SHA256
+        }
         return DownloadRequest(
             id = getString("id"),
             url = getString("url"),
             fileName = getString("fileName"),
             destination = destination,
-            headers = headers
+            headers = headers,
+            expectedChecksum = checksum,
+            checksumAlgorithm = algorithm
         )
     }
 

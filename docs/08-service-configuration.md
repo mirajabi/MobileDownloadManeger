@@ -202,6 +202,14 @@ DownloadForegroundService.enqueueDownload(context, request)
 
 Call `configureService()` before the first command. The startup notification does not depend on that saved configuration, so a missing or slow config read cannot produce `Context.startForegroundService() did not then call Service.startForeground()`.
 
+## Pause, schedule, and resume (v1.3.2)
+
+Notification Pause and Stop reach the live manager first. A cancelled OkHttp call is not retried as a network error, so Pause stays paused and Stop stays stopped.
+
+WorkManager and AlarmManager hand the request to the foreground service. Alarm pending intents are immutable. If an exact alarm is not permitted, an inexact alarm is scheduled instead. Periodic work requires a connected network, and an interval below 15 minutes is raised to 15. If Android refuses the foreground start, that one worker or receiver runs the download to completion and then puts the previous manager back.
+
+`expectedChecksum` and `checksumAlgorithm` are stored on the WorkManager request, the alarm intent, and the pause file. Pause files written before v1.3.2 still load, with no checksum invented for them. The pause file is removed when the download completes, when integrity validation deletes the file, or when the user stops it. Starting a resume does not delete it. A second enqueue of an active id returns the existing handle. A second enqueue of a paused id resumes it. A ranged response other than 206 is not written at a nonzero offset.
+
 ## See Also
 
 - [Configuration Documentation](01-configuration.md)

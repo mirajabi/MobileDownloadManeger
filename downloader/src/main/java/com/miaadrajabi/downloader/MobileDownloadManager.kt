@@ -6,6 +6,7 @@ import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +14,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.OkHttpClient
@@ -40,6 +42,11 @@ class MobileDownloadManager private constructor(
     private val httpClient = OkHttpClient()
     private val chunkedDownloader = ChunkedDownloader(httpClient)
     private val activeDownloads = AtomicInteger(0)
+    private val trackedIds = ConcurrentHashMap.newKeySet<String>()
+    private val reservedIds = ConcurrentHashMap.newKeySet<String>()
+    private val terminalSuccess = ConcurrentHashMap<String, Boolean>()
+    private val suppressFinish = ConcurrentHashMap.newKeySet<String>()
+    private val sessionLock = Any()
 
     init {
         DownloadNotificationRegistry.helper = notificationHelper
@@ -89,47 +96,63 @@ class MobileDownloadManager private constructor(
      * 4. Adds a new download request to the active queue and starts transfer immediately.
      */
     fun enqueue(request: DownloadRequest): DownloadHandle {
-        val resolution = storageResolver.resolve(request)
-        pendingDestinations[request.id] = resolution
-
-        activeDownloads.incrementAndGet()
-
-        val handle = DownloadHandle(
-            id = request.id,
-            source = request.url
-        )
-
-        listeners.forEach { it.onQueued(handle) }
-        val progressTrackingListener = object : DownloadListener {
-            override fun onProgress(handle: DownloadHandle, progress: DownloadProgress) {
-                lastProgress[handle.id] = progress.bytesDownloaded
+        synchronized(sessionLock) {
+            if (activeSessions.containsKey(request.id) || !reservedIds.add(request.id)) {
+                return DownloadHandle(id = request.id, source = request.url)
+            }
+            if (pausedStates.containsKey(request.id) && resume(request.id)) {
+                reservedIds.remove(request.id)
+                return DownloadHandle(id = request.id, source = request.url)
             }
         }
-        chunkStateSnapshots.remove(handle.id)
-        val chunkStateUpdater: (ChunkStateData) -> Unit = { state ->
-            val map = chunkStateSnapshots.getOrPut(handle.id) { ConcurrentHashMap() }
-            map[state.index] = state
-        }
-        val session = DownloadSession(request, resolution, Job(), CallTracker())
-        val job = scope.launch(session.job) {
-            runDownloadWithRetry(
-                request,
-                handle,
-                resolution,
-                startOffset = 0L,
-                callTracker = session.callTracker,
-                extraListeners = listOf(progressTrackingListener),
-                existingChunkStates = emptyList(),
-                chunkStateUpdater = chunkStateUpdater
+        var published = false
+        try {
+            val resolution = storageResolver.resolve(request)
+            pendingDestinations[request.id] = resolution
+            trackDownload(request.id)
+
+            val handle = DownloadHandle(
+                id = request.id,
+                source = request.url
             )
-        }
-        activeSessions[handle.id] = session.copy(job = job)
-        job.invokeOnCompletion {
-            activeSessions.remove(handle.id)
-            lastProgress.remove(handle.id)
+
+            listeners.forEach { it.onQueued(handle) }
+            val progressTrackingListener = object : DownloadListener {
+                override fun onProgress(handle: DownloadHandle, progress: DownloadProgress) {
+                    lastProgress[handle.id] = progress.bytesDownloaded
+                }
+            }
             chunkStateSnapshots.remove(handle.id)
+            val chunkStateUpdater: (ChunkStateData) -> Unit = { state ->
+                val map = chunkStateSnapshots.getOrPut(handle.id) { ConcurrentHashMap() }
+                map[state.index] = state
+            }
+            val session = DownloadSession(request, resolution, Job(), CallTracker())
+            val job = scope.launch(session.job) {
+                runDownloadWithRetry(
+                    request,
+                    handle,
+                    resolution,
+                    startOffset = 0L,
+                    callTracker = session.callTracker,
+                    extraListeners = listOf(progressTrackingListener),
+                    existingChunkStates = emptyList(),
+                    chunkStateUpdater = chunkStateUpdater,
+                    resumeSnapshot = null
+                )
+            }
+            activeSessions[handle.id] = session.copy(job = job)
+            watchSession(handle.id, job)
+            published = true
+            return handle
+        } catch (error: Throwable) {
+            if (!published) {
+                markDownloadFinished(request.id)
+            }
+            throw error
+        } finally {
+            reservedIds.remove(request.id)
         }
-        return handle
     }
 
     /**
@@ -164,31 +187,43 @@ class MobileDownloadManager private constructor(
      * 9. Attempts to pause an in-flight download. Returns true if a job was cancelled.
      */
     fun pause(handleId: String): Boolean {
-        val session = activeSessions[handleId] ?: return false
-        val chunkStates = currentChunkStates(handleId)
-        val completedBytes = if (chunkStates.isNotEmpty()) {
-            chunkStates.totalCompletedBytes()
-        } else {
-            lastProgress[handleId] ?: session.resolution.file.length()
+        val session = synchronized(sessionLock) {
+            val current = activeSessions[handleId] ?: return false
+            // Keep the active count until resume or stop. The completion handler must not
+            // treat this pause as a finished download.
+            suppressFinish.add(handleId)
+            val chunkStates = currentChunkStates(handleId)
+            val completedBytes = if (chunkStates.isNotEmpty()) {
+                chunkStates.totalCompletedBytes()
+            } else {
+                lastProgress[handleId] ?: current.resolution.file.length()
+            }
+            pausedStates[handleId] = PausedState(
+                request = current.request,
+                resolution = current.resolution,
+                completedBytes = completedBytes,
+                chunkStates = chunkStates
+            )
+            activeSessions.remove(handleId)
+            current
         }
-        pausedStates[handleId] = PausedState(
-            request = session.request,
-            resolution = session.resolution,
-            completedBytes = completedBytes,
-            chunkStates = chunkStates
-        )
-        DownloadConfigStore.savePausedState(
-            appContext,
-            handleId,
-            session.request,
-            session.resolution,
-            completedBytes,
-            chunkStates
-        )
+        val paused = pausedStates[handleId]
+        if (paused != null) {
+            DownloadConfigStore.savePausedState(
+                appContext,
+                handleId,
+                paused.request,
+                paused.resolution,
+                paused.completedBytes,
+                paused.chunkStates
+            )
+        }
         val handle = DownloadHandle(handleId, session.request.url)
         session.job.cancel(CancellationException("Paused by user"))
         session.callTracker.cancelAll()
-        listeners.forEach { it.onPaused(handle) }
+        if (activeSessions[handleId] == null) {
+            listeners.forEach { it.onPaused(handle) }
+        }
         return true
     }
 
@@ -196,46 +231,49 @@ class MobileDownloadManager private constructor(
      * 10. Resumes a paused download from the last saved offset.
      */
     fun resume(handleId: String): Boolean {
-        val paused = pausedStates.remove(handleId) ?: return false
-        DownloadConfigStore.removePausedState(appContext, handleId)
-        val handle = DownloadHandle(id = paused.request.id, source = paused.request.url)
-        val progressTrackingListener = object : DownloadListener {
-            override fun onProgress(handle: DownloadHandle, progress: DownloadProgress) {
-                lastProgress[handle.id] = progress.bytesDownloaded
+        val handle = synchronized(sessionLock) {
+            if (activeSessions.containsKey(handleId)) return false
+            val paused = pausedStates.remove(handleId) ?: return false
+            // The paused record stays on disk until the download completes, so a process
+            // death during resume can restore the same offset.
+            trackDownload(handleId)
+            val started = DownloadHandle(id = paused.request.id, source = paused.request.url)
+            val progressTrackingListener = object : DownloadListener {
+                override fun onProgress(handle: DownloadHandle, progress: DownloadProgress) {
+                    lastProgress[handle.id] = progress.bytesDownloaded
+                }
             }
+            val chunkStates = paused.chunkStates
+            val resumeBytes = if (chunkStates.isNotEmpty()) {
+                chunkStates.totalCompletedBytes()
+            } else {
+                paused.completedBytes
+            }
+            lastProgress[handleId] = resumeBytes
+            chunkStateSnapshots[handleId] = chunkStates.associateBy { it.index }.toMutableMap()
+            val chunkStateUpdater: (ChunkStateData) -> Unit = { state ->
+                val map = chunkStateSnapshots.getOrPut(handleId) { ConcurrentHashMap() }
+                map[state.index] = state
+            }
+            val session = DownloadSession(paused.request, paused.resolution, Job(), CallTracker())
+            val job = scope.launch(session.job) {
+                runDownloadWithRetry(
+                    paused.request,
+                    started,
+                    paused.resolution,
+                    startOffset = resumeBytes,
+                    callTracker = session.callTracker,
+                    extraListeners = listOf(progressTrackingListener),
+                    existingChunkStates = chunkStates,
+                    chunkStateUpdater = chunkStateUpdater,
+                    resumeSnapshot = paused
+                )
+            }
+            activeSessions[handleId] = session.copy(job = job)
+            watchSession(handleId, job)
+            started
         }
-        val chunkStates = paused.chunkStates
-        val resumeBytes = if (chunkStates.isNotEmpty()) {
-            chunkStates.totalCompletedBytes()
-        } else {
-            paused.completedBytes
-        }
-        lastProgress[handleId] = resumeBytes
-        chunkStateSnapshots[handleId] = chunkStates.associateBy { it.index }.toMutableMap()
-        val chunkStateUpdater: (ChunkStateData) -> Unit = { state ->
-            val map = chunkStateSnapshots.getOrPut(handleId) { ConcurrentHashMap() }
-            map[state.index] = state
-        }
-        val session = DownloadSession(paused.request, paused.resolution, Job(), CallTracker())
-        val job = scope.launch(session.job) {
-            runDownloadWithRetry(
-                paused.request,
-                handle,
-                paused.resolution,
-                startOffset = resumeBytes,
-                callTracker = session.callTracker,
-                extraListeners = listOf(progressTrackingListener),
-                existingChunkStates = chunkStates,
-                chunkStateUpdater = chunkStateUpdater
-            )
-        }
-        activeSessions[handleId] = session.copy(job = job)
         listeners.forEach { it.onResumed(handle) }
-        job.invokeOnCompletion {
-            activeSessions.remove(handleId)
-            lastProgress.remove(handleId)
-            chunkStateSnapshots.remove(handleId)
-        }
         return true
     }
 
@@ -243,27 +281,31 @@ class MobileDownloadManager private constructor(
      * 11. Stops and forgets an active/paused download entirely.
      */
     fun stop(handleId: String): Boolean {
-        val session = activeSessions.remove(handleId)
-        if (session != null) {
-            pausedStates.remove(handleId)
+        val stopped = synchronized(sessionLock) {
+            val session = activeSessions.remove(handleId)
+            val paused = pausedStates.remove(handleId)
+            if (session == null && paused == null) {
+                return false
+            }
+            suppressFinish.remove(handleId)
             pendingDestinations.remove(handleId)
             chunkStateSnapshots.remove(handleId)
-            DownloadConfigStore.removePausedState(appContext, handleId)
+            session to paused
+        }
+        DownloadConfigStore.removePausedState(appContext, handleId)
+        val session = stopped.first
+        val paused = stopped.second
+        if (session != null) {
             session.callTracker.cancelAll()
             session.job.cancel(CancellationException("Stopped by user"))
             return true
         }
-
-        val paused = pausedStates.remove(handleId)
         if (paused != null) {
-            pendingDestinations.remove(handleId)
-            chunkStateSnapshots.remove(handleId)
-            DownloadConfigStore.removePausedState(appContext, handleId)
             listeners.forEach { it.onCancelled(DownloadHandle(handleId, paused.request.url)) }
-            markDownloadFinished()
+            terminalSuccess[handleId] = true
+            markDownloadFinished(handleId)
             return true
         }
-
         return false
     }
 
@@ -283,6 +325,50 @@ class MobileDownloadManager private constructor(
         notificationHelper.clearPendingUpdates()
     }
 
+    /**
+     * Runs the request on this manager and waits until it completes, pauses, or stops.
+     * Returns false only when the transfer failed after its own retries. User pause and
+     * user stop return true so a scheduler does not start the same download again.
+     */
+    internal suspend fun enqueueAndAwait(request: DownloadRequest): Boolean {
+        enqueue(request)
+        activeSessions[request.id]?.job?.join()
+        return terminalSuccess.remove(request.id) ?: true
+    }
+
+    /**
+     * Drops this temporary manager without clearing a manager that was already in use.
+     */
+    internal fun discardKeeping(
+        previousManager: MobileDownloadManager?,
+        previousHelper: DownloadNotificationHelper?
+    ) {
+        scope.coroutineContext.cancel()
+        if (DownloadManagerRegistry.manager === this) {
+            DownloadManagerRegistry.manager = previousManager
+        }
+        if (DownloadNotificationRegistry.helper === notificationHelper) {
+            DownloadNotificationRegistry.helper = previousHelper
+        }
+    }
+
+    private fun watchSession(handleId: String, job: Job) {
+        job.invokeOnCompletion {
+            activeSessions.remove(handleId)
+            lastProgress.remove(handleId)
+            chunkStateSnapshots.remove(handleId)
+            if (!suppressFinish.remove(handleId)) {
+                markDownloadFinished(handleId)
+            }
+        }
+    }
+
+    private fun trackDownload(handleId: String) {
+        if (trackedIds.add(handleId)) {
+            activeDownloads.incrementAndGet()
+        }
+    }
+
     private suspend fun runDownloadWithRetry(
         request: DownloadRequest,
         handle: DownloadHandle,
@@ -291,135 +377,210 @@ class MobileDownloadManager private constructor(
         callTracker: CallTracker? = null,
         extraListeners: List<DownloadListener> = emptyList(),
         existingChunkStates: List<ChunkStateData> = emptyList(),
-        chunkStateUpdater: ((ChunkStateData) -> Unit)? = null
+        chunkStateUpdater: ((ChunkStateData) -> Unit)? = null,
+        resumeSnapshot: PausedState? = null
     ) {
         val policy = config.retryPolicy
         var attempt = 1
         var delayMs = policy.initialDelayMillis
-        var shouldFinalize = true
         var plannedChunkStates = existingChunkStates
         var currentStartOffset = startOffset
-        try {
-            while (attempt <= policy.maxAttempts) {
-                try {
-                    val allListeners = listeners + extraListeners
-                    allListeners.forEach { it.onStarted(handle) }
-                    val downloadResult = chunkedDownloader.download(
-                        request,
-                        resolution,
-                        handle,
-                        config,
-                        allListeners,
-                        currentStartOffset,
-                        callTracker,
-                        plannedChunkStates,
-                        chunkStateUpdater
+        terminalSuccess.remove(handle.id)
+        fun noteInterrupt(coroutineActive: Boolean): DownloadInterrupt {
+            val interrupt = classifyDownloadInterrupt(
+                coroutineActive,
+                pausedStates.containsKey(handle.id),
+                activeSessions.containsKey(handle.id)
+            )
+            if (interrupt == DownloadInterrupt.StoppedByUser) {
+                listeners.forEach { it.onCancelled(handle) }
+                terminalSuccess[handle.id] = true
+            }
+            return interrupt
+        }
+        while (attempt <= policy.maxAttempts) {
+            try {
+                val allListeners = listeners + extraListeners
+                allListeners.forEach { it.onStarted(handle) }
+                val downloadResult = chunkedDownloader.download(
+                    request,
+                    resolution,
+                    handle,
+                    config,
+                    allListeners,
+                    currentStartOffset,
+                    callTracker,
+                    plannedChunkStates,
+                    chunkStateUpdater
+                )
+
+                if (config.integrity.verifyFileSize ||
+                    config.integrity.verifyChecksum ||
+                    config.integrity.verifyApkStructure ||
+                    config.integrity.verifyContentType ||
+                    config.integrity.verifyApkSignature) {
+
+                    val integrityResult = FileIntegrityVerifier.verifyFile(
+                        file = resolution.file,
+                        config = config.integrity,
+                        request = request,
+                        expectedSize = downloadResult.totalBytes,
+                        contentType = downloadResult.contentType,
+                        context = appContext
                     )
-                    
-                    // Perform integrity validation if configured
-                    if (config.integrity.verifyFileSize || 
-                        config.integrity.verifyChecksum || 
-                        config.integrity.verifyApkStructure ||
-                        config.integrity.verifyContentType ||
-                        config.integrity.verifyApkSignature) {
-                        
-                        val integrityResult = FileIntegrityVerifier.verifyFile(
-                            file = resolution.file,
-                            config = config.integrity,
-                            request = request,
-                            expectedSize = downloadResult.totalBytes,
-                            contentType = downloadResult.contentType,
-                            context = appContext
-                        )
-                        
-                        if (!integrityResult.isValid) {
-                            val errorMessage = "File integrity validation failed: ${integrityResult.errors.joinToString(", ")}"
-                            Log.e("MobileDownloadManager", errorMessage)
-                            
-                            // Delete corrupted file before throwing exception
-                            if (resolution.file.exists()) {
-                                val deleted = resolution.file.delete()
-                                if (deleted) {
-                                    Log.d("MobileDownloadManager", "Deleted corrupted file: ${resolution.file.absolutePath}")
-                                } else {
-                                    Log.w("MobileDownloadManager", "Failed to delete corrupted file: ${resolution.file.absolutePath}")
-                                }
+
+                    if (!integrityResult.isValid) {
+                        val errorMessage = "File integrity validation failed: ${integrityResult.errors.joinToString(", ")}"
+                        Log.e("MobileDownloadManager", errorMessage)
+
+                        if (resolution.file.exists()) {
+                            val deleted = resolution.file.delete()
+                            if (deleted) {
+                                Log.d("MobileDownloadManager", "Deleted corrupted file: ${resolution.file.absolutePath}")
+                            } else {
+                                Log.w("MobileDownloadManager", "Failed to delete corrupted file: ${resolution.file.absolutePath}")
                             }
-                            
-                            // Clear chunk states for retry from start
-                            chunkStateSnapshots.remove(handle.id)
-                            lastProgress.remove(handle.id)
-                            
-                            throw IntegrityValidationException(
-                                message = errorMessage,
-                                errors = integrityResult.errors,
-                                file = resolution.file
-                            )
                         }
-                    }
-                    
-                    if (config.installer.promptOnCompletion) {
-                        DownloadInstaller.maybePromptInstall(appContext, resolution.file, config.installer)
-                    }
-                    listeners.forEach { it.onCompleted(handle) }
-                    pendingDestinations.remove(handle.id)
-                    return
-                } catch (error: IntegrityValidationException) {
-                    // Integrity error: file already deleted, retry from start
-                    if (attempt >= policy.maxAttempts) {
-                        listeners.forEach { it.onFailed(handle, error) }
-                        pendingDestinations.remove(handle.id)
-                        return
-                    } else {
-                        listeners.forEach { it.onRetry(handle, attempt) }
-                        // Reset states for retry from start (not resume)
-                        plannedChunkStates = emptyList()
-                        currentStartOffset = 0L
+
                         chunkStateSnapshots.remove(handle.id)
                         lastProgress.remove(handle.id)
-                        delay(delayMs)
-                        delayMs = (delayMs * policy.backoffMultiplier).toLong().coerceAtLeast(1_000L)
-                        attempt++
+
+                        throw IntegrityValidationException(
+                            message = errorMessage,
+                            errors = integrityResult.errors,
+                            file = resolution.file
+                        )
                     }
-                } catch (error: IOException) {
-                    // Network error: keep file and resume from last position
-                    if (attempt >= policy.maxAttempts) {
-                        listeners.forEach { it.onFailed(handle, error) }
-                        pendingDestinations.remove(handle.id)
-                        return
-                    } else {
-                        listeners.forEach { it.onRetry(handle, attempt) }
-                        // Resume from last position for network errors
-                        plannedChunkStates = currentChunkStates(handle.id)
-                        // Update startOffset based on current progress
-                        val lastProgressBytes = lastProgress[handle.id] ?: 0L
-                        currentStartOffset = if (lastProgressBytes > 0) lastProgressBytes else currentStartOffset
-                        delay(delayMs)
-                        delayMs = (delayMs * policy.backoffMultiplier).toLong().coerceAtLeast(1_000L)
-                        attempt++
-                    }
-                } catch (cancel: CancellationException) {
-                    val paused = pausedStates.containsKey(handle.id)
-                    if (!paused) {
-                        listeners.forEach { it.onCancelled(handle) }
-                    }
-                    shouldFinalize = !paused
-                    return
-                } catch (error: Throwable) {
+                }
+
+                if (config.installer.promptOnCompletion) {
+                    DownloadInstaller.maybePromptInstall(appContext, resolution.file, config.installer)
+                }
+                listeners.forEach { it.onCompleted(handle) }
+                pendingDestinations.remove(handle.id)
+                pausedStates.remove(handle.id)
+                DownloadConfigStore.removePausedState(appContext, handle.id)
+                terminalSuccess[handle.id] = true
+                return
+            } catch (error: IntegrityValidationException) {
+                pausedStates.remove(handle.id)
+                DownloadConfigStore.removePausedState(appContext, handle.id)
+                if (attempt >= policy.maxAttempts) {
                     listeners.forEach { it.onFailed(handle, error) }
                     pendingDestinations.remove(handle.id)
+                    terminalSuccess[handle.id] = false
+                    return
+                } else {
+                    listeners.forEach { it.onRetry(handle, attempt) }
+                    plannedChunkStates = emptyList()
+                    currentStartOffset = 0L
+                    chunkStateSnapshots.remove(handle.id)
+                    lastProgress.remove(handle.id)
+                    if (!delayUnlessInterrupted(delayMs) { noteInterrupt(it) }) {
+                        return
+                    }
+                    delayMs = (delayMs * policy.backoffMultiplier).toLong().coerceAtLeast(1_000L)
+                    attempt++
+                }
+            } catch (error: IOException) {
+                val interrupt = noteInterrupt(coroutineContext.isActive)
+                if (interrupt != DownloadInterrupt.ContinueRetry) {
                     return
                 }
-            }
-        } finally {
-            if (shouldFinalize) {
-                markDownloadFinished()
+                if (attempt >= policy.maxAttempts) {
+                    listeners.forEach { it.onFailed(handle, error) }
+                    pendingDestinations.remove(handle.id)
+                    terminalSuccess[handle.id] = false
+                    retainPauseForRetry(handle, request, resolution, resumeSnapshot)
+                    return
+                } else {
+                    listeners.forEach { it.onRetry(handle, attempt) }
+                    plannedChunkStates = currentChunkStates(handle.id)
+                    val lastProgressBytes = lastProgress[handle.id] ?: 0L
+                    currentStartOffset = if (lastProgressBytes > 0) lastProgressBytes else currentStartOffset
+                    if (!delayUnlessInterrupted(delayMs) { noteInterrupt(it) }) {
+                        return
+                    }
+                    delayMs = (delayMs * policy.backoffMultiplier).toLong().coerceAtLeast(1_000L)
+                    attempt++
+                }
+            } catch (cancel: CancellationException) {
+                noteInterrupt(coroutineContext.isActive)
+                return
+            } catch (error: Throwable) {
+                listeners.forEach { it.onFailed(handle, error) }
+                pendingDestinations.remove(handle.id)
+                terminalSuccess[handle.id] = false
+                retainPauseForRetry(handle, request, resolution, resumeSnapshot)
+                return
             }
         }
     }
 
-    private fun markDownloadFinished() {
-        val remaining = activeDownloads.decrementAndGet().coerceAtLeast(0)
+    private suspend fun delayUnlessInterrupted(
+        delayMs: Long,
+        noteInterrupt: (Boolean) -> DownloadInterrupt
+    ): Boolean {
+        return try {
+            delay(delayMs)
+            true
+        } catch (cancel: CancellationException) {
+            noteInterrupt(coroutineContext.isActive)
+            false
+        }
+    }
+
+    private fun retainPauseForRetry(
+        handle: DownloadHandle,
+        request: DownloadRequest,
+        resolution: StorageResolution,
+        snapshot: PausedState?
+    ) {
+        if (!resolution.file.exists()) {
+            pausedStates.remove(handle.id)
+            DownloadConfigStore.removePausedState(appContext, handle.id)
+            return
+        }
+        synchronized(sessionLock) {
+            if (pausedStates.containsKey(handle.id)) {
+                return
+            }
+        }
+        val chunkStates = currentChunkStates(handle.id)
+        val completedBytes = when {
+            chunkStates.isNotEmpty() -> chunkStates.totalCompletedBytes()
+            lastProgress[handle.id] != null -> lastProgress[handle.id] ?: 0L
+            snapshot != null -> snapshot.completedBytes
+            else -> resolution.file.length()
+        }
+        if (completedBytes <= 0L && chunkStates.isEmpty()) {
+            return
+        }
+        pausedStates[handle.id] = PausedState(
+            request = request,
+            resolution = resolution,
+            completedBytes = completedBytes,
+            chunkStates = chunkStates
+        )
+        DownloadConfigStore.savePausedState(
+            appContext,
+            handle.id,
+            request,
+            resolution,
+            completedBytes,
+            chunkStates
+        )
+    }
+
+    private fun markDownloadFinished(handleId: String) {
+        if (!trackedIds.remove(handleId)) {
+            return
+        }
+        var remaining = activeDownloads.decrementAndGet()
+        if (remaining < 0) {
+            activeDownloads.set(0)
+            remaining = 0
+        }
         if (remaining <= 0) {
             // Keep the completion or failure notification. stopService detaches the
             // service from that notification instead of dismissing the result.

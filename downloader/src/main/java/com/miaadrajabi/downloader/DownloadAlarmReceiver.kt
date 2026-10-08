@@ -3,25 +3,43 @@ package com.miaadrajabi.downloader
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import android.util.Log
+import kotlinx.coroutines.runBlocking
 
 /**
  * 1. Receives AlarmManager intents and enqueues the targeted download.
+ * The receiver stays alive until the hand-off finishes. A blocked foreground start
+ * falls back to one owned manager and waits for that download.
  */
 class DownloadAlarmReceiver : BroadcastReceiver() {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     override fun onReceive(context: Context, intent: Intent) {
         val request = DownloadRequestAdapter.fromIntent(intent) ?: return
-        scope.launch {
-            val config = DownloadConfigStore.load(context) ?: DownloadConfig()
-            val manager = MobileDownloadManager.create(context, config)
-            manager.enqueue(request)
-        }
+        val pendingResult = goAsync()
+        Thread {
+            try {
+                if (DownloadConfigStore.load(context) == null) {
+                    Log.e(TAG, "Scheduled download skipped because configureService() was not called")
+                    return@Thread
+                }
+                try {
+                    DownloadForegroundService.enqueueDownload(context, request)
+                } catch (error: RuntimeException) {
+                    if (!isForegroundStartBlocked(error)) {
+                        throw error
+                    }
+                    Log.w(TAG, "Foreground start was blocked; finishing the download in this receiver", error)
+                    runBlocking {
+                        DownloadBackgroundFallback.run(context, request)
+                    }
+                }
+            } finally {
+                pendingResult.finish()
+            }
+        }.start()
+    }
+
+    private companion object {
+        private const val TAG = "DownloadAlarmReceiver"
     }
 }
-

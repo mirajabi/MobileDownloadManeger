@@ -237,7 +237,14 @@ internal class DownloadNotificationHelper(
             action = DownloadForegroundService.ACTION_UPDATE_NOTIFICATION
             putExtra(DownloadForegroundService.EXTRA_NOTIFICATION, notification)
         }
-        ContextCompat.startForegroundService(context, intent)
+        try {
+            ContextCompat.startForegroundService(context, intent)
+        } catch (error: RuntimeException) {
+            if (!isForegroundStartBlocked(error)) {
+                throw error
+            }
+            notificationManager.notify(FOREGROUND_NOTIFICATION_ID, notification)
+        }
     }
 
     private fun baseBuilder(isOngoing: Boolean = config.persistent): NotificationCompat.Builder {

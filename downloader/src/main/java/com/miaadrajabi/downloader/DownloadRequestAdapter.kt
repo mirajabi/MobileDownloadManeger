@@ -16,6 +16,10 @@ internal object DownloadRequestAdapter {
             .putString(KEY_DESTINATION, destinationToJson(request.destination).toString())
             .putString(KEY_HEADERS, JSONObject(request.headers).toString())
             .putString(KEY_ID, request.id)
+            .putString(KEY_CHECKSUM_ALGORITHM, request.checksumAlgorithm.name)
+            .apply {
+                request.expectedChecksum?.let { putString(KEY_CHECKSUM, it) }
+            }
             .build()
     }
 
@@ -31,7 +35,9 @@ internal object DownloadRequestAdapter {
             fileName = fileName,
             destination = destination,
             id = id,
-            headers = headers
+            headers = headers,
+            expectedChecksum = data.getString(KEY_CHECKSUM),
+            checksumAlgorithm = checksumAlgorithm(data.getString(KEY_CHECKSUM_ALGORITHM))
         )
     }
 
@@ -41,6 +47,8 @@ internal object DownloadRequestAdapter {
         intent.putExtra(KEY_DESTINATION, destinationToJson(request.destination).toString())
         intent.putExtra(KEY_HEADERS, JSONObject(request.headers).toString())
         intent.putExtra(KEY_ID, request.id)
+        request.expectedChecksum?.let { intent.putExtra(KEY_CHECKSUM, it) }
+        intent.putExtra(KEY_CHECKSUM_ALGORITHM, request.checksumAlgorithm.name)
     }
 
     fun fromIntent(intent: Intent): DownloadRequest? {
@@ -55,8 +63,15 @@ internal object DownloadRequestAdapter {
             fileName = fileName,
             destination = destination,
             id = id,
-            headers = headers
+            headers = headers,
+            expectedChecksum = intent.getStringExtra(KEY_CHECKSUM),
+            checksumAlgorithm = checksumAlgorithm(intent.getStringExtra(KEY_CHECKSUM_ALGORITHM))
         )
+    }
+
+    private fun checksumAlgorithm(name: String?): ChecksumAlgorithm {
+        if (name == null) return ChecksumAlgorithm.SHA256
+        return runCatching { ChecksumAlgorithm.valueOf(name) }.getOrDefault(ChecksumAlgorithm.SHA256)
     }
 
     private fun destinationToJson(destination: DownloadDestination): JSONObject {
@@ -98,5 +113,7 @@ internal object DownloadRequestAdapter {
     private const val KEY_DESTINATION = "download_destination"
     private const val KEY_HEADERS = "download_headers"
     private const val KEY_ID = "download_id"
+    private const val KEY_CHECKSUM = "download_checksum"
+    private const val KEY_CHECKSUM_ALGORITHM = "download_checksum_algorithm"
 }
 
