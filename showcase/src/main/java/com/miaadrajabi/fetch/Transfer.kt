@@ -10,7 +10,10 @@ data class Transfer(
     val speed: Long = 0L,
     val percent: Int = -1,
     val message: String = "",
-    val whenLabel: String = ""
+    val whenLabel: String = "",
+    val title: String = "",
+    val localPath: String = "",
+    val locationUri: String = ""
 ) {
     fun host(): String {
         val rest = url.substringAfter("://", url)

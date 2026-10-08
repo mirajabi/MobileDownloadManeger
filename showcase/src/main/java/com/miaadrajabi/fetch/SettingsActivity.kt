@@ -35,17 +35,14 @@ class SettingsActivity : AppCompatActivity() {
             binding.freeValue.text = "Keep ${value.toInt()} MB free"
         }
         binding.destinationGroup.setOnCheckedChangeListener { _, checkedId ->
-            val custom = checkedId == R.id.destScoped || checkedId == R.id.destCustom
-            binding.folderLayout.visibility = if (custom) View.VISIBLE else View.GONE
-            binding.folderLayout.hint = if (checkedId == R.id.destCustom) {
-                "Absolute folder"
-            } else {
-                "Folder inside app storage"
-            }
-            refreshLanding()
+            showFolderField(checkedId)
+            lockDestinationChoices()
+        }
+        binding.publicDownloads.setOnCheckedChangeListener { _, _ ->
+            lockDestinationChoices()
         }
         binding.save.setOnClickListener { saveAndClose() }
-        refreshLanding()
+        lockDestinationChoices()
     }
 
     private fun bind(saved: EngineSettings) {
@@ -59,6 +56,7 @@ class SettingsActivity : AppCompatActivity() {
         binding.showProgress.isChecked = saved.showProgress
         binding.persistent.isChecked = saved.persistent
         binding.publicDownloads.isChecked = saved.publicDownloads
+        binding.publicFolder.setText(saved.publicFolder)
         binding.overwrite.isChecked = saved.overwrite
         binding.checkSpace.isChecked = saved.checkSpace
         binding.freeSpace.value = saved.minFreeMb.toFloat().coerceIn(1f, 512f)
@@ -103,8 +101,13 @@ class SettingsActivity : AppCompatActivity() {
             R.id.destCustom -> EngineSettings.DEST_CUSTOM
             else -> EngineSettings.DEST_AUTO
         }
-        if (destination == EngineSettings.DEST_CUSTOM && folder.isBlank()) {
-            binding.folderLayout.error = "Add a folder path, or choose another place."
+        if (destination == EngineSettings.DEST_CUSTOM && !folder.startsWith("/")) {
+            binding.folderLayout.error = "Use a full path, starting with /. A name like Fetch is not a folder on the phone."
+            return
+        }
+        val publicFolder = binding.publicFolder.text?.toString()?.trim().orEmpty()
+        if (publicFolder.contains("..") || publicFolder.startsWith("/") || publicFolder.contains("\\")) {
+            binding.publicFolderLayout.error = "Use a folder name inside Downloads, such as Fetch."
             return
         }
         val channel = binding.channel.text?.toString()?.trim().orEmpty()
@@ -121,7 +124,8 @@ class SettingsActivity : AppCompatActivity() {
             persistent = binding.persistent.isChecked,
             destination = destination,
             folder = if (folder.isBlank()) "Fetch" else folder,
-            publicDownloads = binding.publicDownloads.isChecked,
+            publicDownloads = binding.publicDownloads.isChecked && destination == EngineSettings.DEST_AUTO,
+            publicFolder = publicFolder,
             overwrite = binding.overwrite.isChecked,
             checkSpace = binding.checkSpace.isChecked,
             minFreeMb = binding.freeSpace.value.toInt(),
@@ -155,18 +159,54 @@ class SettingsActivity : AppCompatActivity() {
                 else -> EngineSettings.DEST_AUTO
             },
             folder = binding.folder.text?.toString().orEmpty().ifBlank { "Fetch" },
-            publicDownloads = binding.publicDownloads.isChecked
+            publicDownloads = binding.publicDownloads.isChecked &&
+                binding.destinationGroup.checkedChipId == R.id.destAuto,
+            publicFolder = binding.publicFolder.text?.toString().orEmpty()
         )
         binding.landing.text = friendlyPlace(DownloadDesk.previewPath(this, draft, "download.bin"))
     }
+
+    private fun showFolderField(checkedId: Int) {
+        val custom = checkedId == R.id.destScoped || checkedId == R.id.destCustom
+        binding.folderLayout.visibility = if (custom) View.VISIBLE else View.GONE
+        binding.folderLayout.hint = if (checkedId == R.id.destCustom) {
+            "Absolute folder"
+        } else {
+            "Folder inside app storage"
+        }
+    }
+
+    private fun lockDestinationChoices() {
+        if (locking) return
+        locking = true
+        val checked = binding.destinationGroup.checkedChipId
+        val specific = checked == R.id.destCustom || checked == R.id.destScoped
+        if (specific && binding.publicDownloads.isChecked) {
+            binding.publicDownloads.isChecked = false
+        }
+        val publicOn = binding.publicDownloads.isChecked && !specific
+        binding.destCustom.isEnabled = !publicOn
+        binding.destScoped.isEnabled = !publicOn
+        binding.publicDownloads.isEnabled = !specific
+        binding.publicFolderLayout.visibility = if (publicOn) View.VISIBLE else View.GONE
+        locking = false
+        refreshLanding()
+    }
+
+    private var locking = false
 
     private fun chunkLabel(count: Int): String {
         return if (count == 1) "1 connection" else "$count connections"
     }
 
     private fun friendlyPlace(path: String): String {
+        val marker = "/Download/"
+        val at = path.indexOf(marker)
+        if (at >= 0) {
+            return "Downloads / " + path.substring(at + marker.length)
+        }
         val name = path.substringAfterLast('/')
         val parent = path.substringBeforeLast('/').substringAfterLast('/')
-        return if (path.contains("/emulated/0/Download/")) "Public Downloads / $name" else "$parent / $name"
+        return "$parent / $name"
     }
 }

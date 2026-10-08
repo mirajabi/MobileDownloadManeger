@@ -136,7 +136,7 @@
 </head>
 <body data-lang="kotlin">
 <header>
-  <a class="brand" href="#top">Mobile Download Manager<small>v1.3.4 · one control switches every sample</small></a>
+  <a class="brand" href="#top">Mobile Download Manager<small>v1.3.5 · one control switches every sample</small></a>
   <div class="switch" role="group" aria-label="Language">
     <button type="button" id="kotlin" aria-pressed="true">Kotlin</button>
     <button type="button" id="java" aria-pressed="false">Java</button>
@@ -200,12 +200,16 @@
 
   <article id="fetch">
     <h2>Fetch, the sample app</h2>
-    <p>The <code>showcase</code> module is a separate app. It does not change the library. Paste one link or a whole list, then decide when it should start: now, in a few minutes, on a date, on a weekday, or on a repeat. The clock is WorkManager or AlarmManager. Chunks, the notification icon, storage, the installer prompt, and the file checks live on the engine screen.</p>
+    <p>The <code>showcase</code> module is a separate app. Paste one link or a whole list, then decide when it should start: now, in a few minutes, on a date, on a weekday, or on a repeat. The clock is WorkManager or AlarmManager. Chunks, the notification icon, storage, the installer prompt, and the file checks live on the engine screen. A finished row can copy or move the file, rename it, keep the original link, and open the folder it landed in.</p>
     <p>Open the module in Android Studio and run it. The package name is <code>com.miaadrajabi.fetch</code>.</p>
     <div class="shots">
       <figure>
-        <img src="screenshots/queue.png" alt="Two downloads waiting for Saturday at 00:33">
-        <figcaption>The queue, after two links were scheduled for the same morning.</figcaption>
+        <img src="screenshots/downloading.png" alt="A download in progress at 54 percent">
+        <figcaption>The queue while a file is coming in. Copy, Edit, and Open folder sit on the row.</figcaption>
+      </figure>
+      <figure>
+        <img src="screenshots/notification.png" alt="Foreground notification with pause and stop">
+        <figcaption>The same download on the notification shade, with speed, time left, Pause, and Stop.</figcaption>
       </figure>
       <figure>
         <img src="screenshots/new-download.png" alt="New download screen with two pasted links">
@@ -216,8 +220,8 @@
         <figcaption>Pick a day and a time, then choose WorkManager or AlarmManager.</figcaption>
       </figure>
       <figure>
-        <img src="screenshots/engine.png" alt="Storage, clock, installer, and file checks">
-        <figcaption>Where the file goes, the default clock, and what gets checked at the end.</figcaption>
+        <img src="screenshots/engine.png" alt="Absolute path disables the public Downloads switch">
+        <figcaption>Absolute path and the public Downloads switch cannot be on together. A name under that switch is a folder inside Downloads.</figcaption>
       </figure>
     </div>
   </article>
@@ -598,14 +602,14 @@
 
   <article id="s1">
     <h2><span>1</span>Add the library</h2>
-    <p>Put JitPack in the repository list, then depend on tag <code>v1.3.4</code>.</p>
+    <p>Put JitPack in the repository list, then depend on tag <code>v1.3.5</code>.</p>
     <p class="lang-label kotlin">Kotlin</p>
     <pre class="kotlin">repositories {
     maven("https://jitpack.io")
 }
 
 dependencies {
-    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.4")
+    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.5")
 }</pre>
     <p class="lang-label java">Java / Groovy</p>
     <pre class="java">repositories {
@@ -613,7 +617,7 @@ dependencies {
 }
 
 dependencies {
-    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.4'
+    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.5'
 }</pre>
   </article>
 

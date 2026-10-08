@@ -26,14 +26,16 @@ object LinkParser {
     fun fileNameFrom(url: String): String {
         val path = url.substringBefore('?').substringBefore('#')
         val raw = path.substringAfterLast('/')
-        val cleaned = raw.replace(Regex("[^A-Za-z0-9._-]"), "_").trim('_')
-        if (cleaned.isBlank() || !cleaned.contains('.')) {
+        val decoded = decode(raw)
+        val cleaned = decoded.replace(Regex("[^A-Za-z0-9._-]"), "_").trim('_')
+        val named = if (cleaned.isBlank() || !cleaned.contains('.')) {
             val host = path.substringAfter("://").substringBefore('/').substringBefore(':')
             val hostName = host.replace(Regex("[^A-Za-z0-9._-]"), "")
-            if (hostName.isNotBlank()) return "$hostName.bin"
-            return "download.bin"
+            if (hostName.isNotBlank()) "$hostName.bin" else "download.bin"
+        } else {
+            cleaned
         }
-        return cleaned
+        return limitFileName(named)
     }
 
     fun uniqueNames(urls: List<String>, preferredSingleName: String): List<String> {
@@ -62,6 +64,25 @@ object LinkParser {
     }
 
     fun sanitizeFileName(raw: String): String {
-        return raw.trim().replace(Regex("[\\\\/]+"), "_").replace(Regex("\\s+"), "_")
+        val cleaned = raw.trim().replace(Regex("[^A-Za-z0-9._-]"), "_").trim('_')
+        if (cleaned.isBlank()) return ""
+        return limitFileName(cleaned)
+    }
+
+    private fun limitFileName(name: String): String {
+        val max = 80
+        if (name.length <= max) return name
+        val dot = name.lastIndexOf('.')
+        val ext = if (dot > 0 && name.length - dot <= 8) name.substring(dot) else ""
+        val base = name.substring(0, max - ext.length).trim('_', '-', '.')
+        return if (base.isBlank()) "download$ext" else base + ext
+    }
+
+    private fun decode(raw: String): String {
+        return try {
+            java.net.URLDecoder.decode(raw, "UTF-8")
+        } catch (error: IllegalArgumentException) {
+            raw
+        }
     }
 }

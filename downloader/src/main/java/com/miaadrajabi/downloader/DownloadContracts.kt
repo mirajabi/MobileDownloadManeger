@@ -85,12 +85,17 @@ enum class Weekday(val calendarValue: Int) {
 /**
  * 7. Storage directives and housekeeping rules.
  */
-data class StorageConfig(
+data class StorageConfig @JvmOverloads constructor(
     val downloadDirs: List<DownloadDestination> = listOf(DownloadDestination.Auto),
     val overwriteExisting: Boolean = true,
     val validateFreeSpace: Boolean = true,
     val minFreeSpaceBytes: Long = 10 * 1024 * 1024L,
-    val preferExternalPublic: Boolean = false
+    val preferExternalPublic: Boolean = false,
+    /**
+     * Folder created inside the public Downloads directory when [preferExternalPublic] is set.
+     * Blank means the Downloads directory itself. A relative name such as "Fetch" or "Fetch/apk".
+     */
+    val publicFolder: String = ""
 )
 
 data class InstallerConfig(

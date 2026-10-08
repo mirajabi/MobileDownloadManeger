@@ -35,7 +35,7 @@ DownloadDestination scoped = new DownloadDestination.Scoped("tms/packages");
 
 ## Step 6. Overwrite, free space, and the public Download folder
 
-`minFreeSpaceBytes` is checked only when `validate` is true. The default floor is 10 MB. Public `Download/` on API 28 and below needs `WRITE_EXTERNAL_STORAGE` at runtime. On API 29 and above, writing that directory also depends on the host's storage policy. App-specific directories do not need that permission.
+`minFreeSpaceBytes` is checked only when `validate` is true. The default floor is 10 MB. Public `Download/` on API 28 and below needs `WRITE_EXTERNAL_STORAGE` at runtime. On API 29 and above, writing that directory also depends on the host's storage policy. App-specific directories do not need that permission. `storagePublicDownloadsFolder("Fetch")` is used only while public Downloads is preferred, and the file then goes to `Download/Fetch`. Leave the name blank to use the Downloads directory itself. If that folder cannot be written, the next app directory is used.
 
 **Kotlin**
 

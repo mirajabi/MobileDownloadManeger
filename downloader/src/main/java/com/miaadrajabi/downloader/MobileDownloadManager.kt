@@ -201,9 +201,13 @@ class MobileDownloadManager private constructor(
             watchSession(handle.id, job)
             published = true
             return handle
-        } catch (error: Throwable) {
+        } catch (error: Exception) {
             if (!published) {
+                Log.e(TAG, "Download could not start for ${request.fileName}", error)
                 markDownloadFinished(request.id)
+                val handle = DownloadHandle(id = request.id, source = request.url)
+                listeners.forEach { it.onFailed(handle, error) }
+                return handle
             }
             throw error
         } finally {
@@ -856,6 +860,8 @@ class MobileDownloadManager private constructor(
     }
 
     companion object {
+        private const val TAG = "MobileDownloadManager"
+
         /**
          * 10. Creates an instance directly from a DownloadConfig.
          */

@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.4")
+    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.5")
 }
 ```
 
@@ -26,7 +26,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.4'
+    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.5'
 }
 ```
 

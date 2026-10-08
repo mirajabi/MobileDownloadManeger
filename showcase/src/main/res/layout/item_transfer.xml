@@ -95,6 +95,7 @@
                 style="@style/Widget.Fetch.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="0dp"
                 android:text="Pause" />
 
             <com.google.android.material.button.MaterialButton
@@ -102,6 +103,7 @@
                 style="@style/Widget.Fetch.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="0dp"
                 android:text="Resume" />
 
             <com.google.android.material.button.MaterialButton
@@ -109,6 +111,7 @@
                 style="@style/Widget.Fetch.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="0dp"
                 android:text="Stop"
                 android:textColor="@color/rose" />
 
@@ -117,7 +120,52 @@
                 style="@style/Widget.Fetch.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="0dp"
                 android:text="Remove" />
         </LinearLayout>
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/copy"
+                    style="@style/Widget.Fetch.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="0dp"
+                    android:text="Copy" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/move"
+                    style="@style/Widget.Fetch.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="0dp"
+                    android:text="Move" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/edit"
+                    style="@style/Widget.Fetch.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="0dp"
+                    android:text="Edit" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/folder"
+                    style="@style/Widget.Fetch.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="0dp"
+                    android:text="Open folder" />
+            </LinearLayout>
+        </HorizontalScrollView>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

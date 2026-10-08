@@ -13,7 +13,11 @@ class QueueAdapter(
     private val onPause: (Transfer) -> Unit,
     private val onResume: (Transfer) -> Unit,
     private val onStop: (Transfer) -> Unit,
-    private val onRemove: (Transfer) -> Unit
+    private val onRemove: (Transfer) -> Unit,
+    private val onCopy: (Transfer) -> Unit,
+    private val onMove: (Transfer) -> Unit,
+    private val onEdit: (Transfer) -> Unit,
+    private val onFolder: (Transfer) -> Unit
 ) : ListAdapter<Transfer, QueueAdapter.Holder>(DIFF) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
@@ -28,8 +32,9 @@ class QueueAdapter(
     inner class Holder(private val binding: ItemTransferBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: Transfer) {
             val context = binding.root.context
-            binding.name.text = item.fileName
-            binding.host.text = item.host()
+            binding.name.text = item.title.ifBlank { item.fileName }
+            val named = item.title.isNotBlank() && item.title != item.fileName
+            binding.host.text = if (named) item.fileName + "  ·  " + item.host() else item.host()
             binding.status.text = statusLabel(item.status)
             binding.status.setTextColor(context.getColor(statusColor(item.status)))
             binding.detail.text = detail(item)
@@ -48,10 +53,22 @@ class QueueAdapter(
             binding.resume.visibility = if (item.status == TransferStore.STATUS_PAUSED) View.VISIBLE else View.GONE
             binding.stop.visibility = if (finished) View.GONE else View.VISIBLE
             binding.remove.visibility = if (finished) View.VISIBLE else View.GONE
+            val fileReady = item.localPath.isNotBlank() && java.io.File(item.localPath).isFile
+            val idle = item.status == TransferStore.STATUS_DONE ||
+                item.status == TransferStore.STATUS_FAILED ||
+                item.status == TransferStore.STATUS_STOPPED
+            val placed = item.localPath.isNotBlank() || item.locationUri.isNotBlank()
+            binding.copy.visibility = if (fileReady) View.VISIBLE else View.GONE
+            binding.move.visibility = if (fileReady && idle) View.VISIBLE else View.GONE
+            binding.folder.visibility = if (placed) View.VISIBLE else View.GONE
             binding.pause.setOnClickListener { onPause(item) }
             binding.resume.setOnClickListener { onResume(item) }
             binding.stop.setOnClickListener { onStop(item) }
             binding.remove.setOnClickListener { onRemove(item) }
+            binding.copy.setOnClickListener { onCopy(item) }
+            binding.move.setOnClickListener { onMove(item) }
+            binding.edit.setOnClickListener { onEdit(item) }
+            binding.folder.setOnClickListener { onFolder(item) }
         }
     }
 

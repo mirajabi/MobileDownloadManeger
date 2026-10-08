@@ -102,6 +102,7 @@ internal object DownloadConfigStore {
         put("validateFreeSpace", validateFreeSpace)
         put("minFreeSpaceBytes", minFreeSpaceBytes)
         put("preferExternalPublic", preferExternalPublic)
+        put("publicFolder", publicFolder)
     }
 
     private fun InstallerConfig.toJson(): JSONObject = JSONObject().apply {
@@ -190,7 +191,8 @@ internal object DownloadConfigStore {
             overwriteExisting = getBoolean("overwriteExisting"),
             validateFreeSpace = getBoolean("validateFreeSpace"),
             minFreeSpaceBytes = getLong("minFreeSpaceBytes"),
-            preferExternalPublic = optBooleanOr("preferExternalPublic", false)
+            preferExternalPublic = optBooleanOr("preferExternalPublic", false),
+            publicFolder = optString("publicFolder", "")
         )
     }
 

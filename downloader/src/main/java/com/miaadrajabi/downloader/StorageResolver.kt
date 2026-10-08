@@ -23,8 +23,13 @@ class StorageResolver(
             appContext.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
             File(appContext.filesDir, "downloads")
         )
-        defaultLocations = if (storageConfig.preferExternalPublic && publicDownloadDir != null) {
-            listOf(publicDownloadDir) + internalDefaults
+        val publicRoot = if (storageConfig.preferExternalPublic && publicDownloadDir != null) {
+            childOf(publicDownloadDir, storageConfig.publicFolder)
+        } else {
+            null
+        }
+        defaultLocations = if (publicRoot != null) {
+            listOf(publicRoot) + internalDefaults
         } else {
             internalDefaults
         }
@@ -37,7 +42,10 @@ class StorageResolver(
     fun resolve(request: DownloadRequest, dryRun: Boolean = false): StorageResolution {
         val candidateDirs = toCandidateDirectories(storageConfig.downloadDirs).ifEmpty { defaultLocations }
         val writableDir = candidateDirs.firstOrNull { ensureDirectory(it) }
-            ?: throw StorageResolutionException("No writable directory found for ${request.fileName}")
+            ?: throw StorageResolutionException(
+                "No writable directory found for ${request.fileName}. Tried: " +
+                    candidateDirs.joinToString { it.absolutePath }
+            )
 
         val targetFile = File(writableDir, request.fileName)
 
@@ -75,11 +83,44 @@ class StorageResolver(
         }
     }
 
-    private fun ensureDirectory(directory: File): Boolean {
-        if (directory.exists()) {
-            return directory.isDirectory && directory.canWrite()
+    private fun childOf(root: File, relative: String): File {
+        val cleaned = relative.trim().replace('\\', '/').trim('/')
+        if (cleaned.isEmpty()) return root
+        val safe = StringBuilder()
+        val parts = cleaned.split('/')
+        for (part in parts) {
+            if (part.isEmpty() || part == "." || part == "..") continue
+            val piece = part.replace(Regex("[^A-Za-z0-9._ -]"), "_").trim('_', ' ', '.')
+            if (piece.isEmpty()) continue
+            if (safe.isNotEmpty()) safe.append('/')
+            safe.append(piece)
         }
-        return directory.mkdirs()
+        if (safe.isEmpty()) return root
+        return File(root, safe.toString())
+    }
+
+    private fun ensureDirectory(directory: File): Boolean {
+        if (!directory.exists() && !directory.mkdirs()) {
+            return false
+        }
+        if (!directory.isDirectory) return false
+        // canWrite() is false on app-specific external storage even when the app can create files.
+        if (directory.canWrite()) return true
+        return probeWritable(directory)
+    }
+
+    private fun probeWritable(directory: File): Boolean {
+        val probe = File(directory, ".mdm-write-probe")
+        return try {
+            if (!probe.exists() && !probe.createNewFile()) {
+                false
+            } else {
+                probe.delete()
+                true
+            }
+        } catch (error: Exception) {
+            false
+        }
     }
 
     private fun handleExistingFile(target: File, dryRun: Boolean): Boolean {

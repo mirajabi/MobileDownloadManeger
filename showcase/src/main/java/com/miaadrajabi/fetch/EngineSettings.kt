@@ -21,6 +21,7 @@ data class EngineSettings(
     val destination: String = DEST_AUTO,
     val folder: String = "Fetch",
     val publicDownloads: Boolean = false,
+    val publicFolder: String = "",
     val overwrite: Boolean = true,
     val checkSpace: Boolean = true,
     val minFreeMb: Int = 10,
@@ -46,8 +47,9 @@ data class EngineSettings(
         return when (destination) {
             DEST_SCOPED -> listOf(DownloadDestination.Scoped(if (trimmed.isBlank()) "Fetch" else trimmed))
             DEST_CUSTOM -> {
-                if (trimmed.isBlank()) listOf(DownloadDestination.Auto)
-                else listOf(DownloadDestination.Custom(trimmed))
+                // A bare name such as "Fetch" is not a folder. File("Fetch") becomes /Fetch.
+                if (trimmed.startsWith("/")) listOf(DownloadDestination.Custom(trimmed))
+                else listOf(DownloadDestination.Auto)
             }
             else -> listOf(DownloadDestination.Auto)
         }
@@ -68,6 +70,7 @@ data class EngineSettings(
             .putString(KEY_DESTINATION, destination)
             .putString(KEY_FOLDER, folder)
             .putBoolean(KEY_PUBLIC, publicDownloads)
+            .putString(KEY_PUBLIC_FOLDER, publicFolder)
             .putBoolean(KEY_OVERWRITE, overwrite)
             .putBoolean(KEY_SPACE, checkSpace)
             .putInt(KEY_FREE, minFreeMb)
@@ -104,6 +107,7 @@ data class EngineSettings(
         private const val KEY_DESTINATION = "destination"
         private const val KEY_FOLDER = "folder"
         private const val KEY_PUBLIC = "public"
+        private const val KEY_PUBLIC_FOLDER = "publicFolder"
         private const val KEY_OVERWRITE = "overwrite"
         private const val KEY_SPACE = "space"
         private const val KEY_FREE = "free"
@@ -131,6 +135,7 @@ data class EngineSettings(
                 destination = prefs.getString(KEY_DESTINATION, DEST_AUTO) ?: DEST_AUTO,
                 folder = prefs.getString(KEY_FOLDER, "Fetch") ?: "Fetch",
                 publicDownloads = prefs.getBoolean(KEY_PUBLIC, false),
+                publicFolder = prefs.getString(KEY_PUBLIC_FOLDER, "") ?: "",
                 overwrite = prefs.getBoolean(KEY_OVERWRITE, true),
                 checkSpace = prefs.getBoolean(KEY_SPACE, true),
                 minFreeMb = prefs.getInt(KEY_FREE, 10).coerceAtLeast(1),

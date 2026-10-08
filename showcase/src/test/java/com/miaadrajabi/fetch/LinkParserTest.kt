@@ -55,4 +55,17 @@ class LinkParserTest {
             )
         )
     }
+
+    @Test
+    fun aLongEncodedNameKeepsTheExtensionAndStaysShort() {
+        val name = LinkParser.fileNameFrom(
+            "https://downloads.example.com/files/com.google.android.gms_26.33.32_%28040400-974685114%29" +
+                "-263332004_minAPI24%28arm64-v8a%2Carmeabi-v7a%29%28nodpi%29_apkmirror.com.apk" +
+                "?X-Amz-Signature=ignored"
+        )
+        assertEquals(true, name.endsWith(".apk"))
+        assertEquals(true, name.length <= 80)
+        assertEquals(false, name.contains("%"))
+        assertEquals(false, name.contains("?"))
+    }
 }

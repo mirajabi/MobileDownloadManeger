@@ -107,6 +107,7 @@ class DownloadForegroundService : Service() {
                 savedConfig.storage.minFreeSpaceBytes
             )
             storageUsePublicDownloads(savedConfig.storage.preferExternalPublic)
+            storagePublicDownloadsFolder(savedConfig.storage.publicFolder)
 
             // Apply installer configuration
             installerPromptOnCompletion(
@@ -140,7 +141,12 @@ class DownloadForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val accepted = handleCommand(intent)
+        val accepted = try {
+            handleCommand(intent)
+        } catch (error: Exception) {
+            Log.e(TAG, "Download command failed", error)
+            false
+        }
         val running = if (::manager.isInitialized) manager.hasRunningDownloads() else false
         return when (
             foregroundContinuation(

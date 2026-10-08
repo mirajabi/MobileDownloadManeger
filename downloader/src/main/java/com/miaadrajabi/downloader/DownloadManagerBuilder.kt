@@ -182,6 +182,14 @@ class DownloadManagerBuilder internal constructor(
         storage = storage.copy(preferExternalPublic = enable)
     }
 
+    /**
+     * Relative folder inside the public Downloads directory.
+     * Used only when public Downloads is preferred. Blank keeps the Downloads directory itself.
+     */
+    fun storagePublicDownloadsFolder(relativeFolder: String) = apply {
+        storage = storage.copy(publicFolder = relativeFolder)
+    }
+
     fun installerPromptOnCompletion(
         enabled: Boolean = true,
         fallbackMimeType: String = installer.fallbackMimeType

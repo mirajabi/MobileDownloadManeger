@@ -241,6 +241,7 @@ class ComposerActivity : AppCompatActivity() {
                 )
                 val label = schedule.label
                 val status = if (mode == R.id.whenNow) TransferStore.STATUS_QUEUED else TransferStore.STATUS_SCHEDULED
+                val preview = DownloadDesk.previewPath(this, settings, request.fileName)
                 store.insert(
                     Transfer(
                         id = request.id,
@@ -248,7 +249,8 @@ class ComposerActivity : AppCompatActivity() {
                         fileName = request.fileName,
                         status = status,
                         message = if (mode == R.id.whenNow) "Waiting to start" else "Waiting for the clock",
-                        whenLabel = label
+                        whenLabel = label,
+                        localPath = if (preview.startsWith("/")) preview else ""
                     )
                 )
                 when (mode) {

@@ -110,6 +110,28 @@ class TransferStore(context: Context) {
         }
     }
 
+    fun save(item: Transfer) {
+        updateActive(item.id, allowTerminal = true) { item }
+    }
+
+    fun locateFiles(context: Context) {
+        synchronized(lock) {
+            var changed = false
+            for (index in items.indices) {
+                val item = items[index]
+                if (item.localPath.isNotBlank() && java.io.File(item.localPath).isFile) continue
+                val found = SavedFiles.find(context, item.fileName) ?: continue
+                items[index] = item.copy(localPath = found.absolutePath)
+                changed = true
+            }
+            if (changed) persistLocked()
+        }
+    }
+
+    fun refresh() {
+        publish()
+    }
+
     fun snapshot(): List<Transfer> {
         synchronized(lock) {
             return ArrayList(items)
@@ -211,6 +233,9 @@ class TransferStore(context: Context) {
             .put("percent", percent)
             .put("message", message)
             .put("whenLabel", whenLabel)
+            .put("title", title)
+            .put("localPath", localPath)
+            .put("locationUri", locationUri)
     }
 
     private fun JSONObject.toTransfer(): Transfer {
@@ -224,7 +249,10 @@ class TransferStore(context: Context) {
             speed = optLong("speed"),
             percent = optInt("percent", -1),
             message = optString("message"),
-            whenLabel = optString("whenLabel")
+            whenLabel = optString("whenLabel"),
+            title = optString("title"),
+            localPath = optString("localPath"),
+            locationUri = optString("locationUri")
         )
     }
 

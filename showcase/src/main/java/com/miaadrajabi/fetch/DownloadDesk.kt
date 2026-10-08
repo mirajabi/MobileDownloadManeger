@@ -115,6 +115,7 @@ object DownloadDesk {
         storageOverwrite(settings.overwrite)
         storageValidateFreeSpace(settings.checkSpace, settings.minFreeMb * 1024L * 1024L)
         storageUsePublicDownloads(settings.publicDownloads && settings.destination == EngineSettings.DEST_AUTO)
+        storagePublicDownloadsFolder(settings.publicFolder)
         installerPromptOnCompletion(settings.promptInstaller)
         integrityValidation(
             verifyFileSize = settings.verifySize,

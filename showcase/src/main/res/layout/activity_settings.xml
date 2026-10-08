@@ -341,10 +341,28 @@
                 android:text="Prefer the public Downloads folder" />
 
             <TextView
+                android:id="@+id/publicHint"
                 style="@style/Text.Fetch.Body"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="That preference applies when the library is choosing the folder. If the public folder is not writable, it falls back." />
+                android:text="Turn this on only with Let the library choose. Absolute path and App folder turn it off. A name below is a folder inside Downloads, such as Fetch." />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/publicFolderLayout"
+                style="@style/Widget.Fetch.TextInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="Folder inside Downloads"
+                android:visibility="gone">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/publicFolder"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:textColor="@color/paper" />
+            </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/overwrite"

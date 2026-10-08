@@ -2,7 +2,7 @@
 
 [![JitPack](https://www.jitpack.io/v/mirajabi/MobileDownloadManeger.svg)](https://www.jitpack.io/#mirajabi/MobileDownloadManeger)
 
-Android library for large file downloads: parallel ranges, pause and resume, a foreground notification, and a schedule that survives process death. The current release is `v1.3.4`. Minimum SDK is 23.
+Android library for large file downloads: parallel ranges, pause and resume, a foreground notification, and a schedule that survives process death. The current release is `v1.3.5`. Minimum SDK is 23.
 
 The host app keeps ownership of extraction, package identity, and installation. The library downloads a file and can optionally open the system installer. It does not install a package by itself.
 
@@ -18,7 +18,7 @@ repositories {
 
 ```kotlin
 dependencies {
-    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.4")
+    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.5")
 }
 ```
 
@@ -32,7 +32,7 @@ repositories {
 
 ```groovy
 dependencies {
-    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.4'
+    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.5'
 }
 ```
 
@@ -49,12 +49,13 @@ The switch runs on GitHub Pages. One control at the top shows either Kotlin or J
 
 ## Try it in Fetch
 
-`showcase` is a separate app that sits on this library. Paste one link or several, pick a time, and turn the engine options on from the screen. The library module is unchanged.
+`showcase` is a separate app that sits on this library. Paste one link or several, pick a time, and turn the engine options on from the screen. A finished file can be copied, moved, renamed, or opened in its folder.
 
 Run the `showcase` module from Android Studio. The screens are also at the top of the [guide](https://mirajabi.github.io/MobileDownloadManeger/#fetch).
 
 <p align="center">
-  <img src="docs/screenshots/queue.png" width="180" alt="Queue">
+  <img src="docs/screenshots/downloading.png" width="180" alt="Downloading">
+  <img src="docs/screenshots/notification.png" width="180" alt="Notification">
   <img src="docs/screenshots/new-download.png" width="180" alt="New download">
   <img src="docs/screenshots/schedule.png" width="180" alt="Schedule">
   <img src="docs/screenshots/engine.png" width="180" alt="Engine">
@@ -72,6 +73,10 @@ Run the `showcase` module from Android Studio. The screens are also at the top o
 
 ## Changelog
 
+### v1.3.5
+
+Public Downloads can keep a relative folder. `storagePublicDownloadsFolder("Fetch")` writes into `Download/Fetch` when that directory is writable, and otherwise the download continues in an app directory. A failure to choose a folder is reported on the download instead of stopping the process. Fetch, the sample app, can copy or move a finished file, rename it, keep the link, and open the folder the file landed in.
+
 ### v1.3.4
 
 A download can keep a chosen byte window. Set `rangeStart` and `rangeEndInclusive` on `DownloadRequest`; both ends are inclusive, and either one can be left open. The file on disk contains only that window. Parallel connections stay on `chunkCount`, and cookies stay in `headers` under the name `Cookie`.
@@ -85,6 +90,6 @@ Interrupted downloads continue from the last checkpoint. A ranged response is ke
 | | |
 |---|---|
 | minSdk | 23 |
-| Artifact | `com.github.mirajabi:MobileDownloadManeger:v1.3.4` |
+| Artifact | `com.github.mirajabi:MobileDownloadManeger:v1.3.5` |
 | Foreground service type | `dataSync` |
 | Periodic schedule floor | 15 minutes |
