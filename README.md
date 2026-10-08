@@ -2,7 +2,12 @@
 
 Modular Android download manager targeting API 23+ with support for chunked transfers, background scheduling, notification progress, and configurable storage policies. The project is built incrementally—each stage introduces new capabilities alongside matching documentation and sample-app demos.
 
-## Highlights (v1.3.2)
+## Highlights (v1.3.3)
+- **Resume after reboot**: queued, running, and retrying downloads continue from the last flushed checkpoint. A manual pause stays paused. A checksum or integrity failure deletes the partial file and starts again from byte zero.
+- **Safe range handling**: a ranged response is written only when status 206 and `Content-Range` match the requested bytes. Otherwise the partial file is discarded and one single-stream download starts at byte zero.
+- **Artifact identity**: a changed strong ETag or total size restarts from byte zero. A missing or weak ETag keeps the partial file, and the checksum decides at the end.
+- **One writer per file**: a second request is rejected while the first download is active or paused. If the first request already failed or was cancelled, the new request starts from byte zero.
+- **Full saved configuration**: integrity, installer, free space, public storage, and scheduler options are persisted. A missing or corrupt configuration uses defaults instead of crashing the service.
 - **Pause and stop stay paused**: notification Pause and Stop are not treated as network failures, so a cancelled transfer is not started again.
 - **One download owner**: a second enqueue of the same id reuses the active transfer, or resumes it when it is paused. The on-disk pause record stays until the download actually finishes.
 - **Scheduled hand-off**: WorkManager and AlarmManager start the foreground service. If Android blocks that start, the worker finishes the download itself and then restores the previous manager. Periodic work waits for a network connection, and intervals shorter than 15 minutes are raised to 15.
@@ -63,11 +68,11 @@ repositories {
 }
 ```
 
-Then pull whichever tag you want (example: `v1.3.2`):
+Then pull whichever tag you want (example: `v1.3.3`):
 
 ```kotlin
 dependencies {
-    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.2")
+    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.3")
 }
 ```
 
@@ -79,7 +84,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.2'
+    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.3'
 }
 ```
 

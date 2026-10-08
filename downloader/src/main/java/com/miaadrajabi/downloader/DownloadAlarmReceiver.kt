@@ -14,13 +14,17 @@ import kotlinx.coroutines.runBlocking
 class DownloadAlarmReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val request = DownloadRequestAdapter.fromIntent(intent) ?: return
+        val request = try {
+            DownloadRequestAdapter.fromIntent(intent)
+        } catch (error: IllegalArgumentException) {
+            Log.e(TAG, "Scheduled download has a malformed checksum", error)
+            return
+        } ?: return
         val pendingResult = goAsync()
         Thread {
             try {
                 if (DownloadConfigStore.load(context) == null) {
-                    Log.e(TAG, "Scheduled download skipped because configureService() was not called")
-                    return@Thread
+                    Log.w(TAG, "Scheduled download is using default configuration")
                 }
                 try {
                     DownloadForegroundService.enqueueDownload(context, request)

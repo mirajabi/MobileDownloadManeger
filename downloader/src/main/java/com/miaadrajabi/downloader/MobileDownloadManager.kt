@@ -2,7 +2,9 @@ package com.miaadrajabi.downloader
 
 import android.content.Context
 import android.util.Log
+import java.io.File
 import java.io.IOException
+import java.io.RandomAccessFile
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
@@ -25,7 +27,8 @@ import okhttp3.OkHttpClient
  */
 class MobileDownloadManager private constructor(
     context: Context,
-    private val config: DownloadConfig
+    private val config: DownloadConfig,
+    private val resumeInterrupted: Boolean = false
 ) {
 
     private val appContext = context.applicationContext ?: context
@@ -45,7 +48,10 @@ class MobileDownloadManager private constructor(
     private val trackedIds = ConcurrentHashMap.newKeySet<String>()
     private val reservedIds = ConcurrentHashMap.newKeySet<String>()
     private val terminalSuccess = ConcurrentHashMap<String, Boolean>()
-    private val suppressFinish = ConcurrentHashMap.newKeySet<String>()
+    private val suppressFinishJobs = ConcurrentHashMap.newKeySet<Job>()
+    private val attemptGeneration = ConcurrentHashMap<String, Long>()
+    private val artifactMeta = ConcurrentHashMap<String, ArtifactValidators>()
+    private val checkpointBytes = ConcurrentHashMap<String, Long>()
     private val sessionLock = Any()
 
     init {
@@ -53,6 +59,9 @@ class MobileDownloadManager private constructor(
         DownloadManagerRegistry.manager = this
         DownloadConfigStore.save(appContext, config)
         restorePausedStates()
+        if (resumeInterrupted) {
+            recoverInterruptedDownloads()
+        }
     }
 
     private fun restorePausedStates() {
@@ -95,7 +104,19 @@ class MobileDownloadManager private constructor(
     /**
      * 4. Adds a new download request to the active queue and starts transfer immediately.
      */
-    fun enqueue(request: DownloadRequest): DownloadHandle {
+    fun enqueue(incoming: DownloadRequest): DownloadHandle {
+        val request = try {
+            incoming.copy(
+                expectedChecksum = validatedChecksum(
+                    incoming.expectedChecksum,
+                    incoming.checksumAlgorithm
+                )
+            )
+        } catch (error: IllegalArgumentException) {
+            val handle = DownloadHandle(id = incoming.id, source = incoming.url)
+            listeners.forEach { it.onFailed(handle, error) }
+            return handle
+        }
         synchronized(sessionLock) {
             if (activeSessions.containsKey(request.id) || !reservedIds.add(request.id)) {
                 return DownloadHandle(id = request.id, source = request.url)
@@ -107,6 +128,41 @@ class MobileDownloadManager private constructor(
         }
         var published = false
         try {
+            val preview = storageResolver.resolve(request, dryRun = true)
+            val path = canonicalPath(preview.file)
+            val owner = pathOwner(path, request.id)
+            val record = DownloadRecoveryStore.load(appContext, request.id)
+            when (
+                admitDownload(
+                    sameIdState = record?.state,
+                    sameIdSameArtifact = record == null || sameArtifact(record.request, request),
+                    pathOwnerState = owner?.state,
+                    pathOwnerIsSameId = owner?.id == request.id
+                )
+            ) {
+                Admission.RejectBusy -> {
+                    val handle = DownloadHandle(id = request.id, source = request.url)
+                    listeners.forEach { listener ->
+                        listener.onFailed(
+                            handle,
+                            IllegalStateException("Destination is owned by an active download")
+                        )
+                    }
+                    return handle
+                }
+                Admission.ReplaceFromZero -> {
+                    dropAbandoned(owner?.id ?: record?.id)
+                }
+                Admission.ReuseActive -> {
+                    if (record != null && startFromRecord(record)) {
+                        return DownloadHandle(id = record.id, source = record.request.url)
+                    }
+                    if (activeSessions.containsKey(request.id)) {
+                        return DownloadHandle(id = request.id, source = request.url)
+                    }
+                }
+                Admission.StartFresh -> Unit
+            }
             val resolution = storageResolver.resolve(request)
             pendingDestinations[request.id] = resolution
             trackDownload(request.id)
@@ -137,8 +193,7 @@ class MobileDownloadManager private constructor(
                     callTracker = session.callTracker,
                     extraListeners = listOf(progressTrackingListener),
                     existingChunkStates = emptyList(),
-                    chunkStateUpdater = chunkStateUpdater,
-                    resumeSnapshot = null
+                    chunkStateUpdater = chunkStateUpdater
                 )
             }
             activeSessions[handle.id] = session.copy(job = job)
@@ -191,7 +246,8 @@ class MobileDownloadManager private constructor(
             val current = activeSessions[handleId] ?: return false
             // Keep the active count until resume or stop. The completion handler must not
             // treat this pause as a finished download.
-            suppressFinish.add(handleId)
+            suppressFinishJobs.add(current.job)
+            attemptGeneration[handleId] = (attemptGeneration[handleId] ?: 0L) + 1L
             val chunkStates = currentChunkStates(handleId)
             val completedBytes = if (chunkStates.isNotEmpty()) {
                 chunkStates.totalCompletedBytes()
@@ -209,6 +265,7 @@ class MobileDownloadManager private constructor(
         }
         val paused = pausedStates[handleId]
         if (paused != null) {
+            persistRecord(paused.request, paused.resolution, DownloadRecovery.PAUSED, attemptGeneration[handleId] ?: 0L, true)
             DownloadConfigStore.savePausedState(
                 appContext,
                 handleId,
@@ -265,8 +322,7 @@ class MobileDownloadManager private constructor(
                     callTracker = session.callTracker,
                     extraListeners = listOf(progressTrackingListener),
                     existingChunkStates = chunkStates,
-                    chunkStateUpdater = chunkStateUpdater,
-                    resumeSnapshot = paused
+                    chunkStateUpdater = chunkStateUpdater
                 )
             }
             activeSessions[handleId] = session.copy(job = job)
@@ -287,7 +343,11 @@ class MobileDownloadManager private constructor(
             if (session == null && paused == null) {
                 return false
             }
-            suppressFinish.remove(handleId)
+            if (session != null) {
+                suppressFinishJobs.remove(session.job)
+            }
+            attemptGeneration[handleId] = (attemptGeneration[handleId] ?: 0L) + 1L
+            DownloadRecoveryStore.delete(appContext, handleId)
             pendingDestinations.remove(handleId)
             chunkStateSnapshots.remove(handleId)
             session to paused
@@ -354,10 +414,14 @@ class MobileDownloadManager private constructor(
 
     private fun watchSession(handleId: String, job: Job) {
         job.invokeOnCompletion {
+            val current = activeSessions[handleId]
+            if (current != null && current.job != job) {
+                return@invokeOnCompletion
+            }
             activeSessions.remove(handleId)
             lastProgress.remove(handleId)
             chunkStateSnapshots.remove(handleId)
-            if (!suppressFinish.remove(handleId)) {
+            if (!suppressFinishJobs.remove(job)) {
                 markDownloadFinished(handleId)
             }
         }
@@ -377,15 +441,23 @@ class MobileDownloadManager private constructor(
         callTracker: CallTracker? = null,
         extraListeners: List<DownloadListener> = emptyList(),
         existingChunkStates: List<ChunkStateData> = emptyList(),
-        chunkStateUpdater: ((ChunkStateData) -> Unit)? = null,
-        resumeSnapshot: PausedState? = null
+        chunkStateUpdater: ((ChunkStateData) -> Unit)? = null
     ) {
         val policy = config.retryPolicy
         var attempt = 1
         var delayMs = policy.initialDelayMillis
         var plannedChunkStates = existingChunkStates
         var currentStartOffset = startOffset
+        var useSingleStream = false
+        if (!coroutineContext.isActive || pausedStates.containsKey(handle.id)) {
+            return
+        }
+        val generation = nextGeneration(handle.id)
+        DownloadRecoveryStore.load(appContext, handle.id)?.let { saved ->
+            artifactMeta[handle.id] = saved.validators()
+        }
         terminalSuccess.remove(handle.id)
+        persistRecord(request, resolution, DownloadRecovery.RUNNING, generation, true)
         fun noteInterrupt(coroutineActive: Boolean): DownloadInterrupt {
             val interrupt = classifyDownloadInterrupt(
                 coroutineActive,
@@ -411,8 +483,16 @@ class MobileDownloadManager private constructor(
                     currentStartOffset,
                     callTracker,
                     plannedChunkStates,
-                    chunkStateUpdater
+                    chunkStateUpdater,
+                    singleStream = useSingleStream,
+                    validators = artifactMeta[handle.id],
+                    onCheckpoint = {
+                        if (attemptGeneration[handle.id] == generation) {
+                            persistRecord(request, resolution, DownloadRecovery.RUNNING, generation, false)
+                        }
+                    }
                 )
+                rememberValidators(handle.id, downloadResult)
 
                 if (config.integrity.verifyFileSize ||
                     config.integrity.verifyChecksum ||
@@ -460,8 +540,45 @@ class MobileDownloadManager private constructor(
                 pendingDestinations.remove(handle.id)
                 pausedStates.remove(handle.id)
                 DownloadConfigStore.removePausedState(appContext, handle.id)
+                if (attemptGeneration[handle.id] == generation) {
+                    DownloadRecoveryStore.delete(appContext, handle.id)
+                }
                 terminalSuccess[handle.id] = true
                 return
+            } catch (restart: SingleStreamRestartException) {
+                if (useSingleStream || !coroutineContext.isActive) {
+                    val interrupt = noteInterrupt(coroutineContext.isActive)
+                    if (interrupt != DownloadInterrupt.ContinueRetry) {
+                        return
+                    }
+                    if (attempt >= policy.maxAttempts) {
+                        listeners.forEach { it.onFailed(handle, restart) }
+                        pendingDestinations.remove(handle.id)
+                        terminalSuccess[handle.id] = false
+                        markAbandoned(request, resolution, generation)
+                        return
+                    }
+                    listeners.forEach { it.onRetry(handle, attempt) }
+                    if (!delayUnlessInterrupted(delayMs) { noteInterrupt(it) }) {
+                        return
+                    }
+                    delayMs = (delayMs * policy.backoffMultiplier).toLong().coerceAtLeast(1_000L)
+                    attempt++
+                } else {
+                    Log.w(
+                        "MobileDownloadManager",
+                        "Range was not honored for ${handle.id}; restarting from byte zero",
+                        restart
+                    )
+                    resetPartial(resolution.file, handle.id)
+                    plannedChunkStates = emptyList()
+                    currentStartOffset = 0L
+                    useSingleStream = true
+                    artifactMeta.remove(handle.id)
+                    if (attemptGeneration[handle.id] == generation) {
+                        persistRecord(request, resolution, DownloadRecovery.RUNNING, generation, false)
+                    }
+                }
             } catch (error: IntegrityValidationException) {
                 pausedStates.remove(handle.id)
                 DownloadConfigStore.removePausedState(appContext, handle.id)
@@ -469,6 +586,7 @@ class MobileDownloadManager private constructor(
                     listeners.forEach { it.onFailed(handle, error) }
                     pendingDestinations.remove(handle.id)
                     terminalSuccess[handle.id] = false
+                    markAbandoned(request, resolution, generation)
                     return
                 } else {
                     listeners.forEach { it.onRetry(handle, attempt) }
@@ -476,6 +594,11 @@ class MobileDownloadManager private constructor(
                     currentStartOffset = 0L
                     chunkStateSnapshots.remove(handle.id)
                     lastProgress.remove(handle.id)
+                    artifactMeta.remove(handle.id)
+                    useSingleStream = true
+                    if (attemptGeneration[handle.id] == generation) {
+                        persistRecord(request, resolution, DownloadRecovery.RUNNING, generation, false)
+                    }
                     if (!delayUnlessInterrupted(delayMs) { noteInterrupt(it) }) {
                         return
                     }
@@ -491,9 +614,12 @@ class MobileDownloadManager private constructor(
                     listeners.forEach { it.onFailed(handle, error) }
                     pendingDestinations.remove(handle.id)
                     terminalSuccess[handle.id] = false
-                    retainPauseForRetry(handle, request, resolution, resumeSnapshot)
+                    markAbandoned(request, resolution, generation)
                     return
                 } else {
+                    if (attemptGeneration[handle.id] == generation) {
+                        persistRecord(request, resolution, DownloadRecovery.RETRY_WAIT, generation, false)
+                    }
                     listeners.forEach { it.onRetry(handle, attempt) }
                     plannedChunkStates = currentChunkStates(handle.id)
                     val lastProgressBytes = lastProgress[handle.id] ?: 0L
@@ -511,7 +637,7 @@ class MobileDownloadManager private constructor(
                 listeners.forEach { it.onFailed(handle, error) }
                 pendingDestinations.remove(handle.id)
                 terminalSuccess[handle.id] = false
-                retainPauseForRetry(handle, request, resolution, resumeSnapshot)
+                markAbandoned(request, resolution, generation)
                 return
             }
         }
@@ -530,46 +656,185 @@ class MobileDownloadManager private constructor(
         }
     }
 
-    private fun retainPauseForRetry(
-        handle: DownloadHandle,
-        request: DownloadRequest,
-        resolution: StorageResolution,
-        snapshot: PausedState?
-    ) {
-        if (!resolution.file.exists()) {
-            pausedStates.remove(handle.id)
-            DownloadConfigStore.removePausedState(appContext, handle.id)
-            return
-        }
-        synchronized(sessionLock) {
-            if (pausedStates.containsKey(handle.id)) {
-                return
+    internal suspend fun awaitRecovered() {
+        activeSessions.values.map { it.job }.forEach { job -> job.join() }
+    }
+
+    private fun recoverInterruptedDownloads() {
+        DownloadRecoveryStore.loadAll(appContext).forEach { record ->
+            if (record.state == DownloadRecovery.PAUSED) {
+                rememberPaused(record)
+                return@forEach
+            }
+            if (record.state !in DownloadRecovery.RESUMABLE_AFTER_RESTART) {
+                return@forEach
+            }
+            pausedStates.remove(record.id)
+            if (!activeSessions.containsKey(record.id)) {
+                startFromRecord(record)
             }
         }
-        val chunkStates = currentChunkStates(handle.id)
-        val completedBytes = when {
-            chunkStates.isNotEmpty() -> chunkStates.totalCompletedBytes()
-            lastProgress[handle.id] != null -> lastProgress[handle.id] ?: 0L
-            snapshot != null -> snapshot.completedBytes
-            else -> resolution.file.length()
+    }
+
+    private fun rememberPaused(record: DownloadRecoveryRecord) {
+        if (pausedStates.containsKey(record.id) || activeSessions.containsKey(record.id)) return
+        pausedStates[record.id] = PausedState(
+            request = record.request,
+            resolution = record.resolution,
+            completedBytes = record.completedBytes,
+            chunkStates = record.chunkStates
+        )
+        pendingDestinations[record.id] = record.resolution
+        if (record.chunkStates.isNotEmpty()) {
+            chunkStateSnapshots[record.id] = record.chunkStates.associateBy { it.index }.toMutableMap()
         }
-        if (completedBytes <= 0L && chunkStates.isEmpty()) {
+        lastProgress[record.id] = record.completedBytes
+        artifactMeta[record.id] = record.validators()
+    }
+
+    private fun startFromRecord(record: DownloadRecoveryRecord): Boolean {
+        if (activeSessions.containsKey(record.id)) return false
+        pausedStates.remove(record.id)
+        artifactMeta[record.id] = record.validators()
+        trackDownload(record.id)
+        val handle = DownloadHandle(id = record.request.id, source = record.request.url)
+        val chunkStates = record.chunkStates
+        val resumeBytes = if (chunkStates.isNotEmpty()) {
+            chunkStates.totalCompletedBytes()
+        } else {
+            record.completedBytes
+        }
+        lastProgress[record.id] = resumeBytes
+        if (chunkStates.isNotEmpty()) {
+            chunkStateSnapshots[record.id] = chunkStates.associateBy { it.index }.toMutableMap()
+        }
+        pendingDestinations[record.id] = record.resolution
+        val progressTrackingListener = object : DownloadListener {
+            override fun onProgress(handle: DownloadHandle, progress: DownloadProgress) {
+                lastProgress[handle.id] = progress.bytesDownloaded
+            }
+        }
+        val chunkStateUpdater: (ChunkStateData) -> Unit = { state ->
+            val map = chunkStateSnapshots.getOrPut(record.id) { ConcurrentHashMap() }
+            map[state.index] = state
+        }
+        val session = DownloadSession(record.request, record.resolution, Job(), CallTracker())
+        val job = scope.launch(session.job) {
+            runDownloadWithRetry(
+                record.request,
+                handle,
+                record.resolution,
+                startOffset = resumeBytes,
+                callTracker = session.callTracker,
+                extraListeners = listOf(progressTrackingListener),
+                existingChunkStates = chunkStates,
+                chunkStateUpdater = chunkStateUpdater
+            )
+        }
+        activeSessions[record.id] = session.copy(job = job)
+        watchSession(record.id, job)
+        return true
+    }
+
+    private fun pathOwner(path: String, exceptId: String): OwnerRef? {
+        for ((id, session) in activeSessions) {
+            if (id != exceptId && canonicalPath(session.resolution.file) == path) {
+                return OwnerRef(id, DownloadRecovery.RUNNING)
+            }
+        }
+        for ((id, paused) in pausedStates) {
+            if (id != exceptId && canonicalPath(paused.resolution.file) == path) {
+                return OwnerRef(id, DownloadRecovery.PAUSED)
+            }
+        }
+        return DownloadRecoveryStore.loadAll(appContext).firstOrNull { record ->
+            record.id != exceptId &&
+                (record.canonicalPath == path || canonicalPath(record.resolution.file) == path)
+        }?.let { record -> OwnerRef(record.id, record.state) }
+    }
+
+    private fun dropAbandoned(id: String?) {
+        if (id == null) return
+        val session = synchronized(sessionLock) { activeSessions.remove(id) }
+        session?.callTracker?.cancelAll()
+        session?.job?.cancel(CancellationException("Replaced after the previous download failed"))
+        pausedStates.remove(id)
+        pendingDestinations.remove(id)
+        chunkStateSnapshots.remove(id)
+        DownloadConfigStore.removePausedState(appContext, id)
+        DownloadRecoveryStore.delete(appContext, id)
+        attemptGeneration[id] = (attemptGeneration[id] ?: 0L) + 1L
+    }
+
+    private fun nextGeneration(id: String): Long {
+        val next = (attemptGeneration[id] ?: 0L) + 1L
+        attemptGeneration[id] = next
+        return next
+    }
+
+    private fun persistRecord(
+        request: DownloadRequest,
+        resolution: StorageResolution,
+        state: String,
+        generation: Long,
+        scheduleRecovery: Boolean
+    ) {
+        if (attemptGeneration[request.id] != generation && state != DownloadRecovery.PAUSED) {
             return
         }
-        pausedStates[handle.id] = PausedState(
-            request = request,
-            resolution = resolution,
-            completedBytes = completedBytes,
-            chunkStates = chunkStates
-        )
-        DownloadConfigStore.savePausedState(
+        val chunks = currentChunkStates(request.id)
+        val bytes = if (chunks.isNotEmpty()) {
+            chunks.totalCompletedBytes()
+        } else {
+            lastProgress[request.id] ?: 0L
+        }
+        val validators = artifactMeta[request.id]
+        DownloadRecoveryStore.save(
             appContext,
-            handle.id,
-            request,
-            resolution,
-            completedBytes,
-            chunkStates
+            DownloadRecoveryRecord(
+                id = request.id,
+                request = request,
+                resolution = resolution,
+                state = state,
+                completedBytes = bytes,
+                chunkStates = chunks,
+                strongEtag = validators?.strongEtag,
+                lastModified = validators?.lastModified,
+                totalBytes = validators?.totalBytes,
+                generation = generation,
+                canonicalPath = canonicalPath(resolution.file)
+            )
         )
+        if (scheduleRecovery && state in DownloadRecovery.RESUMABLE_AFTER_RESTART) {
+            scheduler.ensureRecoveryScheduled()
+        }
+    }
+
+    private fun rememberValidators(id: String, result: DownloadResult) {
+        val current = artifactMeta[id]
+        artifactMeta[id] = ArtifactValidators(
+            strongEtag = result.strongEtag ?: current?.strongEtag,
+            lastModified = result.lastModified ?: current?.lastModified,
+            totalBytes = result.totalBytes ?: current?.totalBytes
+        )
+    }
+
+    private fun resetPartial(file: File, handleId: String) {
+        if (file.exists()) {
+            RandomAccessFile(file, "rw").use { output -> output.setLength(0) }
+        }
+        chunkStateSnapshots.remove(handleId)
+        lastProgress.remove(handleId)
+        checkpointBytes.remove(handleId)
+    }
+
+    private fun markAbandoned(
+        request: DownloadRequest,
+        resolution: StorageResolution,
+        generation: Long
+    ) {
+        if (attemptGeneration[request.id] != generation) return
+        persistRecord(request, resolution, DownloadRecovery.FAILED, generation, false)
     }
 
     private fun markDownloadFinished(handleId: String) {
@@ -609,8 +874,25 @@ class MobileDownloadManager private constructor(
         fun builder(context: Context): DownloadManagerBuilder {
             return DownloadManagerBuilder(context)
         }
+
+        internal fun createRecovering(context: Context, config: DownloadConfig): MobileDownloadManager {
+            return MobileDownloadManager(context, config, true)
+        }
+
+        internal fun createRecovering(
+            context: Context,
+            block: DownloadManagerBuilder.() -> Unit
+        ): MobileDownloadManager {
+            val config = DownloadManagerBuilder(context).apply(block).buildConfig()
+            return MobileDownloadManager(context, config, true)
+        }
     }
 }
+
+private data class OwnerRef(
+    val id: String,
+    val state: String
+)
 
 private data class DownloadSession(
     val request: DownloadRequest,

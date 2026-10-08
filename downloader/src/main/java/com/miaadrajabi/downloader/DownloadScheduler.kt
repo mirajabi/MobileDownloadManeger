@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -119,6 +120,18 @@ internal class DownloadScheduler(
         }
     }
 
+    fun ensureRecoveryScheduled() {
+        val work = OneTimeWorkRequestBuilder<DownloadRecoveryWorker>()
+            .setConstraints(connectedConstraint())
+            .setBackoffCriteria(BackoffPolicy.LINEAR, MIN_PERIODIC_INTERVAL_MINUTES, TimeUnit.MINUTES)
+            .build()
+        workManager.enqueueUniqueWork(
+            RECOVERY_WORK,
+            ExistingWorkPolicy.KEEP,
+            work
+        )
+    }
+
     private fun connectedConstraint(): Constraints {
         return Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -171,6 +184,7 @@ internal class DownloadScheduler(
     private companion object {
         private const val TAG = "DownloadScheduler"
         private const val MIN_PERIODIC_INTERVAL_MINUTES = 15L
+        private const val RECOVERY_WORK = "mdm-active-recovery"
     }
 }
 

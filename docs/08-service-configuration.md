@@ -210,6 +210,14 @@ WorkManager and AlarmManager hand the request to the foreground service. Alarm p
 
 `expectedChecksum` and `checksumAlgorithm` are stored on the WorkManager request, the alarm intent, and the pause file. Pause files written before v1.3.2 still load, with no checksum invented for them. The pause file is removed when the download completes, when integrity validation deletes the file, or when the user stops it. Starting a resume does not delete it. A second enqueue of an active id returns the existing handle. A second enqueue of a paused id resumes it. A ranged response other than 206 is not written at a nonzero offset.
 
+## Resume after reboot
+
+A download that is queued, running, or waiting to retry is stored under the app's private files and continued by the foreground service after process death. WorkManager starts that service again after a reboot. A manual pause stays paused. Android force-stop does not resume anything until the app or a scheduled job is allowed to run again.
+
+If the server ignores `Range`, or `Content-Range` does not match the requested bytes, the partial file is discarded and one single-stream download starts at byte zero. A strong `ETag` or a changed total size does the same. A missing or weak `ETag` does not. The partial file is kept, and the configured checksum decides at the end. A checksum or integrity failure deletes the file and starts again from byte zero.
+
+A second request for a file that is actively downloading or paused is rejected. If the earlier request already failed or was cancelled, it is dropped and the new request starts from byte zero. A checksum that is present but not valid hex for its algorithm fails the request instead of skipping verification. A missing or corrupt saved configuration uses defaults; integrity, installer, storage, and scheduler settings are persisted when the configuration is valid.
+
 ## See Also
 
 - [Configuration Documentation](01-configuration.md)

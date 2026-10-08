@@ -46,13 +46,11 @@ class DownloadForegroundService : Service() {
      * without proper setup. Users must call configureService() before starting the service.
      */
     private fun createManagerFromConfig(): MobileDownloadManager {
-        val savedConfig = DownloadConfigStore.load(applicationContext)
-            ?: throw IllegalStateException(
-                "DownloadForegroundService requires configuration. " +
-                    "Call DownloadForegroundService.configureService() before starting the service."
-            )
+        val savedConfig = DownloadConfigStore.load(applicationContext) ?: DownloadConfig().also {
+            Log.w(TAG, "Saved configuration is missing or corrupt; using defaults")
+        }
 
-        return MobileDownloadManager.create(this) {
+        return MobileDownloadManager.createRecovering(this) {
             // Apply chunking configuration
             chunkCount(savedConfig.chunking.chunkCount)
             chunkParallel(savedConfig.chunking.preferParallel)
@@ -77,17 +75,51 @@ class DownloadForegroundService : Service() {
                 ?: notificationIcon(notificationIconRes ?: android.R.drawable.stat_sys_download)
 
             // Apply scheduler configuration
-            savedConfig.scheduler.periodicIntervalMinutes?.let { 
-                periodicSchedule(intervalMinutes = it) 
+            val scheduleTime = savedConfig.scheduler.exactStartTime
+            if (scheduleTime != null) {
+                if (scheduleTime.year != null && scheduleTime.month != null && scheduleTime.dayOfMonth != null) {
+                    exactScheduleDate(
+                        year = scheduleTime.year,
+                        month = scheduleTime.month,
+                        dayOfMonth = scheduleTime.dayOfMonth,
+                        hour = scheduleTime.hour,
+                        minute = scheduleTime.minute,
+                        allowWhileIdle = savedConfig.scheduler.allowWhileIdle
+                    )
+                } else {
+                    exactSchedule(
+                        hour = scheduleTime.hour,
+                        minute = scheduleTime.minute,
+                        weekday = scheduleTime.weekday,
+                        allowWhileIdle = savedConfig.scheduler.allowWhileIdle
+                    )
+                }
+            } else {
+                savedConfig.scheduler.periodicIntervalMinutes?.let { periodicSchedule(intervalMinutes = it) }
             }
+            schedulerUseAlarmManager(savedConfig.scheduler.useAlarmManager)
 
             // Apply storage configuration
             storageDestinations(savedConfig.storage.downloadDirs)
             storageOverwrite(savedConfig.storage.overwriteExisting)
-            storageValidateFreeSpace(savedConfig.storage.validateFreeSpace)
+            storageValidateFreeSpace(
+                savedConfig.storage.validateFreeSpace,
+                savedConfig.storage.minFreeSpaceBytes
+            )
+            storageUsePublicDownloads(savedConfig.storage.preferExternalPublic)
 
             // Apply installer configuration
-            installerPromptOnCompletion(savedConfig.installer.promptOnCompletion)
+            installerPromptOnCompletion(
+                savedConfig.installer.promptOnCompletion,
+                savedConfig.installer.fallbackMimeType
+            )
+            integrityValidation(
+                verifyFileSize = savedConfig.integrity.verifyFileSize,
+                verifyChecksum = savedConfig.integrity.verifyChecksum,
+                verifyApkStructure = savedConfig.integrity.verifyApkStructure,
+                verifyContentType = savedConfig.integrity.verifyContentType,
+                verifyApkSignature = savedConfig.integrity.verifyApkSignature
+            )
 
             // Add relay listener for UI communication
             addListener(object : DownloadListener {
@@ -261,6 +293,7 @@ class DownloadForegroundService : Service() {
         const val ACTION_RESUME = "com.miaadrajabi.downloader.action.RESUME"
         const val ACTION_STOP = "com.miaadrajabi.downloader.action.STOP"
         const val ACTION_SCHEDULE = "com.miaadrajabi.downloader.action.SCHEDULE"
+        const val ACTION_RECOVER = "com.miaadrajabi.downloader.action.RECOVER"
 
         private var notificationIconRes: Int? = null
         private val uiListeners = CopyOnWriteArrayList<DownloadListener>()
@@ -322,6 +355,14 @@ class DownloadForegroundService : Service() {
         @JvmStatic
         fun unregisterListener(listener: DownloadListener) {
             uiListeners -= listener
+        }
+
+        @JvmStatic
+        fun recoverDownloads(context: Context) {
+            val intent = Intent(context, DownloadForegroundService::class.java).apply {
+                action = ACTION_RECOVER
+            }
+            ContextCompat.startForegroundService(context, intent)
         }
 
         @JvmStatic

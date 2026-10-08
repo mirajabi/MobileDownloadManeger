@@ -17,10 +17,14 @@ class ScheduledDownloadWorker(
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        val request = DownloadRequestAdapter.fromData(inputData) ?: return@withContext Result.failure()
-        if (DownloadConfigStore.load(applicationContext) == null) {
-            Log.e(TAG, "Scheduled download failed because configureService() was not called")
+        val request = try {
+            DownloadRequestAdapter.fromData(inputData)
+        } catch (error: IllegalArgumentException) {
+            Log.e(TAG, "Scheduled download has a malformed checksum", error)
             return@withContext Result.failure()
+        } ?: return@withContext Result.failure()
+        if (DownloadConfigStore.load(applicationContext) == null) {
+            Log.w(TAG, "Scheduled download is using default configuration")
         }
         try {
             DownloadForegroundService.enqueueDownload(applicationContext, request)

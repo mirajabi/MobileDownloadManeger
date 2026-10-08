@@ -2,6 +2,7 @@ package com.miaadrajabi.downloader
 
 import android.content.Context
 import android.os.Environment
+import android.util.Log
 import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
@@ -11,27 +12,47 @@ import org.json.JSONObject
  */
 internal object DownloadConfigStore {
 
+    private const val TAG = "DownloadConfigStore"
+    private const val CONFIG_VERSION = 2
+
     fun save(context: Context, config: DownloadConfig) {
-        runCatching {
-            val file = configFile(context)
+        val file = configFile(context)
+        val payload = config.toJson().toString()
+        val wrote = runCatching {
             file.parentFile?.mkdirs()
-            file.writeText(config.toJson().toString())
+            val temp = File(file.parentFile, "${file.name}.tmp")
+            temp.writeText(payload)
+            if (!temp.renameTo(file)) {
+                file.writeText(payload)
+                temp.delete()
+            }
+            true
+        }.getOrDefault(false)
+        if (!wrote) {
+            Log.e(TAG, "Failed to persist download configuration")
         }
     }
 
     fun load(context: Context): DownloadConfig? {
         val file = configFile(context)
         if (!file.exists()) return null
-        return runCatching { downloadConfigFromJson(JSONObject(file.readText())) }.getOrNull()
+        return runCatching { downloadConfigFromJson(JSONObject(file.readText())) }
+            .onFailure { error ->
+                Log.e(TAG, "Saved configuration is corrupt; defaults will be used", error)
+            }
+            .getOrNull()
     }
 
     private fun DownloadConfig.toJson(): JSONObject = JSONObject().apply {
+        put("version", CONFIG_VERSION)
         put("chunking", chunking.toJson())
         put("retryPolicy", retryPolicy.toJson())
         put("enforceForegroundService", enforceForegroundService)
         put("notification", notification.toJson())
         put("scheduler", scheduler.toJson())
         put("storage", storage.toJson())
+        put("installer", installer.toJson())
+        put("integrity", integrity.toJson())
     }
 
     private fun ChunkingConfig.toJson(): JSONObject = JSONObject().apply {
@@ -80,6 +101,21 @@ internal object DownloadConfigStore {
         put("overwriteExisting", overwriteExisting)
         put("validateFreeSpace", validateFreeSpace)
         put("minFreeSpaceBytes", minFreeSpaceBytes)
+        put("preferExternalPublic", preferExternalPublic)
+    }
+
+    private fun InstallerConfig.toJson(): JSONObject = JSONObject().apply {
+        put("promptOnCompletion", promptOnCompletion)
+        put("autoDetectMimeType", autoDetectMimeType)
+        put("fallbackMimeType", fallbackMimeType)
+    }
+
+    private fun IntegrityConfig.toJson(): JSONObject = JSONObject().apply {
+        put("verifyFileSize", verifyFileSize)
+        put("verifyChecksum", verifyChecksum)
+        put("verifyApkStructure", verifyApkStructure)
+        put("verifyContentType", verifyContentType)
+        put("verifyApkSignature", verifyApkSignature)
     }
 
     private fun DownloadDestination.toJson(): JSONObject {
@@ -153,7 +189,26 @@ internal object DownloadConfigStore {
             downloadDirs = dirs,
             overwriteExisting = getBoolean("overwriteExisting"),
             validateFreeSpace = getBoolean("validateFreeSpace"),
-            minFreeSpaceBytes = getLong("minFreeSpaceBytes")
+            minFreeSpaceBytes = getLong("minFreeSpaceBytes"),
+            preferExternalPublic = optBooleanOr("preferExternalPublic", false)
+        )
+    }
+
+    private fun JSONObject.toInstallerConfig(): InstallerConfig {
+        return InstallerConfig(
+            promptOnCompletion = optBooleanOr("promptOnCompletion", false),
+            autoDetectMimeType = optBooleanOr("autoDetectMimeType", true),
+            fallbackMimeType = optString("fallbackMimeType", "application/vnd.android.package-archive")
+        )
+    }
+
+    private fun JSONObject.toIntegrityConfig(): IntegrityConfig {
+        return IntegrityConfig(
+            verifyFileSize = optBooleanOr("verifyFileSize", true),
+            verifyChecksum = optBooleanOr("verifyChecksum", true),
+            verifyApkStructure = optBooleanOr("verifyApkStructure", true),
+            verifyContentType = optBooleanOr("verifyContentType", false),
+            verifyApkSignature = optBooleanOr("verifyApkSignature", false)
         )
     }
 
@@ -161,12 +216,19 @@ internal object DownloadConfigStore {
         return DownloadConfig(
             chunking = json.getJSONObject("chunking").toChunkingConfig(),
             retryPolicy = json.getJSONObject("retryPolicy").toRetryPolicy(),
-            enforceForegroundService = json.getBoolean("enforceForegroundService"),
+            enforceForegroundService = json.optBooleanOr("enforceForegroundService", true),
             notification = json.getJSONObject("notification").toNotificationConfig(),
             scheduler = json.getJSONObject("scheduler").toSchedulerConfig(),
             storage = json.getJSONObject("storage").toStorageConfig(),
+            installer = json.optJSONObject("installer")?.toInstallerConfig() ?: InstallerConfig(),
+            integrity = json.optJSONObject("integrity")?.toIntegrityConfig() ?: IntegrityConfig(),
             listeners = emptyList()
         )
+    }
+
+    private fun JSONObject.optBooleanOr(key: String, defaultValue: Boolean): Boolean {
+        if (!has(key) || isNull(key)) return defaultValue
+        return getBoolean(key)
     }
 
     private fun configFile(context: Context): File {
@@ -276,12 +338,10 @@ internal object DownloadConfigStore {
         } else {
             null
         }
-        val algorithm = if (has("checksumAlgorithm") && !isNull("checksumAlgorithm")) {
-            runCatching { ChecksumAlgorithm.valueOf(getString("checksumAlgorithm")) }
-                .getOrDefault(ChecksumAlgorithm.SHA256)
-        } else {
-            ChecksumAlgorithm.SHA256
-        }
+        val algorithm = parseChecksumAlgorithm(
+            if (has("checksumAlgorithm") && !isNull("checksumAlgorithm")) getString("checksumAlgorithm") else null,
+            checksum != null
+        )
         return DownloadRequest(
             id = getString("id"),
             url = getString("url"),
@@ -330,7 +390,7 @@ data class ChunkStateData(
     }
 }
 
-private fun JSONArray.toChunkStateList(): List<ChunkStateData> {
+internal fun JSONArray.toChunkStateList(): List<ChunkStateData> {
     val list = mutableListOf<ChunkStateData>()
     for (i in 0 until length()) {
         val obj = getJSONObject(i)

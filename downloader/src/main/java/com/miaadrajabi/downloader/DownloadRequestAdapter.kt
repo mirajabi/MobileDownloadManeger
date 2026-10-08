@@ -37,7 +37,10 @@ internal object DownloadRequestAdapter {
             id = id,
             headers = headers,
             expectedChecksum = data.getString(KEY_CHECKSUM),
-            checksumAlgorithm = checksumAlgorithm(data.getString(KEY_CHECKSUM_ALGORITHM))
+            checksumAlgorithm = checksumAlgorithm(
+                data.getString(KEY_CHECKSUM_ALGORITHM),
+                data.getString(KEY_CHECKSUM)
+            )
         )
     }
 
@@ -65,13 +68,15 @@ internal object DownloadRequestAdapter {
             id = id,
             headers = headers,
             expectedChecksum = intent.getStringExtra(KEY_CHECKSUM),
-            checksumAlgorithm = checksumAlgorithm(intent.getStringExtra(KEY_CHECKSUM_ALGORITHM))
+            checksumAlgorithm = checksumAlgorithm(
+                intent.getStringExtra(KEY_CHECKSUM_ALGORITHM),
+                intent.getStringExtra(KEY_CHECKSUM)
+            )
         )
     }
 
-    private fun checksumAlgorithm(name: String?): ChecksumAlgorithm {
-        if (name == null) return ChecksumAlgorithm.SHA256
-        return runCatching { ChecksumAlgorithm.valueOf(name) }.getOrDefault(ChecksumAlgorithm.SHA256)
+    private fun checksumAlgorithm(name: String?, checksum: String?): ChecksumAlgorithm {
+        return parseChecksumAlgorithm(name, !checksum.isNullOrEmpty())
     }
 
     private fun destinationToJson(destination: DownloadDestination): JSONObject {
