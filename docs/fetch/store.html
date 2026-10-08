@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transfer store · Fetch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
+  <div class="top-links">
+    <a href="index.html">Sources</a>
+    <a href="../index.html">Library guide</a>
+  </div>
+</header>
+<div class="layout">
+<nav>
+<div class="group">Start</div>
+<a href="index.html">Overview</a>
+<div class="group">Process</div>
+<a href="manifest.html">Manifest</a>
+<a href="fetch-app.html">FetchApp.kt</a>
+<a href="engine.html">EngineSettings.kt</a>
+<a href="desk.html">DownloadDesk.kt</a>
+<div class="group">Screens</div>
+<a href="links.html">LinkParser.kt</a>
+<a href="composer.html">ComposerActivity.kt</a>
+<a href="queue.html">QueueActivity.kt</a>
+<a href="adapter.html">QueueAdapter.kt</a>
+<a href="transfer.html">Transfer.kt</a>
+<a href="store.html" aria-current="page">TransferStore.kt</a>
+<div class="group">Files</div>
+<a href="saved-files.html">SavedFiles.kt</a>
+<a href="folder.html">FolderActivity.kt</a>
+<a href="settings.html">SettingsActivity.kt</a>
+<div class="group">Clipboard</div>
+<a href="foreground.html">FetchForeground.kt</a>
+<a href="clip-offer.html">ClipOffer.kt</a>
+<a href="clip-watch.html">ClipWatchService.kt</a>
+<a href="offer.html">OfferActivity.kt</a>
+<div class="group">Home</div>
+<a href="widget.html">FetchWidget.kt</a>
+<a href="look.html">Theme and motion</a>
+</nav>
+<main>
+<p class="kicker">TransferStore.kt</p>
+<h1>The listener is the list</h1>
+<p class="lede"><code>FetchApp</code> registers <code>store.bridge</code> once per process. Each callback writes a status the adapter already understands.</p>
+<section class="pair" id="callbacks">
+  <div class="explain">
+    <p class="file">TransferStore.kt · lines 26–80</p>
+    <h2>Callbacks</h2>
+    <p><code>onFailed</code> keeps the exception message. <code>onProgress</code> does not wipe a retrying row back to running, so the attempt text stays. <code>onResumed</code> is allowed to leave a failed row, which is how Resume after an error becomes Downloading again.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    val bridge: DownloadListener = object : DownloadListener {
+        override fun onQueued(handle: DownloadHandle) {
+            touch(handle, STATUS_QUEUED, &quot;Waiting to start&quot;)
+        }
+
+        override fun onStarted(handle: DownloadHandle) {
+            touch(handle, STATUS_RUNNING, &quot;Connected&quot;)
+        }
+
+        override fun onProgress(handle: DownloadHandle, progress: DownloadProgress) {
+            val percent = progress.percent ?: -1
+            val message = etaLabel(progress)
+            updateActive(handle.id) {
+                it.copy(
+                    status = if (it.status == STATUS_RETRYING) STATUS_RETRYING else STATUS_RUNNING,
+                    bytes = progress.bytesDownloaded,
+                    total = progress.totalBytes ?: it.total,
+                    speed = progress.bytesPerSecond ?: 0L,
+                    percent = percent,
+                    message = message
+                )
+            }
+        }
+
+        override fun onPaused(handle: DownloadHandle) {
+            touch(handle, STATUS_PAUSED, &quot;Paused&quot;)
+        }
+
+        override fun onResumed(handle: DownloadHandle) {
+            touch(handle, STATUS_RUNNING, &quot;Resuming&quot;)
+        }
+
+        override fun onCompleted(handle: DownloadHandle) {
+            updateActive(handle.id, allowTerminal = true) {
+                it.copy(status = STATUS_DONE, percent = 100, speed = 0L, message = &quot;Saved&quot;)
+            }
+        }
+
+        override fun onFailed(handle: DownloadHandle, error: Throwable?) {
+            val reason = error?.message?.take(160) ?: &quot;The download failed&quot;
+            updateActive(handle.id, allowTerminal = true) {
+                it.copy(status = STATUS_FAILED, speed = 0L, message = reason)
+            }
+        }
+
+        override fun onRetry(handle: DownloadHandle, attempt: Int) {
+            touch(handle, STATUS_RETRYING, &quot;Trying again, attempt $attempt&quot;)
+        }
+
+        override fun onCancelled(handle: DownloadHandle) {
+            updateActive(handle.id, allowTerminal = true) {
+                it.copy(status = STATUS_STOPPED, speed = 0L, message = &quot;Stopped&quot;)
+            }
+        }
+    }</code></pre>
+</section>
+
+<section class="pair" id="terminal-rows-and-the-widget">
+  <div class="explain">
+    <p class="file">TransferStore.kt · lines 165–188</p>
+    <h2>Terminal rows and the widget</h2>
+    <p>A saved, failed, or stopped row ignores a late callback unless the update is allowed to leave that state. <code>publish</code> posts the snapshot to watchers and to <code>FetchWidget</code>. The widget does not register a second listener.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    private fun updateActive(id: String, allowTerminal: Boolean = false, block: (Transfer) -&gt; Transfer) {
+        synchronized(lock) {
+            val index = items.indexOfFirst { it.id == id }
+            if (index &lt; 0) return
+            val current = items[index]
+            val terminal = current.status == STATUS_DONE ||
+                current.status == STATUS_FAILED ||
+                current.status == STATUS_STOPPED
+            if (terminal &amp;&amp; !allowTerminal) return
+            items[index] = block(current)
+            persistLocked()
+        }
+        publish()
+    }
+
+    private fun publish() {
+        val copy = snapshot()
+        main.post {
+            for (watcher in watchers) {
+                watcher(copy)
+            }
+            FetchWidget.push(appContext, copy)
+        }
+    }</code></pre>
+</section>
+
+<div class="pager"><a href="transfer.html"><span>Previous</span>Transfer.kt</a><a href="saved-files.html" style="text-align:right"><span>Next source</span>SavedFiles.kt</a></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

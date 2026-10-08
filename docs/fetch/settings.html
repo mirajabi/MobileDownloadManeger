@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings · Fetch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
+  <div class="top-links">
+    <a href="index.html">Sources</a>
+    <a href="../index.html">Library guide</a>
+  </div>
+</header>
+<div class="layout">
+<nav>
+<div class="group">Start</div>
+<a href="index.html">Overview</a>
+<div class="group">Process</div>
+<a href="manifest.html">Manifest</a>
+<a href="fetch-app.html">FetchApp.kt</a>
+<a href="engine.html">EngineSettings.kt</a>
+<a href="desk.html">DownloadDesk.kt</a>
+<div class="group">Screens</div>
+<a href="links.html">LinkParser.kt</a>
+<a href="composer.html">ComposerActivity.kt</a>
+<a href="queue.html">QueueActivity.kt</a>
+<a href="adapter.html">QueueAdapter.kt</a>
+<a href="transfer.html">Transfer.kt</a>
+<a href="store.html">TransferStore.kt</a>
+<div class="group">Files</div>
+<a href="saved-files.html">SavedFiles.kt</a>
+<a href="folder.html">FolderActivity.kt</a>
+<a href="settings.html" aria-current="page">SettingsActivity.kt</a>
+<div class="group">Clipboard</div>
+<a href="foreground.html">FetchForeground.kt</a>
+<a href="clip-offer.html">ClipOffer.kt</a>
+<a href="clip-watch.html">ClipWatchService.kt</a>
+<a href="offer.html">OfferActivity.kt</a>
+<div class="group">Home</div>
+<a href="widget.html">FetchWidget.kt</a>
+<a href="look.html">Theme and motion</a>
+</nav>
+<main>
+<p class="kicker">SettingsActivity.kt</p>
+<h1>Save, the folder rule, and the about rows</h1>
+<p class="lede">The engine screen writes <code>EngineSettings</code> and then tells the desk to apply them. The about rows are not download settings.</p>
+<section class="pair" id="save">
+  <div class="explain">
+    <p class="file">SettingsActivity.kt · lines 119–171</p>
+    <h2>Save</h2>
+    <p>A custom folder must start with <code>/</code>. A public folder must be a relative name: no <code>..</code>, no leading slash. Public Downloads is stored only together with Auto. After <code>apply</code>, the clipboard service starts or stops to match the switch.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    private fun saveAndClose() {
+        val folder = binding.folder.text?.toString()?.trim().orEmpty()
+        val destination = when (binding.destinationGroup.checkedChipId) {
+            R.id.destScoped -&gt; EngineSettings.DEST_SCOPED
+            R.id.destCustom -&gt; EngineSettings.DEST_CUSTOM
+            else -&gt; EngineSettings.DEST_AUTO
+        }
+        if (destination == EngineSettings.DEST_CUSTOM &amp;&amp; !folder.startsWith(&quot;/&quot;)) {
+            binding.folderLayout.error = &quot;Use a full path, starting with /. A name like Fetch is not a folder on the phone.&quot;
+            return
+        }
+        val publicFolder = binding.publicFolder.text?.toString()?.trim().orEmpty()
+        if (publicFolder.contains(&quot;..&quot;) || publicFolder.startsWith(&quot;/&quot;) || publicFolder.contains(&quot;\\&quot;)) {
+            binding.publicFolderLayout.error = &quot;Use a folder name inside Downloads, such as Fetch.&quot;
+            return
+        }
+        val channel = binding.channel.text?.toString()?.trim().orEmpty()
+        val settings = EngineSettings(
+            chunkCount = binding.chunks.value.toInt(),
+            parallel = binding.parallel.isChecked,
+            minChunkKb = binding.minChunk.value.toInt(),
+            retryAttempts = binding.attempts.value.toInt(),
+            retryDelaySeconds = binding.delay.value.toInt(),
+            backoffTenths = binding.backoff.value.toInt(),
+            channelName = if (channel.isBlank()) &quot;Fetch&quot; else channel,
+            iconKey = selectedIcon(),
+            showProgress = binding.showProgress.isChecked,
+            persistent = binding.persistent.isChecked,
+            destination = destination,
+            folder = if (folder.isBlank()) &quot;Fetch&quot; else folder,
+            publicDownloads = binding.publicDownloads.isChecked &amp;&amp; destination == EngineSettings.DEST_AUTO,
+            publicFolder = publicFolder,
+            overwrite = binding.overwrite.isChecked,
+            checkSpace = binding.checkSpace.isChecked,
+            minFreeMb = binding.freeSpace.value.toInt(),
+            promptInstaller = binding.promptInstaller.isChecked,
+            verifySize = binding.verifySize.isChecked,
+            verifyChecksum = binding.verifyChecksum.isChecked,
+            verifyApk = binding.verifyApk.isChecked,
+            verifyType = binding.verifyType.isChecked,
+            verifySignature = binding.verifySignature.isChecked,
+            useAlarm = binding.defaultAlarm.isChecked,
+            watchClipboard = binding.watchClipboard.isChecked
+        )
+        settings.save(this)
+        DownloadDesk.apply(this, settings)
+        if (settings.watchClipboard) {
+            ClipWatchService.start(this)
+        } else {
+            ClipWatchService.stopWatching(this)
+        }
+        finish()
+    }</code></pre>
+</section>
+
+<section class="pair" id="absolute-path-and-public-downloads">
+  <div class="explain">
+    <p class="file">SettingsActivity.kt · lines 220–235</p>
+    <h2>Absolute path and public Downloads</h2>
+    <p>Choosing Absolute path or App folder clears and disables the public switch. Turning the public switch on disables those two chips and shows the folder-inside-Downloads field. <code>locking</code> stops the two listeners from retriggering each other.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    private fun lockDestinationChoices() {
+        if (locking) return
+        locking = true
+        val checked = binding.destinationGroup.checkedChipId
+        val specific = checked == R.id.destCustom || checked == R.id.destScoped
+        if (specific &amp;&amp; binding.publicDownloads.isChecked) {
+            binding.publicDownloads.isChecked = false
+        }
+        val publicOn = binding.publicDownloads.isChecked &amp;&amp; !specific
+        binding.destCustom.isEnabled = !publicOn
+        binding.destScoped.isEnabled = !publicOn
+        binding.publicDownloads.isEnabled = !specific
+        binding.publicFolderLayout.visibility = if (publicOn) View.VISIBLE else View.GONE
+        locking = false
+        refreshLanding()
+    }</code></pre>
+</section>
+
+<section class="pair" id="about">
+  <div class="explain">
+    <p class="file">SettingsActivity.kt · lines 173–184</p>
+    <h2>About</h2>
+    <p>Mail is <code>ACTION_SENDTO</code> to miaad.rajabi@gmail.com. If the device has no mail app, the address is shown in a toast. GitHub is <code>ACTION_VIEW</code> of https://github.com/mirajabi, drawn with the vector <code>ic_github</code>.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    private fun openMail() {
+        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse(&quot;mailto:miaad.rajabi@gmail.com&quot;))
+        try {
+            startActivity(intent)
+        } catch (error: ActivityNotFoundException) {
+            Toast.makeText(this, &quot;miaad.rajabi@gmail.com&quot;, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun openGithub() {
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(&quot;https://github.com/mirajabi&quot;)))
+    }</code></pre>
+</section>
+
+<div class="pager"><a href="folder.html"><span>Previous</span>FolderActivity.kt</a><a href="foreground.html" style="text-align:right"><span>Next source</span>FetchForeground.kt</a></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

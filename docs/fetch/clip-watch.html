@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clip watch · Fetch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
+  <div class="top-links">
+    <a href="index.html">Sources</a>
+    <a href="../index.html">Library guide</a>
+  </div>
+</header>
+<div class="layout">
+<nav>
+<div class="group">Start</div>
+<a href="index.html">Overview</a>
+<div class="group">Process</div>
+<a href="manifest.html">Manifest</a>
+<a href="fetch-app.html">FetchApp.kt</a>
+<a href="engine.html">EngineSettings.kt</a>
+<a href="desk.html">DownloadDesk.kt</a>
+<div class="group">Screens</div>
+<a href="links.html">LinkParser.kt</a>
+<a href="composer.html">ComposerActivity.kt</a>
+<a href="queue.html">QueueActivity.kt</a>
+<a href="adapter.html">QueueAdapter.kt</a>
+<a href="transfer.html">Transfer.kt</a>
+<a href="store.html">TransferStore.kt</a>
+<div class="group">Files</div>
+<a href="saved-files.html">SavedFiles.kt</a>
+<a href="folder.html">FolderActivity.kt</a>
+<a href="settings.html">SettingsActivity.kt</a>
+<div class="group">Clipboard</div>
+<a href="foreground.html">FetchForeground.kt</a>
+<a href="clip-offer.html">ClipOffer.kt</a>
+<a href="clip-watch.html" aria-current="page">ClipWatchService.kt</a>
+<a href="offer.html">OfferActivity.kt</a>
+<div class="group">Home</div>
+<a href="widget.html">FetchWidget.kt</a>
+<a href="look.html">Theme and motion</a>
+</nav>
+<main>
+<p class="kicker">ClipWatchService.kt</p>
+<h1>A foreground watch, not a background dialog</h1>
+<p class="lede">The service stays up only while the switch is on. Its own notification is low importance. The offer uses a second, high-importance channel.</p>
+<section class="pair" id="on-a-clipboard-change">
+  <div class="explain">
+    <p class="file">ClipWatchService.kt · lines 48–80</p>
+    <h2>On a clipboard change</h2>
+    <p>If a Fetch screen is open, the dialog starts. If <code>startActivity</code> throws, the notification is the fallback. If no Fetch screen is open, only the notification is posted. Tapping it is a user action, so the dialog is allowed to open.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    private fun onClipChanged() {
+        if (!EngineSettings.load(this).watchClipboard) {
+            stopWatching(this)
+            return
+        }
+        val raw = ClipOffer.rawText(this)
+        val links = LinkParser.parse(raw)
+        if (links.isEmpty() || !ClipOffer.isNew(this, raw)) return
+        ClipOffer.remember(this, raw)
+        if (FetchForeground.open) {
+            try {
+                startActivity(ClipOffer.offerIntent(this, links))
+            } catch (error: Exception) {
+                val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                manager.notify(OFFER_ID, offerNotice(links))
+            }
+            return
+        }
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(OFFER_ID, offerNotice(links))
+    }
+
+    private fun offerNotice(links: List&lt;String&gt;): Notification {
+        ensureChannel()
+        return NotificationCompat.Builder(this, OFFER_CHANNEL)
+            .setSmallIcon(R.drawable.ic_stat_arrow)
+            .setContentTitle(if (links.size == 1) &quot;Start this download?&quot; else &quot;Start these downloads?&quot;)
+            .setContentText(links.joinToString(&quot;, &quot;) { LinkParser.fileNameFrom(it) })
+            .setContentIntent(ClipOffer.contentIntent(this, links))
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+    }</code></pre>
+</section>
+
+<section class="pair" id="two-channels">
+  <div class="explain">
+    <p class="file">ClipWatchService.kt · lines 100–121</p>
+    <h2>Two channels</h2>
+    <p>The watching channel is created even when the offer channel already exists, and the other way around. An older install that only had the low channel still gets the high one.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    private fun ensureChannel() {
+        if (Build.VERSION.SDK_INT &lt; 26) return
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (manager.getNotificationChannel(CHANNEL_ID) == null) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                &quot;Copied links&quot;,
+                NotificationManager.IMPORTANCE_LOW
+            )
+            channel.description = &quot;Stays up while Fetch is allowed to offer a copied link&quot;
+            manager.createNotificationChannel(channel)
+        }
+        if (manager.getNotificationChannel(OFFER_CHANNEL) == null) {
+            val offer = NotificationChannel(
+                OFFER_CHANNEL,
+                &quot;Link offers&quot;,
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            offer.description = &quot;Asks before a copied link starts&quot;
+            manager.createNotificationChannel(offer)
+        }
+    }</code></pre>
+</section>
+
+<div class="pager"><a href="clip-offer.html"><span>Previous</span>ClipOffer.kt</a><a href="offer.html" style="text-align:right"><span>Next source</span>OfferActivity.kt</a></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

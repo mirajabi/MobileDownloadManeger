@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clip offer · Fetch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
+  <div class="top-links">
+    <a href="index.html">Sources</a>
+    <a href="../index.html">Library guide</a>
+  </div>
+</header>
+<div class="layout">
+<nav>
+<div class="group">Start</div>
+<a href="index.html">Overview</a>
+<div class="group">Process</div>
+<a href="manifest.html">Manifest</a>
+<a href="fetch-app.html">FetchApp.kt</a>
+<a href="engine.html">EngineSettings.kt</a>
+<a href="desk.html">DownloadDesk.kt</a>
+<div class="group">Screens</div>
+<a href="links.html">LinkParser.kt</a>
+<a href="composer.html">ComposerActivity.kt</a>
+<a href="queue.html">QueueActivity.kt</a>
+<a href="adapter.html">QueueAdapter.kt</a>
+<a href="transfer.html">Transfer.kt</a>
+<a href="store.html">TransferStore.kt</a>
+<div class="group">Files</div>
+<a href="saved-files.html">SavedFiles.kt</a>
+<a href="folder.html">FolderActivity.kt</a>
+<a href="settings.html">SettingsActivity.kt</a>
+<div class="group">Clipboard</div>
+<a href="foreground.html">FetchForeground.kt</a>
+<a href="clip-offer.html" aria-current="page">ClipOffer.kt</a>
+<a href="clip-watch.html">ClipWatchService.kt</a>
+<a href="offer.html">OfferActivity.kt</a>
+<div class="group">Home</div>
+<a href="widget.html">FetchWidget.kt</a>
+<a href="look.html">Theme and motion</a>
+</nav>
+<main>
+<p class="kicker">ClipOffer.kt</p>
+<h1>Read a copied link once</h1>
+<p class="lede">The same clipboard text is not asked about twice. A SHA-256 of the raw text is stored in <code>fetch_clip</code>.</p>
+<section class="pair" id="present">
+  <div class="explain">
+    <p class="file">ClipOffer.kt · lines 16–23</p>
+    <h2>present</h2>
+    <p>Called from <code>onResume</code> of a Fetch screen, and only when the switch is on. Empty text, text with no http link, and text already offered are ignored. A new text is remembered before the dialog starts, so a second resume does not open it again.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    fun present(activity: android.app.Activity) {
+        if (!EngineSettings.load(activity).watchClipboard) return
+        val raw = rawText(activity)
+        val links = LinkParser.parse(raw)
+        if (links.isEmpty() || !isNew(activity, raw)) return
+        remember(activity, raw)
+        activity.startActivity(offerIntent(activity, links))
+    }</code></pre>
+</section>
+
+<section class="pair" id="reading-and-the-intent">
+  <div class="explain">
+    <p class="file">ClipOffer.kt · lines 25–69</p>
+    <h2>Reading and the intent</h2>
+    <p>A <code>SecurityException</code> from the clipboard becomes an empty read. That is what Android does when a process is not in front. The offer intent carries the link list and <code>FLAG_ACTIVITY_NEW_TASK</code>, because the service may be the caller.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    fun readLinks(context: Context): List&lt;String&gt; {
+        val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = try {
+            manager.primaryClip
+        } catch (error: SecurityException) {
+            null
+        } ?: return emptyList()
+        if (clip.itemCount &lt;= 0) return emptyList()
+        val text = clip.getItemAt(0).coerceToText(context)?.toString().orEmpty()
+        return LinkParser.parse(text)
+    }
+
+    fun rawText(context: Context): String {
+        val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = try {
+            manager.primaryClip
+        } catch (error: SecurityException) {
+            null
+        } ?: return &quot;&quot;
+        if (clip.itemCount &lt;= 0) return &quot;&quot;
+        return clip.getItemAt(0).coerceToText(context)?.toString().orEmpty()
+    }
+
+    fun isNew(context: Context, raw: String): Boolean {
+        if (raw.isBlank()) return false
+        val seen = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, &quot;&quot;)
+        return seen != digest(raw)
+    }
+
+    fun remember(context: Context, raw: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY, digest(raw))
+            .apply()
+    }
+
+    fun offerIntent(context: Context, links: List&lt;String&gt;): Intent {
+        return Intent(context, OfferActivity::class.java)
+            .putStringArrayListExtra(OfferActivity.EXTRA_LINKS, ArrayList(links))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+    }
+
+    fun contentIntent(context: Context, links: List&lt;String&gt;): PendingIntent {
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or immutable()
+        return PendingIntent.getActivity(context, 8, offerIntent(context, links), flags)
+    }</code></pre>
+</section>
+
+<div class="pager"><a href="foreground.html"><span>Previous</span>FetchForeground.kt</a><a href="clip-watch.html" style="text-align:right"><span>Next source</span>ClipWatchService.kt</a></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

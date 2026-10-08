@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Link parser · Fetch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
+  <div class="top-links">
+    <a href="index.html">Sources</a>
+    <a href="../index.html">Library guide</a>
+  </div>
+</header>
+<div class="layout">
+<nav>
+<div class="group">Start</div>
+<a href="index.html">Overview</a>
+<div class="group">Process</div>
+<a href="manifest.html">Manifest</a>
+<a href="fetch-app.html">FetchApp.kt</a>
+<a href="engine.html">EngineSettings.kt</a>
+<a href="desk.html">DownloadDesk.kt</a>
+<div class="group">Screens</div>
+<a href="links.html" aria-current="page">LinkParser.kt</a>
+<a href="composer.html">ComposerActivity.kt</a>
+<a href="queue.html">QueueActivity.kt</a>
+<a href="adapter.html">QueueAdapter.kt</a>
+<a href="transfer.html">Transfer.kt</a>
+<a href="store.html">TransferStore.kt</a>
+<div class="group">Files</div>
+<a href="saved-files.html">SavedFiles.kt</a>
+<a href="folder.html">FolderActivity.kt</a>
+<a href="settings.html">SettingsActivity.kt</a>
+<div class="group">Clipboard</div>
+<a href="foreground.html">FetchForeground.kt</a>
+<a href="clip-offer.html">ClipOffer.kt</a>
+<a href="clip-watch.html">ClipWatchService.kt</a>
+<a href="offer.html">OfferActivity.kt</a>
+<div class="group">Home</div>
+<a href="widget.html">FetchWidget.kt</a>
+<a href="look.html">Theme and motion</a>
+</nav>
+<main>
+<p class="kicker">LinkParser.kt</p>
+<h1>A paste becomes addresses</h1>
+<p class="lede">The composer, the share intent, and the clipboard offer all call this object, so they agree on what a link is.</p>
+<section class="pair" id="parse">
+  <div class="explain">
+    <p class="file">LinkParser.kt · lines 11–24</p>
+    <h2>parse</h2>
+    <p>Tokens are split on whitespace. A token is kept when it starts with <code>http://</code> or <code>https://</code>, after trailing commas and brackets are cut off. Duplicates are dropped. <code>ftp://</code> is ignored.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    fun parse(raw: String): List&lt;String&gt; {
+        if (raw.isBlank()) return emptyList()
+        val found = ArrayList&lt;String&gt;()
+        val tokens = raw.split(Regex(&quot;\\s+&quot;))
+        for (token in tokens) {
+            val cleaned = token.trim().trimEnd(&#x27;,&#x27;, &#x27;;&#x27;, &#x27;)&#x27;, &#x27;]&#x27;)
+            val lower = cleaned.toLowerCase(Locale.US)
+            val isWeb = lower.startsWith(&quot;http://&quot;) || lower.startsWith(&quot;https://&quot;)
+            if (isWeb &amp;&amp; cleaned.length &gt; &quot;http://&quot;.length &amp;&amp; !found.contains(cleaned)) {
+                found.add(cleaned)
+            }
+        }
+        return found
+    }</code></pre>
+</section>
+
+<section class="pair" id="file-name">
+  <div class="explain">
+    <p class="file">LinkParser.kt · lines 26–79</p>
+    <h2>File name</h2>
+    <p>The last path segment is decoded and shortened to 80 characters, and a short extension is kept. A signed URL with a long encoded name still becomes a legal file name. Several links each take a name from their own URL. A collision gets <code>-2</code>, then <code>-3</code>, before the extension.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    fun fileNameFrom(url: String): String {
+        val path = url.substringBefore(&#x27;?&#x27;).substringBefore(&#x27;#&#x27;)
+        val raw = path.substringAfterLast(&#x27;/&#x27;)
+        val decoded = decode(raw)
+        val cleaned = decoded.replace(Regex(&quot;[^A-Za-z0-9._-]&quot;), &quot;_&quot;).trim(&#x27;_&#x27;)
+        val named = if (cleaned.isBlank() || !cleaned.contains(&#x27;.&#x27;)) {
+            val host = path.substringAfter(&quot;://&quot;).substringBefore(&#x27;/&#x27;).substringBefore(&#x27;:&#x27;)
+            val hostName = host.replace(Regex(&quot;[^A-Za-z0-9._-]&quot;), &quot;&quot;)
+            if (hostName.isNotBlank()) &quot;$hostName.bin&quot; else &quot;download.bin&quot;
+        } else {
+            cleaned
+        }
+        return limitFileName(named)
+    }
+
+    fun uniqueNames(urls: List&lt;String&gt;, preferredSingleName: String): List&lt;String&gt; {
+        if (urls.size == 1) {
+            val preferred = sanitizeFileName(preferredSingleName)
+            if (preferred.isNotBlank()) return listOf(preferred)
+        }
+        val used = HashSet&lt;String&gt;()
+        val names = ArrayList&lt;String&gt;(urls.size)
+        for (url in urls) {
+            val base = fileNameFrom(url)
+            var candidate = base
+            var suffix = 2
+            while (!used.add(candidate.toLowerCase(Locale.US))) {
+                val dot = base.lastIndexOf(&#x27;.&#x27;)
+                candidate = if (dot &gt; 0) {
+                    base.substring(0, dot) + &quot;-&quot; + suffix + base.substring(dot)
+                } else {
+                    base + &quot;-&quot; + suffix
+                }
+                suffix += 1
+            }
+            names.add(candidate)
+        }
+        return names
+    }
+
+    fun sanitizeFileName(raw: String): String {
+        val cleaned = raw.trim().replace(Regex(&quot;[^A-Za-z0-9._-]&quot;), &quot;_&quot;).trim(&#x27;_&#x27;)
+        if (cleaned.isBlank()) return &quot;&quot;
+        return limitFileName(cleaned)
+    }
+
+    private fun limitFileName(name: String): String {
+        val max = 80
+        if (name.length &lt;= max) return name
+        val dot = name.lastIndexOf(&#x27;.&#x27;)
+        val ext = if (dot &gt; 0 &amp;&amp; name.length - dot &lt;= 8) name.substring(dot) else &quot;&quot;
+        val base = name.substring(0, max - ext.length).trim(&#x27;_&#x27;, &#x27;-&#x27;, &#x27;.&#x27;)
+        return if (base.isBlank()) &quot;download$ext&quot; else base + ext
+    }</code></pre>
+</section>
+
+<div class="pager"><a href="desk.html"><span>Previous</span>DownloadDesk.kt</a><a href="composer.html" style="text-align:right"><span>Next source</span>ComposerActivity.kt</a></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

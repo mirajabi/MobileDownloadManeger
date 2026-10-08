@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manifest · Fetch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
+  <div class="top-links">
+    <a href="index.html">Sources</a>
+    <a href="../index.html">Library guide</a>
+  </div>
+</header>
+<div class="layout">
+<nav>
+<div class="group">Start</div>
+<a href="index.html">Overview</a>
+<div class="group">Process</div>
+<a href="manifest.html" aria-current="page">Manifest</a>
+<a href="fetch-app.html">FetchApp.kt</a>
+<a href="engine.html">EngineSettings.kt</a>
+<a href="desk.html">DownloadDesk.kt</a>
+<div class="group">Screens</div>
+<a href="links.html">LinkParser.kt</a>
+<a href="composer.html">ComposerActivity.kt</a>
+<a href="queue.html">QueueActivity.kt</a>
+<a href="adapter.html">QueueAdapter.kt</a>
+<a href="transfer.html">Transfer.kt</a>
+<a href="store.html">TransferStore.kt</a>
+<div class="group">Files</div>
+<a href="saved-files.html">SavedFiles.kt</a>
+<a href="folder.html">FolderActivity.kt</a>
+<a href="settings.html">SettingsActivity.kt</a>
+<div class="group">Clipboard</div>
+<a href="foreground.html">FetchForeground.kt</a>
+<a href="clip-offer.html">ClipOffer.kt</a>
+<a href="clip-watch.html">ClipWatchService.kt</a>
+<a href="offer.html">OfferActivity.kt</a>
+<div class="group">Home</div>
+<a href="widget.html">FetchWidget.kt</a>
+<a href="look.html">Theme and motion</a>
+</nav>
+<main>
+<p class="kicker">AndroidManifest.xml</p>
+<h1>What the system is allowed to start</h1>
+<p class="lede">Fetch does not declare a second download service. The library manifest merges that. This file only names the process, the screens, the share target, and the widget.</p>
+<section class="pair" id="application-and-launcher">
+  <div class="explain">
+    <p class="file">AndroidManifest.xml · lines 1–28</p>
+    <h2>Application and launcher</h2>
+    <p><code>FetchApp</code> runs first. The launcher is <code>QueueActivity</code>. Cleartext is allowed so an <code>http://</code> lab URL can be used. <code>requestLegacyExternalStorage</code> matters only before Android 11. After that, a public Downloads path can still be unwritable, and the library falls through to app storage.</p>
+  </div>
+  <pre class="src"><code class="language-xml">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;manifest xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+    package=&quot;com.miaadrajabi.fetch&quot;&gt;
+
+    &lt;uses-permission android:name=&quot;android.permission.INTERNET&quot; /&gt;
+    &lt;uses-permission android:name=&quot;android.permission.FOREGROUND_SERVICE&quot; /&gt;
+    &lt;uses-permission android:name=&quot;android.permission.READ_EXTERNAL_STORAGE&quot; /&gt;
+    &lt;uses-permission android:name=&quot;android.permission.WRITE_EXTERNAL_STORAGE&quot; /&gt;
+
+    &lt;application
+        android:name=&quot;.FetchApp&quot;
+        android:allowBackup=&quot;true&quot;
+        android:icon=&quot;@mipmap/ic_launcher&quot;
+        android:label=&quot;@string/app_name&quot;
+        android:roundIcon=&quot;@mipmap/ic_launcher&quot;
+        android:supportsRtl=&quot;true&quot;
+        android:theme=&quot;@style/Theme.Fetch&quot;
+        android:usesCleartextTraffic=&quot;true&quot;
+        android:requestLegacyExternalStorage=&quot;true&quot;&gt;
+
+        &lt;activity
+            android:name=&quot;.QueueActivity&quot;
+            android:exported=&quot;true&quot;&gt;
+            &lt;intent-filter&gt;
+                &lt;action android:name=&quot;android.intent.action.MAIN&quot; /&gt;
+                &lt;category android:name=&quot;android.intent.category.LAUNCHER&quot; /&gt;
+            &lt;/intent-filter&gt;
+        &lt;/activity&gt;</code></pre>
+</section>
+
+<section class="pair" id="share,-dialog,-service,-widget">
+  <div class="explain">
+    <p class="file">AndroidManifest.xml · lines 30–71</p>
+    <h2>Share, dialog, service, widget</h2>
+    <p><code>ComposerActivity</code> accepts <code>SEND</code> of <code>text/plain</code>, so another app can hand Fetch a link. Settings and the folder screen are not exported. <code>OfferActivity</code> is a dialog theme, <code>singleTop</code>, and kept out of recents. <code>ClipWatchService</code> is not exported. The widget receiver is exported because the launcher has to bind it.</p>
+  </div>
+  <pre class="src"><code class="language-xml">        &lt;activity
+            android:name=&quot;.ComposerActivity&quot;
+            android:exported=&quot;true&quot;
+            android:windowSoftInputMode=&quot;adjustResize&quot;&gt;
+            &lt;intent-filter&gt;
+                &lt;action android:name=&quot;android.intent.action.SEND&quot; /&gt;
+                &lt;category android:name=&quot;android.intent.category.DEFAULT&quot; /&gt;
+                &lt;data android:mimeType=&quot;text/plain&quot; /&gt;
+            &lt;/intent-filter&gt;
+        &lt;/activity&gt;
+
+        &lt;activity
+            android:name=&quot;.SettingsActivity&quot;
+            android:exported=&quot;false&quot;
+            android:windowSoftInputMode=&quot;adjustResize&quot; /&gt;
+
+        &lt;activity
+            android:name=&quot;.FolderActivity&quot;
+            android:exported=&quot;false&quot; /&gt;
+
+        &lt;activity
+            android:name=&quot;.OfferActivity&quot;
+            android:excludeFromRecents=&quot;true&quot;
+            android:exported=&quot;false&quot;
+            android:launchMode=&quot;singleTop&quot;
+            android:theme=&quot;@style/Theme.Fetch.Offer&quot; /&gt;
+
+        &lt;service
+            android:name=&quot;.ClipWatchService&quot;
+            android:exported=&quot;false&quot; /&gt;
+
+        &lt;receiver
+            android:name=&quot;.FetchWidget&quot;
+            android:exported=&quot;true&quot;&gt;
+            &lt;intent-filter&gt;
+                &lt;action android:name=&quot;android.appwidget.action.APPWIDGET_UPDATE&quot; /&gt;
+            &lt;/intent-filter&gt;
+            &lt;meta-data
+                android:name=&quot;android.appwidget.provider&quot;
+                android:resource=&quot;@xml/fetch_widget_info&quot; /&gt;
+        &lt;/receiver&gt;
+    &lt;/application&gt;</code></pre>
+</section>
+
+<div class="pager"><a href="index.html"><span>Previous</span>Overview</a><a href="fetch-app.html" style="text-align:right"><span>Next source</span>FetchApp.kt</a></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

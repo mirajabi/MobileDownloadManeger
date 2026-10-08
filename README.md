@@ -63,7 +63,7 @@ The switch runs on GitHub Pages. One control at the top shows either Kotlin or J
 
 `showcase` is a separate app that sits on this library. Paste one link or several, pick a time, and turn the engine options on from the screen. A failed row can resume from the bytes already saved. A finished file can be copied, moved, renamed, or opened in its folder. The home screen can hold a Fetch widget, and a setting can offer a copied link.
 
-Run the `showcase` module from Android Studio. The [guide](https://mirajabi.github.io/MobileDownloadManeger/#fetch) walks that source step by step, then repeats the library calls in Kotlin and Java.
+Run the `showcase` module from Android Studio. The [Fetch source guide](https://mirajabi.github.io/MobileDownloadManeger/fetch/) gives each file its own page, with the explanation beside the code. The [library guide](https://mirajabi.github.io/MobileDownloadManeger/) repeats the calls in Kotlin and Java.
 
 <p align="center">
   <img src="docs/screenshots/downloading.png" width="180" alt="Downloading">

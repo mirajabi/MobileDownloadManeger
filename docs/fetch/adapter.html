@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Queue adapter · Fetch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
+  <div class="top-links">
+    <a href="index.html">Sources</a>
+    <a href="../index.html">Library guide</a>
+  </div>
+</header>
+<div class="layout">
+<nav>
+<div class="group">Start</div>
+<a href="index.html">Overview</a>
+<div class="group">Process</div>
+<a href="manifest.html">Manifest</a>
+<a href="fetch-app.html">FetchApp.kt</a>
+<a href="engine.html">EngineSettings.kt</a>
+<a href="desk.html">DownloadDesk.kt</a>
+<div class="group">Screens</div>
+<a href="links.html">LinkParser.kt</a>
+<a href="composer.html">ComposerActivity.kt</a>
+<a href="queue.html">QueueActivity.kt</a>
+<a href="adapter.html" aria-current="page">QueueAdapter.kt</a>
+<a href="transfer.html">Transfer.kt</a>
+<a href="store.html">TransferStore.kt</a>
+<div class="group">Files</div>
+<a href="saved-files.html">SavedFiles.kt</a>
+<a href="folder.html">FolderActivity.kt</a>
+<a href="settings.html">SettingsActivity.kt</a>
+<div class="group">Clipboard</div>
+<a href="foreground.html">FetchForeground.kt</a>
+<a href="clip-offer.html">ClipOffer.kt</a>
+<a href="clip-watch.html">ClipWatchService.kt</a>
+<a href="offer.html">OfferActivity.kt</a>
+<div class="group">Home</div>
+<a href="widget.html">FetchWidget.kt</a>
+<a href="look.html">Theme and motion</a>
+</nav>
+<main>
+<p class="kicker">QueueAdapter.kt</p>
+<h1>Which button is on the row</h1>
+<p class="lede">Status strings from <code>TransferStore</code> decide the buttons. The click listeners are the lambdas the queue passed in.</p>
+<section class="pair" id="bind">
+  <div class="explain">
+    <p class="file">QueueAdapter.kt · lines 33–74</p>
+    <h2>bind</h2>
+    <p>Pause and Stop show while the row is queued, running, or retrying. Resume shows for paused and for failed. Copy needs a real file. Move also needs the row to be idle, so a live writer is not relocated. Open folder shows when a path or a content URI is known, even if <code>File.isFile</code> is false. Edit is always there.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">        fun bind(item: Transfer) {
+            val context = binding.root.context
+            binding.name.text = item.title.ifBlank { item.fileName }
+            val named = item.title.isNotBlank() &amp;&amp; item.title != item.fileName
+            binding.host.text = if (named) item.fileName + &quot;  ·  &quot; + item.host() else item.host()
+            binding.status.text = statusLabel(item.status)
+            binding.status.setTextColor(context.getColor(statusColor(item.status)))
+            binding.detail.text = detail(item)
+            val known = item.percent &gt;= 0
+            binding.percent.text = if (known) &quot;${item.percent}%&quot; else &quot;&quot;
+            binding.progress.isIndeterminate = !known &amp;&amp;
+                (item.status == TransferStore.STATUS_RUNNING || item.status == TransferStore.STATUS_QUEUED)
+            binding.progress.progress = if (known) item.percent else 0
+            val active = item.status == TransferStore.STATUS_RUNNING ||
+                item.status == TransferStore.STATUS_QUEUED ||
+                item.status == TransferStore.STATUS_RETRYING
+            val finished = item.status == TransferStore.STATUS_DONE ||
+                item.status == TransferStore.STATUS_FAILED ||
+                item.status == TransferStore.STATUS_STOPPED
+            binding.pause.visibility = if (active) View.VISIBLE else View.GONE
+            binding.resume.visibility = if (
+                item.status == TransferStore.STATUS_PAUSED || item.status == TransferStore.STATUS_FAILED
+            ) View.VISIBLE else View.GONE
+            binding.stop.visibility = if (finished) View.GONE else View.VISIBLE
+            binding.remove.visibility = if (finished) View.VISIBLE else View.GONE
+            val fileReady = item.localPath.isNotBlank() &amp;&amp; java.io.File(item.localPath).isFile
+            val idle = item.status == TransferStore.STATUS_DONE ||
+                item.status == TransferStore.STATUS_FAILED ||
+                item.status == TransferStore.STATUS_STOPPED
+            val placed = item.localPath.isNotBlank() || item.locationUri.isNotBlank()
+            binding.copy.visibility = if (fileReady) View.VISIBLE else View.GONE
+            binding.move.visibility = if (fileReady &amp;&amp; idle) View.VISIBLE else View.GONE
+            binding.folder.visibility = if (placed) View.VISIBLE else View.GONE
+            binding.pause.setOnClickListener { onPause(item) }
+            binding.resume.setOnClickListener { onResume(item) }
+            binding.stop.setOnClickListener { onStop(item) }
+            binding.remove.setOnClickListener { onRemove(item) }
+            binding.copy.setOnClickListener { onCopy(item) }
+            binding.move.setOnClickListener { onMove(item) }
+            binding.edit.setOnClickListener { onEdit(item) }
+            binding.folder.setOnClickListener { onFolder(item) }
+        }</code></pre>
+</section>
+
+<section class="pair" id="labels">
+  <div class="explain">
+    <p class="file">QueueAdapter.kt · lines 97–118</p>
+    <h2>Labels</h2>
+    <p>Running and retrying are copper. Paused and scheduled are amber. Saved is green. Failed is rose. Those colors are the same values as <code>res/values/colors.xml</code>.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    private fun statusLabel(status: String): String {
+        return when (status) {
+            TransferStore.STATUS_RUNNING -&gt; &quot;Downloading&quot;
+            TransferStore.STATUS_PAUSED -&gt; &quot;Paused&quot;
+            TransferStore.STATUS_SCHEDULED -&gt; &quot;Scheduled&quot;
+            TransferStore.STATUS_DONE -&gt; &quot;Saved&quot;
+            TransferStore.STATUS_FAILED -&gt; &quot;Failed&quot;
+            TransferStore.STATUS_STOPPED -&gt; &quot;Stopped&quot;
+            TransferStore.STATUS_RETRYING -&gt; &quot;Retrying&quot;
+            else -&gt; &quot;Queued&quot;
+        }
+    }
+
+    private fun statusColor(status: String): Int {
+        return when (status) {
+            TransferStore.STATUS_RUNNING, TransferStore.STATUS_RETRYING -&gt; R.color.copper
+            TransferStore.STATUS_PAUSED, TransferStore.STATUS_SCHEDULED -&gt; R.color.amber
+            TransferStore.STATUS_DONE -&gt; R.color.green
+            TransferStore.STATUS_FAILED -&gt; R.color.rose
+            else -&gt; R.color.muted
+        }
+    }</code></pre>
+</section>
+
+<div class="pager"><a href="queue.html"><span>Previous</span>QueueActivity.kt</a><a href="transfer.html" style="text-align:right"><span>Next source</span>Transfer.kt</a></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

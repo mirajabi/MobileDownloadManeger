@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download desk · Fetch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
+  <div class="top-links">
+    <a href="index.html">Sources</a>
+    <a href="../index.html">Library guide</a>
+  </div>
+</header>
+<div class="layout">
+<nav>
+<div class="group">Start</div>
+<a href="index.html">Overview</a>
+<div class="group">Process</div>
+<a href="manifest.html">Manifest</a>
+<a href="fetch-app.html">FetchApp.kt</a>
+<a href="engine.html">EngineSettings.kt</a>
+<a href="desk.html" aria-current="page">DownloadDesk.kt</a>
+<div class="group">Screens</div>
+<a href="links.html">LinkParser.kt</a>
+<a href="composer.html">ComposerActivity.kt</a>
+<a href="queue.html">QueueActivity.kt</a>
+<a href="adapter.html">QueueAdapter.kt</a>
+<a href="transfer.html">Transfer.kt</a>
+<a href="store.html">TransferStore.kt</a>
+<div class="group">Files</div>
+<a href="saved-files.html">SavedFiles.kt</a>
+<a href="folder.html">FolderActivity.kt</a>
+<a href="settings.html">SettingsActivity.kt</a>
+<div class="group">Clipboard</div>
+<a href="foreground.html">FetchForeground.kt</a>
+<a href="clip-offer.html">ClipOffer.kt</a>
+<a href="clip-watch.html">ClipWatchService.kt</a>
+<a href="offer.html">OfferActivity.kt</a>
+<div class="group">Home</div>
+<a href="widget.html">FetchWidget.kt</a>
+<a href="look.html">Theme and motion</a>
+</nav>
+<main>
+<p class="kicker">DownloadDesk.kt</p>
+<h1>The only door into the library</h1>
+<p class="lede">Screens do not call the builder. They call one of these methods, and each one applies the engine first so a settings change is already on disk when the service starts.</p>
+<section class="pair" id="apply,-enqueue,-schedule,-repeat">
+  <div class="explain">
+    <p class="file">DownloadDesk.kt · lines 19–57</p>
+    <h2>Apply, enqueue, schedule, repeat</h2>
+    <p><code>enqueue</code> is Start now. <code>schedule</code> is one clock time, WorkManager or AlarmManager from the saved flag. <code>repeat</code> cannot use <code>scheduleDownload</code>, because that call always wants a clock. It builds a manager, sets <code>periodicSchedule</code>, forces WorkManager, then calls <code>schedule(request, null)</code>. Anything under 15 minutes is raised to 15. <code>apply</code> runs again so the one-shot clock flag is restored.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">object DownloadDesk {
+
+    fun apply(context: Context, settings: EngineSettings) {
+        // Custom notification icon, read before the service promotes itself.
+        DownloadForegroundService.setNotificationIcon(settings.notificationIcon())
+        // Chunks, retry, notification, storage, installer, and integrity.
+        DownloadForegroundService.configureService(context) {
+            fill(settings)
+            schedulerUseAlarmManager(settings.useAlarm)
+        }
+    }
+
+    fun enqueue(context: Context, settings: EngineSettings, request: DownloadRequest) {
+        apply(context, settings)
+        DownloadForegroundService.enqueueDownload(context, request)
+    }
+
+    fun schedule(
+        context: Context,
+        settings: EngineSettings,
+        request: DownloadRequest,
+        whenToRun: ScheduleTime
+    ) {
+        // Exact clock. AlarmManager or a one-time WorkManager job, from the saved flag.
+        apply(context, settings.copy(useAlarm = settings.useAlarm))
+        DownloadForegroundService.scheduleDownload(context, request, whenToRun)
+    }
+
+    fun repeat(context: Context, settings: EngineSettings, request: DownloadRequest, minutes: Long) {
+        // scheduleDownload always takes a clock time, so a repeat uses schedule(request, null)
+        // after periodicSchedule. That is the WorkManager path. AlarmManager does not repeat here.
+        val manager = MobileDownloadManager.create(context) {
+            fill(settings)
+            periodicSchedule(minutes)
+            schedulerUseAlarmManager(false)
+        }
+        manager.schedule(request, null)
+        apply(context, settings)
+    }</code></pre>
+</section>
+
+<section class="pair" id="the-request">
+  <div class="explain">
+    <p class="file">DownloadDesk.kt · lines 74–94</p>
+    <h2>The request</h2>
+    <p>Every row gets a new UUID. Destination on the request is Auto. The real folder comes from <code>storageDestinations</code> in the saved config. Headers, checksum, and the inclusive byte window are copied onto the request.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    fun newRequest(
+        url: String,
+        fileName: String,
+        headers: Map&lt;String, String&gt;,
+        checksum: String?,
+        algorithm: ChecksumAlgorithm,
+        rangeStart: Long?,
+        rangeEndInclusive: Long?
+    ): DownloadRequest {
+        return DownloadRequest(
+            url = url,
+            fileName = fileName,
+            destination = DownloadDestination.Auto,
+            id = UUID.randomUUID().toString(),
+            headers = headers,
+            expectedChecksum = checksum,
+            checksumAlgorithm = algorithm,
+            rangeStart = rangeStart,
+            rangeEndInclusive = rangeEndInclusive
+        )
+    }</code></pre>
+</section>
+
+<section class="pair" id="every-engine-field,-mapped">
+  <div class="explain">
+    <p class="file">DownloadDesk.kt · lines 96–127</p>
+    <h2>Every engine field, mapped</h2>
+    <p><code>enforceForeground(true)</code> is always on, so a running transfer keeps a notification. Public Downloads is passed only when the switch is on and the destination is Auto. The icon is set both here and with <code>setNotificationIcon</code> before the service promotes itself.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    private fun DownloadManagerBuilder.fill(settings: EngineSettings) {
+        chunkCount(settings.chunkCount)
+        chunkParallel(settings.parallel)
+        chunkMinSize(settings.minChunkKb * 1024L)
+        retryPolicy(
+            maxAttempts = settings.retryAttempts,
+            initialDelayMillis = settings.retryDelaySeconds * 1000L,
+            backoffMultiplier = settings.backoffTenths / 10f
+        )
+        enforceForeground(true)
+        notificationChannel(
+            id = &quot;fetch_downloads&quot;,
+            name = settings.channelName.ifBlank { &quot;Fetch&quot; },
+            description = &quot;Progress for files Fetch is downloading&quot;
+        )
+        notificationIcon(settings.notificationIcon())
+        notificationShowProgress(settings.showProgress)
+        notificationPersistent(settings.persistent)
+        storageDestinations(settings.destinations())
+        storageOverwrite(settings.overwrite)
+        storageValidateFreeSpace(settings.checkSpace, settings.minFreeMb * 1024L * 1024L)
+        storageUsePublicDownloads(settings.publicDownloads &amp;&amp; settings.destination == EngineSettings.DEST_AUTO)
+        storagePublicDownloadsFolder(settings.publicFolder)
+        installerPromptOnCompletion(settings.promptInstaller)
+        integrityValidation(
+            verifyFileSize = settings.verifySize,
+            verifyChecksum = settings.verifyChecksum,
+            verifyApkStructure = settings.verifyApk,
+            verifyContentType = settings.verifyType,
+            verifyApkSignature = settings.verifySignature
+        )
+    }</code></pre>
+</section>
+
+<div class="pager"><a href="engine.html"><span>Previous</span>EngineSettings.kt</a><a href="links.html" style="text-align:right"><span>Next source</span>LinkParser.kt</a></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

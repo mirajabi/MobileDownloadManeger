@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saved files · Fetch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
+  <div class="top-links">
+    <a href="index.html">Sources</a>
+    <a href="../index.html">Library guide</a>
+  </div>
+</header>
+<div class="layout">
+<nav>
+<div class="group">Start</div>
+<a href="index.html">Overview</a>
+<div class="group">Process</div>
+<a href="manifest.html">Manifest</a>
+<a href="fetch-app.html">FetchApp.kt</a>
+<a href="engine.html">EngineSettings.kt</a>
+<a href="desk.html">DownloadDesk.kt</a>
+<div class="group">Screens</div>
+<a href="links.html">LinkParser.kt</a>
+<a href="composer.html">ComposerActivity.kt</a>
+<a href="queue.html">QueueActivity.kt</a>
+<a href="adapter.html">QueueAdapter.kt</a>
+<a href="transfer.html">Transfer.kt</a>
+<a href="store.html">TransferStore.kt</a>
+<div class="group">Files</div>
+<a href="saved-files.html" aria-current="page">SavedFiles.kt</a>
+<a href="folder.html">FolderActivity.kt</a>
+<a href="settings.html">SettingsActivity.kt</a>
+<div class="group">Clipboard</div>
+<a href="foreground.html">FetchForeground.kt</a>
+<a href="clip-offer.html">ClipOffer.kt</a>
+<a href="clip-watch.html">ClipWatchService.kt</a>
+<a href="offer.html">OfferActivity.kt</a>
+<div class="group">Home</div>
+<a href="widget.html">FetchWidget.kt</a>
+<a href="look.html">Theme and motion</a>
+</nav>
+<main>
+<p class="kicker">SavedFiles.kt</p>
+<h1>Copy, move, and the path after a move</h1>
+<p class="lede">The library writes one file. These methods are Fetch. They use the system document picker, not a second downloader.</p>
+<section class="pair" id="copy-on-a-background-thread">
+  <div class="explain">
+    <p class="file">SavedFiles.kt · lines 87–115</p>
+    <h2>Copy on a background thread</h2>
+    <p>The destination is a content URI. The copy uses a 64 KB buffer. Move deletes the original only after the write succeeds. If the delete fails, the callback says the original is still in the download folder. The UI thread hears the result through a <code>Handler</code>.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    fun export(activity: Activity, source: File, destination: Uri, move: Boolean, onDone: (String) -&gt; Unit) {
+        val main = Handler(Looper.getMainLooper())
+        Thread {
+            val message = try {
+                val output = activity.contentResolver.openOutputStream(destination)
+                    ?: throw IOException(&quot;The destination could not be opened&quot;)
+                output.use { out -&gt;
+                    FileInputStream(source).use { input -&gt;
+                        val buffer = ByteArray(64 * 1024)
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count &lt; 0) break
+                            out.write(buffer, 0, count)
+                        }
+                    }
+                }
+                if (!move) {
+                    &quot;Copied&quot;
+                } else if (source.delete()) {
+                    &quot;Moved&quot;
+                } else {
+                    &quot;Copied, but the original file is still in the download folder&quot;
+                }
+            } catch (error: Exception) {
+                error.message ?: &quot;Could not write the file&quot;
+            }
+            main.post { onDone(message) }
+        }.start()
+    }</code></pre>
+</section>
+
+<section class="pair" id="document-id-to-a-filesystem-path">
+  <div class="explain">
+    <p class="file">SavedFiles.kt · lines 117–146</p>
+    <h2>Document id to a filesystem path</h2>
+    <p><code>primary:Download/file</code> becomes <code>/storage/emulated/0/Download/file</code>. Open folder stores that path on the row. If the provider does not use that form, the path stays empty and the folder view uses the parent of the content URI instead.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    fun filePath(uri: Uri): String? {
+        val docId = try {
+            DocumentsContract.getDocumentId(uri)
+        } catch (error: Exception) {
+            return null
+        }
+        val colon = docId.indexOf(&#x27;:&#x27;)
+        if (colon &lt; 0) return null
+        val volume = docId.substring(0, colon)
+        val relative = docId.substring(colon + 1)
+        if (relative.isEmpty()) return null
+        val root = if (volume == &quot;primary&quot;) {
+            Environment.getExternalStorageDirectory()
+        } else {
+            File(&quot;/storage/$volume&quot;)
+        }
+        return File(root, relative).absolutePath
+    }
+
+    fun folderUri(fileUri: Uri): Uri? {
+        val docId = try {
+            DocumentsContract.getDocumentId(fileUri)
+        } catch (error: Exception) {
+            return null
+        }
+        if (!docId.contains(&quot;/&quot;)) return null
+        val authority = fileUri.authority ?: return null
+        return DocumentsContract.buildDocumentUri(authority, docId.substringBeforeLast(&quot;/&quot;))
+    }
+}</code></pre>
+</section>
+
+<div class="pager"><a href="store.html"><span>Previous</span>TransferStore.kt</a><a href="folder.html" style="text-align:right"><span>Next source</span>FolderActivity.kt</a></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

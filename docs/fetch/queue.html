@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Queue · Fetch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
+  <div class="top-links">
+    <a href="index.html">Sources</a>
+    <a href="../index.html">Library guide</a>
+  </div>
+</header>
+<div class="layout">
+<nav>
+<div class="group">Start</div>
+<a href="index.html">Overview</a>
+<div class="group">Process</div>
+<a href="manifest.html">Manifest</a>
+<a href="fetch-app.html">FetchApp.kt</a>
+<a href="engine.html">EngineSettings.kt</a>
+<a href="desk.html">DownloadDesk.kt</a>
+<div class="group">Screens</div>
+<a href="links.html">LinkParser.kt</a>
+<a href="composer.html">ComposerActivity.kt</a>
+<a href="queue.html" aria-current="page">QueueActivity.kt</a>
+<a href="adapter.html">QueueAdapter.kt</a>
+<a href="transfer.html">Transfer.kt</a>
+<a href="store.html">TransferStore.kt</a>
+<div class="group">Files</div>
+<a href="saved-files.html">SavedFiles.kt</a>
+<a href="folder.html">FolderActivity.kt</a>
+<a href="settings.html">SettingsActivity.kt</a>
+<div class="group">Clipboard</div>
+<a href="foreground.html">FetchForeground.kt</a>
+<a href="clip-offer.html">ClipOffer.kt</a>
+<a href="clip-watch.html">ClipWatchService.kt</a>
+<a href="offer.html">OfferActivity.kt</a>
+<div class="group">Home</div>
+<a href="widget.html">FetchWidget.kt</a>
+<a href="look.html">Theme and motion</a>
+</nav>
+<main>
+<p class="kicker">QueueActivity.kt</p>
+<h1>The list is a set of commands</h1>
+<p class="lede">The adapter does not call the library. These lambdas do. The row updates immediately, and the listener confirms the same status when the service answers.</p>
+<section class="pair" id="pause,-resume,-stop">
+  <div class="explain">
+    <p class="file">QueueActivity.kt · lines 35–53</p>
+    <h2>Pause, resume, stop</h2>
+    <p>Resume is the same call for a manual pause and for a failed download. The service loads the failed recovery record and continues from the flushed bytes. A brand-new enqueue of that id still starts at zero. Remove deletes the row from <code>fetch_queue</code>. It does not delete the file and it does not call stop.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    private val adapter = QueueAdapter(
+        onPause = { item -&gt;
+            DownloadForegroundService.pauseDownload(this, item.id)
+            store.mark(item.id, TransferStore.STATUS_PAUSED, &quot;Paused&quot;)
+        },
+        onResume = { item -&gt;
+            DownloadForegroundService.resumeDownload(this, item.id)
+            store.mark(item.id, TransferStore.STATUS_RUNNING, &quot;Resuming&quot;)
+        },
+        onStop = { item -&gt;
+            DownloadForegroundService.stopDownload(this, item.id)
+            store.mark(item.id, TransferStore.STATUS_STOPPED, &quot;Stopped&quot;)
+        },
+        onRemove = { item -&gt; store.remove(item.id) },
+        onCopy = { item -&gt; export(item, move = false) },
+        onMove = { item -&gt; export(item, move = true) },
+        onEdit = { item -&gt; edit(item) },
+        onFolder = { item -&gt; openFolder(item) }
+    )</code></pre>
+</section>
+
+<section class="pair" id="copy-and-move">
+  <div class="explain">
+    <p class="file">QueueActivity.kt · lines 124–164</p>
+    <h2>Copy and move</h2>
+    <p>Both open <code>ACTION_CREATE_DOCUMENT</code>. The row id and the move flag survive rotation. The list shows Copying or Moving at once, then the bytes are copied on a background thread. A successful move stores the content URI and, when the document id can be decoded, the new filesystem path. Open folder then uses that path.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_EXPORT || resultCode != Activity.RESULT_OK) return
+        val destination = data?.data ?: return
+        val id = pendingId ?: return
+        val item = store.snapshot().firstOrNull { it.id == id } ?: return
+        val file = File(item.localPath)
+        if (!file.isFile) {
+            toast(&quot;That file is not in the download folder anymore.&quot;)
+            return
+        }
+        toast(if (pendingMove) &quot;Moving…&quot; else &quot;Copying…&quot;)
+        val move = pendingMove
+        val shown = item.copy(message = if (move) &quot;Moving…&quot; else &quot;Copying…&quot;)
+        store.save(shown)
+        store.refresh()
+        try {
+            contentResolver.takePersistableUriPermission(
+                destination,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        } catch (error: SecurityException) {
+            // The provider may only grant a one-shot write.
+        }
+        SavedFiles.export(this, file, destination, move) { message -&gt;
+            toast(message)
+            val latest = store.snapshot().firstOrNull { it.id == id } ?: shown
+            if (move &amp;&amp; message == &quot;Moved&quot;) {
+                val placed = SavedFiles.filePath(destination)
+                store.save(
+                    latest.copy(
+                        localPath = placed ?: &quot;&quot;,
+                        locationUri = destination.toString(),
+                        message = &quot;Moved&quot;
+                    )
+                )
+            } else {
+                store.save(latest.copy(message = if (message == &quot;Copied&quot;) &quot;Saved&quot; else message))
+            }
+            store.refresh()
+        }</code></pre>
+</section>
+
+<section class="pair" id="open-folder">
+  <div class="explain">
+    <p class="file">QueueActivity.kt · lines 167–202</p>
+    <h2>Open folder</h2>
+    <p>If the parent directory can be listed, <code>FolderActivity</code> opens it. If scoped storage hides the listing, Fetch tries a system view of the directory. The last fallback is still the in-app list.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    private fun openFolder(item: Transfer) {
+        val file = File(item.localPath)
+        val dir = file.parentFile
+        val canList = dir != null &amp;&amp; dir.isDirectory &amp;&amp; dir.list() != null
+        if (canList) {
+            showFolder(dir!!, file.name)
+            return
+        }
+        val view = folderViewUri(item)
+        if (view != null &amp;&amp; openSystemFolder(view)) return
+        if (dir != null) {
+            showFolder(dir, file.name)
+            return
+        }
+        toast(&quot;The download folder is not available.&quot;)
+    }
+
+    private fun showFolder(dir: File, focus: String) {
+        startActivity(
+            Intent(this, FolderActivity::class.java)
+                .putExtra(FolderActivity.EXTRA_DIR, dir.absolutePath)
+                .putExtra(FolderActivity.EXTRA_FOCUS, focus)
+        )
+    }
+
+    private fun openSystemFolder(uri: Uri): Boolean {
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setDataAndType(uri, DocumentsContract.Document.MIME_TYPE_DIR)
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        return try {
+            startActivity(intent)
+            true
+        } catch (error: ActivityNotFoundException) {
+            false
+        }
+    }</code></pre>
+</section>
+
+<section class="pair" id="rename">
+  <div class="explain">
+    <p class="file">QueueActivity.kt · lines 253–295</p>
+    <h2>Rename</h2>
+    <p>The title and the URL can change while a download is busy. The file name stays locked then, so the writer and the row do not disagree. When the row is idle and the file is still at <code>localPath</code>, Save renames it in the same directory. The URL still has to start with http or https.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    private fun applyEdit(item: Transfer, form: DialogEditTransferBinding): Transfer? {
+        val title = form.titleInput.text?.toString()?.trim().orEmpty()
+        val url = form.urlInput.text?.toString()?.trim().orEmpty()
+        val lower = url.toLowerCase(java.util.Locale.US)
+        if (!lower.startsWith(&quot;http://&quot;) &amp;&amp; !lower.startsWith(&quot;https://&quot;)) {
+            form.urlLayout.error = &quot;The link still has to start with http:// or https://.&quot;
+            return null
+        }
+        if (isBusy(item)) {
+            return item.copy(title = title, url = url)
+        }
+        val fileName = LinkParser.sanitizeFileName(form.fileInput.text?.toString().orEmpty())
+        if (fileName.isBlank()) {
+            form.fileLayout.error = &quot;Use a file name with letters or numbers.&quot;
+            return null
+        }
+        var path = item.localPath
+        if (fileName != item.fileName &amp;&amp; path.isNotBlank()) {
+            val source = File(path)
+            if (source.isFile) {
+                val parent = source.parentFile
+                val target = if (parent == null) File(fileName) else File(parent, fileName)
+                if (target.exists() &amp;&amp; target.absolutePath != source.absolutePath) {
+                    form.fileLayout.error = &quot;A file with that name is already in the folder.&quot;
+                    return null
+                }
+                if (!source.renameTo(target)) {
+                    form.fileLayout.error = &quot;The file could not be renamed.&quot;
+                    return null
+                }
+                path = target.absolutePath
+            }
+        }
+        return item.copy(title = title, url = url, fileName = fileName, localPath = path)
+    }
+
+    private fun isBusy(item: Transfer): Boolean {
+        return item.status == TransferStore.STATUS_RUNNING ||
+            item.status == TransferStore.STATUS_QUEUED ||
+            item.status == TransferStore.STATUS_RETRYING ||
+            item.status == TransferStore.STATUS_PAUSED ||
+            item.status == TransferStore.STATUS_SCHEDULED
+    }</code></pre>
+</section>
+
+<div class="pager"><a href="composer.html"><span>Previous</span>ComposerActivity.kt</a><a href="adapter.html" style="text-align:right"><span>Next source</span>QueueAdapter.kt</a></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

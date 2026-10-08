@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Theme and motion · Fetch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
+  <div class="top-links">
+    <a href="index.html">Sources</a>
+    <a href="../index.html">Library guide</a>
+  </div>
+</header>
+<div class="layout">
+<nav>
+<div class="group">Start</div>
+<a href="index.html">Overview</a>
+<div class="group">Process</div>
+<a href="manifest.html">Manifest</a>
+<a href="fetch-app.html">FetchApp.kt</a>
+<a href="engine.html">EngineSettings.kt</a>
+<a href="desk.html">DownloadDesk.kt</a>
+<div class="group">Screens</div>
+<a href="links.html">LinkParser.kt</a>
+<a href="composer.html">ComposerActivity.kt</a>
+<a href="queue.html">QueueActivity.kt</a>
+<a href="adapter.html">QueueAdapter.kt</a>
+<a href="transfer.html">Transfer.kt</a>
+<a href="store.html">TransferStore.kt</a>
+<div class="group">Files</div>
+<a href="saved-files.html">SavedFiles.kt</a>
+<a href="folder.html">FolderActivity.kt</a>
+<a href="settings.html">SettingsActivity.kt</a>
+<div class="group">Clipboard</div>
+<a href="foreground.html">FetchForeground.kt</a>
+<a href="clip-offer.html">ClipOffer.kt</a>
+<a href="clip-watch.html">ClipWatchService.kt</a>
+<a href="offer.html">OfferActivity.kt</a>
+<div class="group">Home</div>
+<a href="widget.html">FetchWidget.kt</a>
+<a href="look.html" aria-current="page">Theme and motion</a>
+</nav>
+<main>
+<p class="kicker">res/values · res/anim</p>
+<h1>Ink, copper, and a short rise</h1>
+<p class="lede">The queue entrance is one animation. Later progress ticks do not replay it, because the recycler turns change animations off.</p>
+<section class="pair" id="colors">
+  <div class="explain">
+    <p class="file">colors.xml · lines 1–17</p>
+    <h2>Colors</h2>
+    <p>Ink is the surface. Copper is the running state and the primary buttons. Rose, amber, and green match the status label in <code>QueueAdapter</code>.</p>
+  </div>
+  <pre class="src"><code class="language-xml">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;resources&gt;
+    &lt;color name=&quot;ink&quot;&gt;#FF12161C&lt;/color&gt;
+    &lt;color name=&quot;inkDeep&quot;&gt;#FF0C0F13&lt;/color&gt;
+    &lt;color name=&quot;panel&quot;&gt;#FF1C232D&lt;/color&gt;
+    &lt;color name=&quot;panelHigh&quot;&gt;#FF26303C&lt;/color&gt;
+    &lt;color name=&quot;paper&quot;&gt;#FFF6F3EC&lt;/color&gt;
+    &lt;color name=&quot;muted&quot;&gt;#FF9AA4B0&lt;/color&gt;
+    &lt;color name=&quot;line&quot;&gt;#FF33404E&lt;/color&gt;
+    &lt;color name=&quot;copper&quot;&gt;#FFE2A15A&lt;/color&gt;
+    &lt;color name=&quot;copperDark&quot;&gt;#FFB67934&lt;/color&gt;
+    &lt;color name=&quot;copperSoft&quot;&gt;#33E2A15A&lt;/color&gt;
+    &lt;color name=&quot;amber&quot;&gt;#FFE6C07B&lt;/color&gt;
+    &lt;color name=&quot;green&quot;&gt;#FF8FCBB0&lt;/color&gt;
+    &lt;color name=&quot;rose&quot;&gt;#FFE08B93&lt;/color&gt;
+    &lt;color name=&quot;track&quot;&gt;#FF2A3441&lt;/color&gt;
+&lt;/resources&gt;</code></pre>
+</section>
+
+<section class="pair" id="row-entrance">
+  <div class="explain">
+    <p class="file">item_rise.xml · lines 1–12</p>
+    <h2>Row entrance</h2>
+    <p><code>queue_rise</code> runs <code>item_rise</code> on each row, delayed by 12 percent of the duration. The row fades in and moves up 8 percent over 280 ms.</p>
+  </div>
+  <pre class="src"><code class="language-xml">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;set xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+    android:interpolator=&quot;@android:anim/decelerate_interpolator&quot;&gt;
+    &lt;alpha
+        android:duration=&quot;280&quot;
+        android:fromAlpha=&quot;0&quot;
+        android:toAlpha=&quot;1&quot; /&gt;
+    &lt;translate
+        android:duration=&quot;280&quot;
+        android:fromYDelta=&quot;8%&quot;
+        android:toYDelta=&quot;0&quot; /&gt;
+&lt;/set&gt;</code></pre>
+</section>
+
+<section class="pair" id="list-delay">
+  <div class="explain">
+    <p class="file">queue_rise.xml · lines 1–5</p>
+    <h2>List delay</h2>
+    <p>The queue layout points <code>android:layoutAnimation</code> at this file. That is the only place the entrance is attached.</p>
+  </div>
+  <pre class="src"><code class="language-xml">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;layoutAnimation xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+    android:animation=&quot;@anim/item_rise&quot;
+    android:animationOrder=&quot;normal&quot;
+    android:delay=&quot;12%&quot; /&gt;</code></pre>
+</section>
+
+<div class="pager"><a href="widget.html"><span>Previous</span>FetchWidget.kt</a><span></span></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

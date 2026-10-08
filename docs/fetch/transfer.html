@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transfer · Fetch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
+  <div class="top-links">
+    <a href="index.html">Sources</a>
+    <a href="../index.html">Library guide</a>
+  </div>
+</header>
+<div class="layout">
+<nav>
+<div class="group">Start</div>
+<a href="index.html">Overview</a>
+<div class="group">Process</div>
+<a href="manifest.html">Manifest</a>
+<a href="fetch-app.html">FetchApp.kt</a>
+<a href="engine.html">EngineSettings.kt</a>
+<a href="desk.html">DownloadDesk.kt</a>
+<div class="group">Screens</div>
+<a href="links.html">LinkParser.kt</a>
+<a href="composer.html">ComposerActivity.kt</a>
+<a href="queue.html">QueueActivity.kt</a>
+<a href="adapter.html">QueueAdapter.kt</a>
+<a href="transfer.html" aria-current="page">Transfer.kt</a>
+<a href="store.html">TransferStore.kt</a>
+<div class="group">Files</div>
+<a href="saved-files.html">SavedFiles.kt</a>
+<a href="folder.html">FolderActivity.kt</a>
+<a href="settings.html">SettingsActivity.kt</a>
+<div class="group">Clipboard</div>
+<a href="foreground.html">FetchForeground.kt</a>
+<a href="clip-offer.html">ClipOffer.kt</a>
+<a href="clip-watch.html">ClipWatchService.kt</a>
+<a href="offer.html">OfferActivity.kt</a>
+<div class="group">Home</div>
+<a href="widget.html">FetchWidget.kt</a>
+<a href="look.html">Theme and motion</a>
+</nav>
+<main>
+<p class="kicker">Transfer.kt</p>
+<h1>One row</h1>
+<p class="lede">This is the object the queue stores, the adapter draws, and the widget reads. The library never sees it.</p>
+<section class="pair" id="fields">
+  <div class="explain">
+    <p class="file">Transfer.kt · lines 1–23</p>
+    <h2>Fields</h2>
+    <p><code>id</code> is <code>DownloadRequest.id</code>, so listener callbacks find the same row. <code>percent</code> starts at -1, which the adapter treats as unknown and draws as an indeterminate bar. <code>localPath</code> is the file Fetch last knew about. <code>locationUri</code> is the content URI from a move. <code>host()</code> is only the label under the name.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">package com.miaadrajabi.fetch
+
+data class Transfer(
+    val id: String,
+    val url: String,
+    val fileName: String,
+    val status: String,
+    val bytes: Long = 0L,
+    val total: Long = 0L,
+    val speed: Long = 0L,
+    val percent: Int = -1,
+    val message: String = &quot;&quot;,
+    val whenLabel: String = &quot;&quot;,
+    val title: String = &quot;&quot;,
+    val localPath: String = &quot;&quot;,
+    val locationUri: String = &quot;&quot;
+) {
+    fun host(): String {
+        val rest = url.substringAfter(&quot;://&quot;, url)
+        val host = rest.substringBefore(&#x27;/&#x27;).substringBefore(&#x27;:&#x27;)
+        return if (host.isBlank()) url else host
+    }
+}</code></pre>
+</section>
+
+<div class="pager"><a href="adapter.html"><span>Previous</span>QueueAdapter.kt</a><a href="store.html" style="text-align:right"><span>Next source</span>TransferStore.kt</a></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

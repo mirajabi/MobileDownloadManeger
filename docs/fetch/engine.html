@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engine settings · Fetch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
+  <div class="top-links">
+    <a href="index.html">Sources</a>
+    <a href="../index.html">Library guide</a>
+  </div>
+</header>
+<div class="layout">
+<nav>
+<div class="group">Start</div>
+<a href="index.html">Overview</a>
+<div class="group">Process</div>
+<a href="manifest.html">Manifest</a>
+<a href="fetch-app.html">FetchApp.kt</a>
+<a href="engine.html" aria-current="page">EngineSettings.kt</a>
+<a href="desk.html">DownloadDesk.kt</a>
+<div class="group">Screens</div>
+<a href="links.html">LinkParser.kt</a>
+<a href="composer.html">ComposerActivity.kt</a>
+<a href="queue.html">QueueActivity.kt</a>
+<a href="adapter.html">QueueAdapter.kt</a>
+<a href="transfer.html">Transfer.kt</a>
+<a href="store.html">TransferStore.kt</a>
+<div class="group">Files</div>
+<a href="saved-files.html">SavedFiles.kt</a>
+<a href="folder.html">FolderActivity.kt</a>
+<a href="settings.html">SettingsActivity.kt</a>
+<div class="group">Clipboard</div>
+<a href="foreground.html">FetchForeground.kt</a>
+<a href="clip-offer.html">ClipOffer.kt</a>
+<a href="clip-watch.html">ClipWatchService.kt</a>
+<a href="offer.html">OfferActivity.kt</a>
+<div class="group">Home</div>
+<a href="widget.html">FetchWidget.kt</a>
+<a href="look.html">Theme and motion</a>
+</nav>
+<main>
+<p class="kicker">EngineSettings.kt</p>
+<h1>The screen is a saved config</h1>
+<p class="lede">Nothing here downloads a file. Save writes <code>fetch_engine</code>. The next enqueue reads it. A missing file uses these defaults.</p>
+<section class="pair" id="defaults">
+  <div class="explain">
+    <p class="file">EngineSettings.kt · lines 10–44</p>
+    <h2>Defaults</h2>
+    <p>Four chunks, parallel on, 256 KB minimum piece, five attempts, installer off, checksum and APK structure on, content type and signature off. <code>watchClipboard</code> is a Fetch flag, not a library flag. <code>useAlarm</code> chooses AlarmManager. False means WorkManager.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">data class EngineSettings(
+    val chunkCount: Int = 4,
+    val parallel: Boolean = true,
+    val minChunkKb: Int = 256,
+    val retryAttempts: Int = 5,
+    val retryDelaySeconds: Int = 3,
+    val backoffTenths: Int = 20,
+    val channelName: String = &quot;Fetch&quot;,
+    val iconKey: String = ICON_ARROW,
+    val showProgress: Boolean = true,
+    val persistent: Boolean = true,
+    val destination: String = DEST_AUTO,
+    val folder: String = &quot;Fetch&quot;,
+    val publicDownloads: Boolean = false,
+    val publicFolder: String = &quot;&quot;,
+    val overwrite: Boolean = true,
+    val checkSpace: Boolean = true,
+    val minFreeMb: Int = 10,
+    val promptInstaller: Boolean = false,
+    val verifySize: Boolean = true,
+    val verifyChecksum: Boolean = true,
+    val verifyApk: Boolean = true,
+    val verifyType: Boolean = false,
+    val verifySignature: Boolean = false,
+    val useAlarm: Boolean = false,
+    val watchClipboard: Boolean = false
+) {
+    fun notificationIcon(): Int {
+        return when (iconKey) {
+            ICON_TRAY -&gt; R.drawable.ic_stat_tray
+            ICON_BOLT -&gt; R.drawable.ic_stat_bolt
+            ICON_LAYERS -&gt; R.drawable.ic_stat_layers
+            else -&gt; R.drawable.ic_stat_arrow
+        }
+    }</code></pre>
+</section>
+
+<section class="pair" id="where-the-file-may-land">
+  <div class="explain">
+    <p class="file">EngineSettings.kt · lines 46–57</p>
+    <h2>Where the file may land</h2>
+    <p>Auto lets the library pick a writable directory. Scoped uses the folder name under app storage. Custom is accepted only when the text starts with <code>/</code>. A bare name such as <code>Fetch</code> becomes Auto, because <code>File("Fetch")</code> would resolve to <code>/Fetch</code> and fail before any byte moved.</p>
+  </div>
+  <pre class="src"><code class="language-kotlin">    fun destinations(): List&lt;DownloadDestination&gt; {
+        val trimmed = folder.trim()
+        return when (destination) {
+            DEST_SCOPED -&gt; listOf(DownloadDestination.Scoped(if (trimmed.isBlank()) &quot;Fetch&quot; else trimmed))
+            DEST_CUSTOM -&gt; {
+                // A bare name such as &quot;Fetch&quot; is not a folder. File(&quot;Fetch&quot;) becomes /Fetch.
+                if (trimmed.startsWith(&quot;/&quot;)) listOf(DownloadDestination.Custom(trimmed))
+                else listOf(DownloadDestination.Auto)
+            }
+            else -&gt; listOf(DownloadDestination.Auto)
+        }
+    }</code></pre>
+</section>
+
+<div class="pager"><a href="fetch-app.html"><span>Previous</span>FetchApp.kt</a><a href="desk.html" style="text-align:right"><span>Next source</span>DownloadDesk.kt</a></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>
