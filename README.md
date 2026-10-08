@@ -2,7 +2,7 @@
 
 [![JitPack](https://www.jitpack.io/v/mirajabi/MobileDownloadManeger.svg)](https://www.jitpack.io/#mirajabi/MobileDownloadManeger)
 
-Android library for large file downloads: parallel ranges, pause and resume, a foreground notification, and a schedule that survives process death. The current release is `v1.3.5`. Minimum SDK is 23.
+Android library for large file downloads: parallel ranges, pause and resume, a foreground notification, and a schedule that survives process death. The current release is `v1.3.6`. Minimum SDK is 23.
 
 The host app keeps ownership of extraction, package identity, and installation. The library downloads a file and can optionally open the system installer. It does not install a package by itself.
 
@@ -18,7 +18,7 @@ repositories {
 
 ```kotlin
 dependencies {
-    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.5")
+    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.6")
 }
 ```
 
@@ -32,7 +32,7 @@ repositories {
 
 ```groovy
 dependencies {
-    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.5'
+    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.6'
 }
 ```
 
@@ -49,9 +49,9 @@ The switch runs on GitHub Pages. One control at the top shows either Kotlin or J
 
 ## Try it in Fetch
 
-`showcase` is a separate app that sits on this library. Paste one link or several, pick a time, and turn the engine options on from the screen. A finished file can be copied, moved, renamed, or opened in its folder.
+`showcase` is a separate app that sits on this library. Paste one link or several, pick a time, and turn the engine options on from the screen. A failed row can resume from the bytes already saved. A finished file can be copied, moved, renamed, or opened in its folder. The home screen can hold a Fetch widget, and a setting can offer a copied link.
 
-Run the `showcase` module from Android Studio. The screens are also at the top of the [guide](https://mirajabi.github.io/MobileDownloadManeger/#fetch).
+Run the `showcase` module from Android Studio. The [guide](https://mirajabi.github.io/MobileDownloadManeger/#fetch) walks that source step by step, then repeats the library calls in Kotlin and Java.
 
 <p align="center">
   <img src="docs/screenshots/downloading.png" width="180" alt="Downloading">
@@ -66,12 +66,16 @@ Run the `showcase` module from Android Studio. The screens are also at the top o
 - A request can keep a byte window. `rangeStart` and `rangeEndInclusive` are both inclusive. Leave them unset to take the whole file. The saved file contains only that window, and the checksum covers those bytes.
 - Several connections run together when `chunkCount` is greater than one. Headers, including `Cookie`, travel on `DownloadRequest.headers`.
 - A changed strong ETag or a changed total size starts again from byte zero. A missing or weak ETag keeps the partial file. The checksum is the final check.
-- A manual pause stays paused across reboot. A download that was queued, running, or waiting to retry continues from the last flushed checkpoint. There is no boot receiver. After a force-stop, Android allows that work again when the app may run.
+- A manual pause stays paused across reboot. A download that was queued, running, or waiting to retry continues from the last flushed checkpoint. A failed download stays failed until `resume` is called, and that resume continues from the flushed bytes. There is no boot receiver. After a force-stop, Android allows that work again when the app may run.
 - A second request for the same file is rejected while the first one is queued, running, waiting to retry, or paused. If the first one already failed or was cancelled, the new request starts from byte zero.
 - Pause and Stop are not network errors, so they are not started again by the scheduler.
 - A missing or corrupt saved configuration uses `DownloadConfig` defaults. The service does not crash in `onCreate`.
 
 ## Changelog
+
+### v1.3.6
+
+`resume` continues a failed download from its recovery record. A new enqueue of that id still starts at byte zero, and reboot still does not auto-start a failure. The guide walks the Fetch sample from process start through the queue, clipboard offer, and home-screen widget.
 
 ### v1.3.5
 
@@ -90,6 +94,6 @@ Interrupted downloads continue from the last checkpoint. A ranged response is ke
 | | |
 |---|---|
 | minSdk | 23 |
-| Artifact | `com.github.mirajabi:MobileDownloadManeger:v1.3.5` |
+| Artifact | `com.github.mirajabi:MobileDownloadManeger:v1.3.6` |
 | Foreground service type | `dataSync` |
 | Periodic schedule floor | 15 minutes |

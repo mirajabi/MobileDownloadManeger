@@ -50,7 +50,9 @@ class QueueAdapter(
                 item.status == TransferStore.STATUS_FAILED ||
                 item.status == TransferStore.STATUS_STOPPED
             binding.pause.visibility = if (active) View.VISIBLE else View.GONE
-            binding.resume.visibility = if (item.status == TransferStore.STATUS_PAUSED) View.VISIBLE else View.GONE
+            binding.resume.visibility = if (
+                item.status == TransferStore.STATUS_PAUSED || item.status == TransferStore.STATUS_FAILED
+            ) View.VISIBLE else View.GONE
             binding.stop.visibility = if (finished) View.GONE else View.VISIBLE
             binding.remove.visibility = if (finished) View.VISIBLE else View.GONE
             val fileReady = item.localPath.isNotBlank() && java.io.File(item.localPath).isFile

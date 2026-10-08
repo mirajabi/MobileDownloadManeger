@@ -32,6 +32,16 @@ class FolderActivity : AppCompatActivity() {
         binding.files.adapter = FileAdapter(files, focus)
     }
 
+    override fun onStart() {
+        super.onStart()
+        FetchForeground.enter()
+    }
+
+    override fun onStop() {
+        FetchForeground.leave()
+        super.onStop()
+    }
+
     private class FileAdapter(
         private val files: List<File>,
         private val focus: String

@@ -16,7 +16,8 @@ import java.util.concurrent.CopyOnWriteArrayList
  */
 class TransferStore(context: Context) {
 
-    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext ?: context
+    private val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private val main = Handler(Looper.getMainLooper())
     private val watchers = CopyOnWriteArrayList<(List<Transfer>) -> Unit>()
     private val lock = Any()
@@ -182,6 +183,7 @@ class TransferStore(context: Context) {
             for (watcher in watchers) {
                 watcher(copy)
             }
+            FetchWidget.push(appContext, copy)
         }
     }
 

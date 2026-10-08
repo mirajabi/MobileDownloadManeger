@@ -71,6 +71,21 @@ class ComposerActivity : AppCompatActivity() {
         renderClock()
     }
 
+    override fun onStart() {
+        super.onStart()
+        FetchForeground.enter()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ClipOffer.present(this)
+    }
+
+    override fun onStop() {
+        FetchForeground.leave()
+        super.onStop()
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,

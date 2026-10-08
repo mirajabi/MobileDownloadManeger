@@ -1,7 +1,11 @@
 package com.miaadrajabi.fetch
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.miaadrajabi.fetch.databinding.ActivitySettingsBinding
 
@@ -42,7 +46,24 @@ class SettingsActivity : AppCompatActivity() {
             lockDestinationChoices()
         }
         binding.save.setOnClickListener { saveAndClose() }
+        binding.aboutMail.setOnClickListener { openMail() }
+        binding.aboutGithub.setOnClickListener { openGithub() }
         lockDestinationChoices()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        FetchForeground.enter()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ClipOffer.present(this)
+    }
+
+    override fun onStop() {
+        FetchForeground.leave()
+        super.onStop()
     }
 
     private fun bind(saved: EngineSettings) {
@@ -79,6 +100,7 @@ class SettingsActivity : AppCompatActivity() {
             else -> binding.destAuto.isChecked = true
         }
         if (saved.useAlarm) binding.defaultAlarm.isChecked = true else binding.defaultWork.isChecked = true
+        binding.watchClipboard.isChecked = saved.watchClipboard
         val customFolder = saved.destination != EngineSettings.DEST_AUTO
         binding.folderLayout.visibility = if (customFolder) View.VISIBLE else View.GONE
         binding.folderLayout.hint = if (saved.destination == EngineSettings.DEST_CUSTOM) {
@@ -135,11 +157,30 @@ class SettingsActivity : AppCompatActivity() {
             verifyApk = binding.verifyApk.isChecked,
             verifyType = binding.verifyType.isChecked,
             verifySignature = binding.verifySignature.isChecked,
-            useAlarm = binding.defaultAlarm.isChecked
+            useAlarm = binding.defaultAlarm.isChecked,
+            watchClipboard = binding.watchClipboard.isChecked
         )
         settings.save(this)
         DownloadDesk.apply(this, settings)
+        if (settings.watchClipboard) {
+            ClipWatchService.start(this)
+        } else {
+            ClipWatchService.stopWatching(this)
+        }
         finish()
+    }
+
+    private fun openMail() {
+        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:miaad.rajabi@gmail.com"))
+        try {
+            startActivity(intent)
+        } catch (error: ActivityNotFoundException) {
+            Toast.makeText(this, "miaad.rajabi@gmail.com", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun openGithub() {
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/mirajabi")))
     }
 
     private fun selectedIcon(): String {

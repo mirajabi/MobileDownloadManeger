@@ -42,6 +42,8 @@ DownloadForegroundService.stopDownload(this, "tms-app-release");
 
 Calling resume for an id that is already running does not start a second writer. Calling enqueue again with the same id and the same artifact returns the active download, or resumes it when it is paused.
 
+Resume also continues a download that already failed. The failed recovery record keeps the flushed bytes, and `resume` starts from that record. A brand-new enqueue of an abandoned id still replaces it and starts at byte zero. After a reboot, a failed download stays failed until something calls resume. Queued, running, and retry-waiting work still continues from the last checkpoint, and a manual pause stays paused.
+
 ## Step 19. This section, filled in
 
 **Kotlin**

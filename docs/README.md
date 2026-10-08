@@ -2,7 +2,7 @@
 
 Each step shows Kotlin and Java. Each page ends with that page filled in, including every optional value.
 
-Open the [guide](https://mirajabi.github.io/MobileDownloadManeger/) to switch the whole page between Kotlin and Java with one control.
+Open the [guide](https://mirajabi.github.io/MobileDownloadManeger/) for the Fetch course. It walks the sample source from the manifest to the home-screen widget, then the library reference below it switches between Kotlin and Java with one control.
 
 | Step | Page | What you fill in |
 |------|------|------------------|

@@ -293,6 +293,23 @@ class MobileDownloadManager private constructor(
      * 10. Resumes a paused download from the last saved offset.
      */
     fun resume(handleId: String): Boolean {
+        val failed = synchronized(sessionLock) {
+            if (activeSessions.containsKey(handleId)) return false
+            if (pausedStates.containsKey(handleId)) {
+                null
+            } else {
+                val record = DownloadRecoveryStore.load(appContext, handleId)
+                if (record != null && record.state == DownloadRecovery.FAILED && startFromRecord(record)) {
+                    DownloadHandle(id = record.request.id, source = record.request.url)
+                } else {
+                    return false
+                }
+            }
+        }
+        if (failed != null) {
+            listeners.forEach { it.onResumed(failed) }
+            return true
+        }
         val handle = synchronized(sessionLock) {
             if (activeSessions.containsKey(handleId)) return false
             val paused = pausedStates.remove(handleId) ?: return false

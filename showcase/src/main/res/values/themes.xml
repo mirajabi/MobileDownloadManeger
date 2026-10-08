@@ -64,6 +64,15 @@
         <item name="android:textColor">@color/paper</item>
     </style>
 
+    <style name="Theme.Fetch.Offer" parent="Theme.MaterialComponents.Dialog">
+        <item name="colorPrimary">@color/copper</item>
+        <item name="colorSurface">@color/panel</item>
+        <item name="colorOnSurface">@color/paper</item>
+        <item name="android:textColorPrimary">@color/paper</item>
+        <item name="android:textColorSecondary">@color/muted</item>
+        <item name="android:windowBackground">@color/panel</item>
+    </style>
+
     <style name="Text.Fetch.Title" parent="@android:style/TextAppearance">
         <item name="android:textColor">@color/paper</item>
         <item name="android:textSize">32sp</item>

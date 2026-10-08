@@ -46,5 +46,27 @@
         <activity
             android:name=".FolderActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".OfferActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.Fetch.Offer" />
+
+        <service
+            android:name=".ClipWatchService"
+            android:exported="false" />
+
+        <receiver
+            android:name=".FetchWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/fetch_widget_info" />
+        </receiver>
     </application>
 </manifest>

@@ -60,7 +60,8 @@
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
                 android:paddingTop="10dp"
-                android:paddingBottom="96dp" />
+                android:paddingBottom="96dp"
+                android:layoutAnimation="@anim/queue_rise" />
 
             <LinearLayout
                 android:id="@+id/emptyGroup"

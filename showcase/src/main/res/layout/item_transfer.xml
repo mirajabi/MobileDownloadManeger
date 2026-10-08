@@ -104,7 +104,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:minWidth="0dp"
-                android:text="Resume" />
+                android:text="Resume"
+                app:icon="@drawable/ic_resume"
+                app:iconPadding="4dp"
+                app:iconSize="18dp"
+                app:iconTint="@color/copper" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/stop"
@@ -140,7 +144,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:minWidth="0dp"
-                    android:text="Copy" />
+                    android:text="Copy"
+                    app:icon="@drawable/ic_copy"
+                    app:iconPadding="4dp"
+                    app:iconSize="18dp"
+                    app:iconTint="@color/copper" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/move"
@@ -148,7 +156,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:minWidth="0dp"
-                    android:text="Move" />
+                    android:text="Move"
+                    app:icon="@drawable/ic_move"
+                    app:iconPadding="4dp"
+                    app:iconSize="18dp"
+                    app:iconTint="@color/copper" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/edit"
@@ -156,7 +168,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:minWidth="0dp"
-                    android:text="Edit" />
+                    android:text="Edit"
+                    app:icon="@drawable/ic_edit"
+                    app:iconPadding="4dp"
+                    app:iconSize="18dp"
+                    app:iconTint="@color/copper" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/folder"
@@ -164,7 +180,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:minWidth="0dp"
-                    android:text="Open folder" />
+                    android:text="Open folder"
+                    app:icon="@drawable/ic_folder"
+                    app:iconPadding="4dp"
+                    app:iconSize="18dp"
+                    app:iconTint="@color/copper" />
             </LinearLayout>
         </HorizontalScrollView>
     </LinearLayout>

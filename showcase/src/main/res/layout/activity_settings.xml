@@ -506,6 +506,81 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:text="Content-Type is off by default because many servers send the wrong one. Signature only checks that a signature exists. It does not decide who you trust." />
+
+            <TextView
+                style="@style/Text.Fetch.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="Clipboard" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/watchClipboard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Offer a copied link" />
+
+            <TextView
+                style="@style/Text.Fetch.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Fetch keeps a small notification so it can notice a copied http link. Android shows the clipboard to the app in front, so the dialog opens as soon as you return. If the copy is visible in the background, it opens immediately." />
+
+            <TextView
+                style="@style/Text.Fetch.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="About" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="Miaad Rajabi"
+                android:textColor="@color/paper"
+                android:textSize="18sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Download desk and the library underneath it."
+                android:textColor="@color/muted"
+                android:textSize="13sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/aboutMail"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Email Miaad Rajabi"
+                    android:src="@drawable/ic_mail" />
+
+                <ImageButton
+                    android:id="@+id/aboutGithub"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="GitHub"
+                    android:src="@drawable/ic_github" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="miaad.rajabi@gmail.com"
+                    android:textColor="@color/copper"
+                    android:textSize="13sp" />
+            </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 

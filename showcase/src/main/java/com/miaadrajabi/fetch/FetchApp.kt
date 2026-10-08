@@ -11,7 +11,11 @@ class FetchApp : Application() {
     override fun onCreate() {
         super.onCreate()
         store = TransferStore(this)
-        DownloadDesk.apply(this, EngineSettings.load(this))
+        val settings = EngineSettings.load(this)
+        DownloadDesk.apply(this, settings)
         DownloadForegroundService.registerListener(store.bridge)
+        if (settings.watchClipboard) {
+            ClipWatchService.start(this)
+        }
     }
 }

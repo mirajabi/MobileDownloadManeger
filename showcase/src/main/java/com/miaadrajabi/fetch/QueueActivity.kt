@@ -75,8 +75,14 @@ class QueueActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        FetchForeground.enter()
         store.locateFiles(this)
         store.watch(onQueue)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ClipOffer.present(this)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -86,6 +92,7 @@ class QueueActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        FetchForeground.leave()
         store.unwatch(onQueue)
         super.onStop()
     }

@@ -31,7 +31,8 @@ data class EngineSettings(
     val verifyApk: Boolean = true,
     val verifyType: Boolean = false,
     val verifySignature: Boolean = false,
-    val useAlarm: Boolean = false
+    val useAlarm: Boolean = false,
+    val watchClipboard: Boolean = false
 ) {
     fun notificationIcon(): Int {
         return when (iconKey) {
@@ -81,6 +82,7 @@ data class EngineSettings(
             .putBoolean(KEY_TYPE, verifyType)
             .putBoolean(KEY_SIGNATURE, verifySignature)
             .putBoolean(KEY_ALARM, useAlarm)
+            .putBoolean(KEY_WATCH, watchClipboard)
             .apply()
     }
 
@@ -118,6 +120,7 @@ data class EngineSettings(
         private const val KEY_TYPE = "type"
         private const val KEY_SIGNATURE = "signature"
         private const val KEY_ALARM = "alarm"
+        private const val KEY_WATCH = "watchClipboard"
 
         fun load(context: Context): EngineSettings {
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -145,7 +148,8 @@ data class EngineSettings(
                 verifyApk = prefs.getBoolean(KEY_APK, true),
                 verifyType = prefs.getBoolean(KEY_TYPE, false),
                 verifySignature = prefs.getBoolean(KEY_SIGNATURE, false),
-                useAlarm = prefs.getBoolean(KEY_ALARM, false)
+                useAlarm = prefs.getBoolean(KEY_ALARM, false),
+                watchClipboard = prefs.getBoolean(KEY_WATCH, false)
             )
         }
     }
