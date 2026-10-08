@@ -43,9 +43,9 @@ The library manifest already merges `INTERNET`, the foreground-service permissio
 The guide is numbered. Every step has a Kotlin sample and a Java sample, and every section ends with that section filled in, including the optional fields.
 
 - [Step-by-step index](docs/README.md)
-- [Open the guide with a Kotlin / Java switch](docs/index.html)
+- [Guide with a Kotlin / Java switch](https://mirajabi.github.io/MobileDownloadManeger/)
 
-`docs/index.html` is one page. The control at the top shows either Kotlin or Java for every step. Open that file in a browser. GitHub shows the HTML source; the rendered switch is the file itself.
+The switch runs on GitHub Pages. One control at the top shows either Kotlin or Java for every step. GitHub's file view only shows the HTML source, so the page above is the one to open.
 
 ## What a download does
 
