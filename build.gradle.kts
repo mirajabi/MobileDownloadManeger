@@ -19,3 +19,11 @@ allprojects {
 tasks.register("clean", Delete::class) {
     delete(rootProject.buildDir)
 }
+
+// JitPack invokes this name on the root project. The library module owns the
+// publication; this task only forwards to it.
+tasks.register("publishToMavenLocal") {
+    group = "publishing"
+    description = "Publishes the downloader module to the local Maven repository."
+    dependsOn(":downloader:publishToMavenLocal")
+}

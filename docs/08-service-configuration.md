@@ -1,225 +1,111 @@
-# Service Configuration Guide
+# 8. Service behavior
 
-## Overview
+[All steps](README.md) · [Switch languages](index.html)
 
-`DownloadForegroundService` now loads its configuration from persistent storage instead of using hardcoded defaults. This allows you to configure the download behavior once and have it persist across app restarts and process deaths.
+`configureService` replaces the saved config and restores the previous in-memory manager. It does not cancel a download that is already running. The next process start reads the new file.
 
-## Configuration Method
+## Step 22. Saved configuration and defaults
 
-### Basic Setup
+These fields are written: chunking, retry, foreground flag, notification channel and icon, one schedule mode, storage directories, overwrite, free space, public `Download/`, installer prompt and MIME type, and all five integrity flags.
 
-Before using the download service, you must configure it by calling `DownloadForegroundService.configureService()`:
+If the file is missing or the JSON cannot be parsed, the service logs a warning and uses `DownloadConfig()` defaults. It does not throw from `onCreate`.
+
+You do not call a load method. `configureService` is the write. The service is the read.
+
+**Kotlin**
 
 ```kotlin
-DownloadForegroundService.configureService(context) {
-    // Chunking configuration
+DownloadForegroundService.configureService(this) {
     chunkCount(4)
-    chunkParallel(true)
-    chunkMinSize(256 * 1024L)  // 256 KB
-
-    // Retry policy
-    retryPolicy(
-        maxAttempts = 5,
-        initialDelayMillis = 3_000L,
-        backoffMultiplier = 1.5f
+    retryPolicy(maxAttempts = 5, initialDelayMillis = 2_000L, backoffMultiplier = 2f)
+    notificationChannel("tms_downloads", "TMS downloads", "Package downloads")
+    notificationIcon(R.drawable.ic_stat_download)
+    storageOverwrite(true)
+    storageValidateFreeSpace(true, 32L * 1024 * 1024)
+    storageUsePublicDownloads(false)
+    installerPromptOnCompletion(false, "application/vnd.android.package-archive")
+    integrityValidation(
+        verifyFileSize = true,
+        verifyChecksum = true,
+        verifyApkStructure = true,
+        verifyContentType = false,
+        verifyApkSignature = false
     )
-
-    // Notification configuration
-    notificationChannel(
-        id = "downloads",
-        name = "Downloads",
-        description = "Download notifications"
-    )
-    notificationShowProgress(true)
-    notificationPersistent(true)
-
-    // Storage configuration
-    storageDestinations(listOf(DownloadDestination.Downloads))
-    storageOverwrite(false)
-    storageValidateFreeSpace(true)
-
-    // Installer configuration
-    installerPromptOnCompletion(true)
 }
 ```
 
-### When to Configure
+**Java**
 
-You should call `configureService()` once during app initialization, typically:
+```java
+DownloadForegroundService.configureService(this, builder -> {
+    builder.chunkCount(4);
+    builder.retryPolicy(5, 2_000L, 2f);
+    builder.notificationChannel("tms_downloads", "TMS downloads", "Package downloads");
+    builder.notificationIcon(R.drawable.ic_stat_download);
+    builder.storageOverwrite(true);
+    builder.storageValidateFreeSpace(true, 32L * 1024 * 1024);
+    builder.storageUsePublicDownloads(false);
+    builder.installerPromptOnCompletion(false, "application/vnd.android.package-archive");
+    builder.integrityValidation(true, true, true, false, false);
+    return kotlin.Unit.INSTANCE;
+});
+```
 
-1. **In Application.onCreate()** - Recommended for most cases
-2. **In MainActivity.onCreate()** - Works for single-activity apps
-3. **Before first download** - Minimum requirement
+## Step 23. Reboot
 
-### Configuration Persistence
+| State when the process died | After the app may run again |
+|-----------------------------|-----------------------------|
+| Queued, running, or waiting to retry | Continues from the last flushed checkpoint |
+| Paused by the user | Stays paused until `resumeDownload` |
+| Failed or cancelled | Stays stopped. A new request may replace it |
+| Completed | The recovery record is already gone |
 
-The configuration is automatically saved to `DownloadConfigStore` and will be:
-- ✅ Used by the foreground service when it starts
-- ✅ Restored after app restarts
-- ✅ Available to scheduled downloads
-- ✅ Persisted across process deaths
+WorkManager unique work `mdm-active-recovery` starts `DownloadForegroundService` when a network is connected. There is no `BOOT_COMPLETED` receiver. A force-stop keeps the records on disk and does not run them until Android allows the app to run again. Opening the app, or WorkManager's next allowed run, is enough. You can also call `recoverDownloads` once the process is allowed to start a foreground service.
 
-### Advanced Example
+**Kotlin**
 
 ```kotlin
-class MyApplication : Application() {
-    override fun onCreate() {
-        super.onCreate()
-        configureDownloadService()
-    }
-
-    private fun configureDownloadService() {
-        val downloadPath = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)?.absolutePath
-            ?: filesDir.absolutePath
-
-        DownloadForegroundService.configureService(this) {
-            // High-performance chunking
-            chunkCount(8)
-            chunkParallel(true)
-            chunkMinSize(512 * 1024L)
-
-            // Aggressive retry
-            retryPolicy(
-                maxAttempts = 10,
-                initialDelayMillis = 2_000L,
-                backoffMultiplier = 2.0f
-            )
-
-            // Custom notification
-            notificationChannel(
-                id = "app_downloads",
-                name = "App Downloads",
-                description = "Download progress and status"
-            )
-            notificationShowProgress(true)
-            notificationPersistent(false)
-
-            // Scheduled downloads
-            periodicSchedule(intervalMinutes = 120)
-
-            // Custom storage
-            storageDestinations(listOf(
-                DownloadDestination.Custom(downloadPath)
-            ))
-            storageOverwrite(true)
-            storageValidateFreeSpace(true)
-
-            // Auto-install APKs
-            installerPromptOnCompletion(true)
-        }
-    }
-}
+DownloadForegroundService.recoverDownloads(this)
 ```
 
-### Error Handling
+**Java**
 
-If the service starts without configuration, it will throw:
-
-```
-IllegalStateException: DownloadForegroundService requires configuration.
-Call DownloadForegroundService.configureService() before starting the service.
+```java
+DownloadForegroundService.recoverDownloads(this);
 ```
 
-### Updating Configuration
+Do not call `recoverDownloads` to unpause a manual pause. That state is not in the auto-resume set.
 
-To update the configuration, simply call `configureService()` again with new settings. The new configuration will be used the next time the service starts.
+## Step 24. Range, validators, and checksum
 
-```kotlin
-// Update to use different storage location
-DownloadForegroundService.configureService(context) {
-    storageDestinations(listOf(DownloadDestination.Downloads))
-    // ... other settings
-}
-```
+| Response | What is written |
+|----------|-----------------|
+| 206 and `Content-Range` matches the requested start, end, and known total | Append at that offset |
+| 200, or a 206 whose range does not match, at a non-zero offset | Partial file deleted, one full GET from byte zero |
+| 416 and the local length already equals the known total | No body is written. The checksum still runs |
+| Strong ETag changed, or total size changed | Restart from byte zero |
+| No validator, or only a weak ETag (`W/...`) | Keep the partial bytes |
+| Checksum or integrity failure | File deleted, retry from byte zero while attempts remain |
+| Checksum hex length does not match the algorithm | `onFailed`. Nothing is downloaded |
+| Checksum omitted or blank | No hash is invented. The other integrity checks still run |
 
-## Migration from Hardcoded Configuration
+Ranged requests send `Accept-Encoding: identity` and `If-Range` (strong ETag, otherwise `Last-Modified`).
 
-If you were previously relying on the service's default configuration, you must now:
+## Step 25. Two requests, one file
 
-1. Call `configureService()` before starting any downloads
-2. Provide all necessary configuration options
-3. Remove any assumptions about default values
+Compared fields are URL, file name, checksum, and algorithm. The canonical path is the resolved file.
 
-### Before (Old Way)
+| First download | Second request |
+|----------------|----------------|
+| Queued, running, waiting to retry, or paused, same artifact | Existing download continues. `onFailed` is not used for a same-id replay; the same handle is reused or the pause is resumed |
+| Healthy, different id or a different artifact on that path | `onFailed` with `IllegalStateException`. The file is not touched |
+| Failed or cancelled | The new request starts at byte zero and may overwrite |
+| Same id, conflicting artifact, still healthy | Rejected |
 
-```kotlin
-// Service had hardcoded defaults
-DownloadForegroundService.enqueueDownload(context, request)
-```
+Enqueue does not throw that rejection out of the service. Handle it in `onFailed`.
 
-### After (New Way)
+## This section, filled in
 
-```kotlin
-// Configure service first
-DownloadForegroundService.configureService(context) {
-    chunkCount(4)
-    // ... other settings
-}
+Steps 22 through 25 are the service contract. The host code is step 22 plus the request from [step 10](03-chunk-engine.md). No extra API turns those rules on. They are `v1.3.3`.
 
-// Then use it
-DownloadForegroundService.enqueueDownload(context, request)
-```
-
-## Best Practices
-
-1. **Configure Once**: Call `configureService()` once during app initialization
-2. **Use Application Class**: For multi-activity apps, configure in `Application.onCreate()`
-3. **Validate Paths**: Ensure storage paths exist and are writable
-4. **Test Configuration**: Verify downloads work with your settings
-5. **Document Settings**: Keep track of why you chose specific values
-
-## Configuration Options Reference
-
-### Chunking
-- `chunkCount(n)` - Number of parallel chunks (1-16)
-- `chunkParallel(boolean)` - Enable parallel downloading
-- `chunkMinSize(bytes)` - Minimum chunk size (recommended: 256 KB - 1 MB)
-
-### Retry Policy
-- `retryPolicy(maxAttempts, initialDelayMillis, backoffMultiplier)`
-- Typical values: 3-10 attempts, 1-5 second delay, 1.5-2.0 backoff
-
-### Notification
-- `notificationChannel(id, name, description)` - Required for Android 8+
-- `notificationShowProgress(boolean)` - Show progress bar
-- `notificationPersistent(boolean)` - Keep notification after download
-
-### Storage
-- `storageDestinations(list)` - Where to save files
-- `storageOverwrite(boolean)` - Overwrite existing files
-- `storageValidateFreeSpace(boolean)` - Check disk space before download
-
-### Scheduler
-- `periodicSchedule(intervalMinutes)` - Background sync interval
-- For one-time scheduled downloads, use `DownloadForegroundService.scheduleDownload()`
-
-### Installer
-- `installerPromptOnCompletion(boolean)` - Auto-prompt to install APKs
-
-## Foreground startup (v1.3.1)
-
-`enqueue`, `pause`, `resume`, `stop`, and `schedule` all start the service with `startForegroundService()`. Android requires `startForeground()` shortly after that call. The service posts a startup notification immediately in `onCreate()`, before `createManagerFromConfig()` reads saved settings or opens files. Download progress later replaces that notification, at most once per second. Completion, failure, pause, and cancel updates are not delayed.
-
-Call `configureService()` before the first command. The startup notification does not depend on that saved configuration, so a missing or slow config read cannot produce `Context.startForegroundService() did not then call Service.startForeground()`.
-
-## Pause, schedule, and resume (v1.3.2)
-
-Notification Pause and Stop reach the live manager first. A cancelled OkHttp call is not retried as a network error, so Pause stays paused and Stop stays stopped.
-
-WorkManager and AlarmManager hand the request to the foreground service. Alarm pending intents are immutable. If an exact alarm is not permitted, an inexact alarm is scheduled instead. Periodic work requires a connected network, and an interval below 15 minutes is raised to 15. If Android refuses the foreground start, that one worker or receiver runs the download to completion and then puts the previous manager back.
-
-`expectedChecksum` and `checksumAlgorithm` are stored on the WorkManager request, the alarm intent, and the pause file. Pause files written before v1.3.2 still load, with no checksum invented for them. The pause file is removed when the download completes, when integrity validation deletes the file, or when the user stops it. Starting a resume does not delete it. A second enqueue of an active id returns the existing handle. A second enqueue of a paused id resumes it. A ranged response other than 206 is not written at a nonzero offset.
-
-## Resume after reboot
-
-A download that is queued, running, or waiting to retry is stored under the app's private files and continued by the foreground service after process death. WorkManager starts that service again after a reboot. A manual pause stays paused. Android force-stop does not resume anything until the app or a scheduled job is allowed to run again.
-
-If the server ignores `Range`, or `Content-Range` does not match the requested bytes, the partial file is discarded and one single-stream download starts at byte zero. A strong `ETag` or a changed total size does the same. A missing or weak `ETag` does not. The partial file is kept, and the configured checksum decides at the end. A checksum or integrity failure deletes the file and starts again from byte zero.
-
-A second request for a file that is actively downloading or paused is rejected. If the earlier request already failed or was cancelled, it is dropped and the new request starts from byte zero. A checksum that is present but not valid hex for its algorithm fails the request instead of skipping verification. A missing or corrupt saved configuration uses defaults; integrity, installer, storage, and scheduler settings are persisted when the configuration is valid.
-
-## See Also
-
-- [Configuration Documentation](01-configuration.md)
-- [Storage Configuration](02-storage.md)
-- [Scheduler Documentation](05-scheduler.md)
+Next: [integrity flags](APK_INTEGRITY_GUIDE.md).

@@ -1,37 +1,105 @@
-# 2. Storage Resolver
+# 2. Storage
 
-## Overview
-- Introduces `StorageResolver`, the component responsible for translating `StorageConfig` into concrete directories/files.
-- Supports `DownloadDestination.Auto`, `Custom`, and `Scoped` targets with fallbacks to app-specific external files directories.
-- Handles housekeeping before any network traffic begins: directory creation, overwrite policy, and free-space validation.
+[All steps](README.md) · [Switch languages](index.html)
 
-## Key Behaviors
-1. **Directory Resolution**
-   - Auto → `context.getExternalFilesDir(DIRECTORY_DOWNLOADS/DIRECTORY_DOCUMENTS)` + internal `files/downloads`.
-   - Custom → absolute path provided by the host app.
-   - Scoped → relative path rooted under the app-specific external directory (safe for API 23+).
-2. **Overwrite Policy**
-   - If `StorageConfig.overwriteExisting` is true, existing files are deleted just before download.
-   - Otherwise, the resolver throws `StorageResolutionException` so the caller can rename or skip.
-3. **Free-Space Validation**
-   - When `validateFreeSpace` is enabled, `StatFs` ensures at least `minFreeSpaceBytes` remain (default 10 MB).
-   - This is a coarse check; later stages can refine it using content-length metadata from the server.
-4. **Dry-Run Support**
-   - `MobileDownloadManager.previewDestination(request)` runs the resolver without deleting files, perfect for diagnostics or UI previews.
+`StorageResolver` picks the first writable directory, then creates `fileName` inside it. `DownloadDestination.Auto` uses app-specific external downloads, then documents, then `filesDir/downloads`. `preferExternalPublic` puts the shared `Download/` directory first.
 
-## Public Types
-- `StorageConfig`: extended with `minFreeSpaceBytes`.
-- `StorageResolution`: exposes `directory`, `file`, and whether an overwrite would occur.
-- `StorageResolutionException`: thrown when directories are unwritable, a file already exists, or space is insufficient.
+A real resolve deletes an existing file when overwrite is on. Admission checks the path before that delete, so a rejected second request does not remove the first file.
 
-## Sample App Integration
-`MainActivity` now:
-1. Builds a `MobileDownloadManager` instance.
-2. Creates a demo `DownloadRequest` (`sample_config.bin`).
-3. Calls `previewDestination(...)` and prints the directory/file paths inside the UI.
-4. Surfaces any resolver errors to help test permissions or misconfigured paths quickly.
+## Step 5. Choose a destination
 
-## Next Steps
-- Wire up the resolver output to the upcoming chunked downloading engine.
-- Extend the sample UI with user-provided URLs and destination pickers once networking is live.
+**Kotlin**
 
+```kotlin
+val auto = DownloadDestination.Auto
+
+val custom = DownloadDestination.Custom(
+    getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)!!.absolutePath
+)
+
+val scoped = DownloadDestination.Scoped("tms/packages")
+```
+
+**Java**
+
+```java
+DownloadDestination auto = DownloadDestination.Auto.INSTANCE;
+
+File dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+DownloadDestination custom = new DownloadDestination.Custom(dir.getAbsolutePath());
+
+DownloadDestination scoped = new DownloadDestination.Scoped("tms/packages");
+```
+
+`Scoped` is a path under `getExternalFilesDir(null)`, or under `filesDir` when external storage is unavailable. It is not a Storage Access Framework tree URI.
+
+## Step 6. Overwrite, free space, and the public Download folder
+
+`minFreeSpaceBytes` is checked only when `validate` is true. The default floor is 10 MB. Public `Download/` on API 28 and below needs `WRITE_EXTERNAL_STORAGE` at runtime. On API 29 and above, writing that directory also depends on the host's storage policy. App-specific directories do not need that permission.
+
+**Kotlin**
+
+```kotlin
+DownloadForegroundService.configureService(this) {
+    storageDestinations(listOf(DownloadDestination.Scoped("tms/packages")))
+    storageOverwrite(false)
+    storageValidateFreeSpace(validate = true, minBytes = 64L * 1024 * 1024)
+    storageUsePublicDownloads(false)
+}
+```
+
+**Java**
+
+```java
+DownloadForegroundService.configureService(this, builder -> {
+    builder.storageDestinations(Collections.singletonList(
+            new DownloadDestination.Scoped("tms/packages")
+    ));
+    builder.storageOverwrite(false);
+    builder.storageValidateFreeSpace(true, 64L * 1024 * 1024);
+    builder.storageUsePublicDownloads(false);
+    return kotlin.Unit.INSTANCE;
+});
+```
+
+With `storageOverwrite(false)`, an existing file fails the request with `StorageResolutionException`. The partial file from an interrupted download of the same id is a checkpoint, not a second file, and resume does not take this path.
+
+## Step 7. This section, filled in
+
+**Kotlin**
+
+```kotlin
+val packages = File(
+    getExternalFilesDir(null) ?: filesDir,
+    "tms/packages"
+)
+
+DownloadForegroundService.configureService(this) {
+    storageDestinations(listOf(DownloadDestination.Custom(packages.absolutePath)))
+    storageOverwrite(true)
+    storageValidateFreeSpace(validate = true, minBytes = 64L * 1024 * 1024)
+    storageUsePublicDownloads(false)
+}
+```
+
+**Java**
+
+```java
+File root = getExternalFilesDir(null);
+if (root == null) {
+    root = getFilesDir();
+}
+File packages = new File(root, "tms/packages");
+
+DownloadForegroundService.configureService(this, builder -> {
+    builder.storageDestinations(Collections.singletonList(
+            new DownloadDestination.Custom(packages.getAbsolutePath())
+    ));
+    builder.storageOverwrite(true);
+    builder.storageValidateFreeSpace(true, 64L * 1024 * 1024);
+    builder.storageUsePublicDownloads(false);
+    return kotlin.Unit.INSTANCE;
+});
+```
+
+Next: [the request and enqueue](03-chunk-engine.md).

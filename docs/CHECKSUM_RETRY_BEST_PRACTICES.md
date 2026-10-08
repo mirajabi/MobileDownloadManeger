@@ -1,241 +1,111 @@
-# Best Practices for Checksum Mismatch and Retry
+# 12. Checksum
 
-## Behavior of IDM and Professional Download Managers
+[All steps](README.md) · [Switch languages](index.html)
 
-### Internet Download Manager (IDM)
-1. **Delete corrupted file**: Deletes incomplete/corrupted file before retry
-2. **Retry with exponential backoff**: 2s, 4s, 8s, 16s, ...
-3. **Retry limit**: Usually 5-10 attempts
-4. **User notification**: Tells user why it's retrying
-5. **Error differentiation**: Distinguishes between network error and integrity error
+## Step 29. Pass a real digest, or pass none
 
-### Other Download Managers (wget, curl, aria2)
-- **wget**: Deletes file and downloads from start
-- **curl**: Keeps file (manual cleanup)
-- **aria2**: Deletes file and retries
+| Algorithm | Hex length |
+|-----------|------------|
+| `ChecksumAlgorithm.MD5` | 32 |
+| `ChecksumAlgorithm.SHA256` | 64 |
+| `ChecksumAlgorithm.SHA512` | 128 |
 
----
+Lower case and upper case are both accepted. A wrong length, or an unknown algorithm name together with a checksum, fails the request in `onFailed` before download. The library does not assume SHA-256 for a broken value.
 
-## Best Practices (Recommended)
+`null` or `""` means there is no checksum. Older pause files that have no checksum field still load.
 
-### 1. ✅ Delete Corrupted File Before Retry
-```
-Why?
-- Corrupted file may occupy disk space
-- User may think file is valid
-- Retry should start from clean file
-```
+The digest is stored with the WorkManager input, the alarm intent, and the pause record. A scheduled run checks the same bytes as the original request.
 
-### 2. ✅ Differentiate Between Error Types
-```
-Network Error:
-  - Connection timeout
-  - DNS failure
-  - Server error (5xx)
-  → Retry is logical
+On mismatch the file and the chunk list are deleted. The same attempt budget retries from byte zero. It does not try to repair a slice of the file.
 
-Integrity Error:
-  - Checksum mismatch
-  - File size mismatch
-  - APK structure invalid
-  → Retry is logical (may be network corruption)
-  
-Permanent Error:
-  - File not found (404)
-  - Permission denied (403)
-  → Retry is useless
-```
+**Kotlin**
 
-### 3. ✅ Exponential Backoff
-```
-Attempt 1: 2s delay
-Attempt 2: 4s delay
-Attempt 3: 8s delay
-Attempt 4: 16s delay
-...
-→ Prevents server overload
-```
-
-### 4. ✅ Retry Limit
-```
-Default: 3-5 attempts
-Maximum: 10 attempts
-→ Prevents infinite loop
-```
-
-### 5. ✅ Logging and Reporting
-```
-- Log retry reason
-- Report to user
-- Store error history
-```
-
-### 6. ✅ State Management
-```
-- Clear chunk states on checksum mismatch
-- Reset progress tracking
-- Clean temporary files
-```
-
----
-
-## Current Code Status
-
-### ✅ What we have:
-1. ✅ Retry with exponential backoff
-2. ✅ Retry limit (maxAttempts)
-3. ✅ Logging
-4. ✅ User notification (onRetry, onFailed)
-
-### ❌ What we don't have:
-1. ❌ **Delete file before retry** (on checksum mismatch)
-2. ❌ **Error differentiation** (network vs integrity)
-3. ❌ **Option to keep/delete file**
-
----
-
-## Suggested Improvements
-
-### 1. Add IntegrityError Exception
 ```kotlin
-class IntegrityValidationException(
-    message: String,
-    val errors: List<String>,
-    val file: File
-) : IOException(message)
-```
+val sha256 = DownloadRequest(
+    url = "https://downloads.example.com/tms/app-release.apk",
+    fileName = "app-release.apk",
+    id = "tms-sha256",
+    expectedChecksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    checksumAlgorithm = ChecksumAlgorithm.SHA256
+)
 
-### 2. Delete File Before Retry
-```kotlin
-catch (error: IntegrityValidationException) {
-    // Delete corrupted file
-    if (error.file.exists()) {
-        error.file.delete()
-        Log.d(TAG, "Deleted corrupted file: ${error.file.absolutePath}")
-    }
-    
-    // Retry
-    if (attempt < maxAttempts) {
-        listeners.forEach { it.onRetry(handle, attempt) }
-        delay(delayMs)
-        attempt++
-    }
-}
-```
+val sha512 = sha256.copy(
+    id = "tms-sha512",
+    expectedChecksum = "0123456789abcdef".repeat(8),
+    checksumAlgorithm = ChecksumAlgorithm.SHA512
+)
 
-### 3. Differentiate Between Errors
-```kotlin
-when (error) {
-    is IntegrityValidationException -> {
-        // Integrity error: delete file and retry
-        deleteFileAndRetry()
-    }
-    is NetworkException -> {
-        // Network error: retry without deletion (resume possible)
-        retryWithResume()
-    }
-    is PermanentException -> {
-        // Permanent error: fail immediately
-        failImmediately()
-    }
-}
-```
-
-### 4. Configurable File Deletion
-```kotlin
-data class IntegrityConfig(
-    // ...
-    val deleteFileOnValidationFailure: Boolean = true,  // new
-    val deleteFileOnRetry: Boolean = true  // new
+val noChecksum = sha256.copy(
+    id = "tms-plain",
+    expectedChecksum = null
 )
 ```
 
----
+**Java**
 
-## Practical Example: IDM Behavior
+```java
+DownloadRequest sha256 = new DownloadRequest(
+        "https://downloads.example.com/tms/app-release.apk",
+        "app-release.apk",
+        DownloadDestination.Auto.INSTANCE,
+        "tms-sha256",
+        Collections.emptyMap(),
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        ChecksumAlgorithm.SHA256
+);
 
-### Scenario: Checksum Mismatch
+String sha512Hex = new String(new char[8]).replace("\0", "0123456789abcdef");
+DownloadRequest sha512 = new DownloadRequest(
+        "https://downloads.example.com/tms/app-release.apk",
+        "app-release.apk",
+        DownloadDestination.Auto.INSTANCE,
+        "tms-sha512",
+        Collections.emptyMap(),
+        sha512Hex,
+        ChecksumAlgorithm.SHA512
+);
 
-```
-Attempt 1:
-  ✅ Download complete (2MB)
-  ❌ Checksum mismatch
-  🗑️ File deleted
-  ⏱️ Wait 2s
-  🔄 Retry
-
-Attempt 2:
-  ✅ Download complete (2MB)
-  ❌ Checksum mismatch
-  🗑️ File deleted
-  ⏱️ Wait 4s
-  🔄 Retry
-
-Attempt 3:
-  ✅ Download complete (2MB)
-  ✅ Checksum verified
-  ✅ Success!
-```
-
-### Scenario: Network Error
-
-```
-Attempt 1:
-  ❌ Connection timeout (50% downloaded)
-  📁 File kept (for resume)
-  ⏱️ Wait 2s
-  🔄 Retry (resume from 50%)
-
-Attempt 2:
-  ✅ Resume from 50%
-  ✅ Download complete
-  ✅ Success!
+DownloadRequest noChecksum = new DownloadRequest(
+        "https://downloads.example.com/tms/app-release.apk",
+        "app-release.apk",
+        DownloadDestination.Auto.INSTANCE,
+        "tms-plain",
+        Collections.emptyMap(),
+        null,
+        ChecksumAlgorithm.SHA256
+);
 ```
 
----
+`"0123456789abcdef".repeat(8)` is 128 hex characters. Replace it with the digest of the real file. Two ids for the same path are rejected while the first is healthy; the three requests above are three shapes, not three concurrent downloads.
 
-## Implementation Recommendations
+## This section, filled in
 
-### Priority 1 (Critical):
-1. ✅ **Delete file on checksum mismatch**
-   - Prevents using corrupted file
-   - Saves disk space
+Use SHA-256 unless the publisher gives you another algorithm.
 
-2. ✅ **Differentiate IntegrityError from NetworkError**
-   - Different behavior for each error type
-   - Resume only for network errors
+**Kotlin**
 
-### Priority 2 (Important):
-3. ⚠️ **Configurable deletion**
-   - Option to keep file (debugging)
-   - Option for automatic deletion
+```kotlin
+DownloadRequest(
+    url = "https://downloads.example.com/tms/app-release.apk",
+    fileName = "app-release.apk",
+    id = "tms-app-release",
+    expectedChecksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    checksumAlgorithm = ChecksumAlgorithm.SHA256
+)
+```
 
-4. ⚠️ **Better error reporting**
-   - More details in onFailed
-   - Retry attempt history
+**Java**
 
-### Priority 3 (Nice to have):
-5. ⚠️ **Incremental checksum**
-   - Calculate checksum during download
-   - Early corruption detection
+```java
+new DownloadRequest(
+        "https://downloads.example.com/tms/app-release.apk",
+        "app-release.apk",
+        DownloadDestination.Auto.INSTANCE,
+        "tms-app-release",
+        Collections.emptyMap(),
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        ChecksumAlgorithm.SHA256
+);
+```
 
-6. ⚠️ **Partial file recovery**
-   - Use valid parts of file
-   - Resume from last valid byte
-
----
-
-## Conclusion
-
-### Best Practice Summary:
-1. ✅ **Delete corrupted file** before retry
-2. ✅ **Differentiate errors** (network vs integrity)
-3. ✅ **Exponential backoff** (we have)
-4. ✅ **Retry limit** (we have)
-5. ✅ **Logging and reporting** (we have)
-
-### Action Items:
-- [x] Add IntegrityValidationException
-- [x] Delete file before retry on checksum mismatch
-- [x] Differentiate between network and integrity errors
-- [ ] Add option for configurable deletion
+Next: [retry versus restart](RETRY_RESUME_BEHAVIOR.md).

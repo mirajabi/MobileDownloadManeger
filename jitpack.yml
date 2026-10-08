@@ -2,5 +2,5 @@ jdk:
   - openjdk11
 
 before_install:
+  - bash .jitpack/ensure-jdk11.sh
   - ./gradlew clean
-

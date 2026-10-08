@@ -1,66 +1,14 @@
 # Mobile Download Manager
 
-Modular Android download manager targeting API 23+ with support for chunked transfers, background scheduling, notification progress, and configurable storage policies. The project is built incrementally—each stage introduces new capabilities alongside matching documentation and sample-app demos.
+[![JitPack](https://www.jitpack.io/v/mirajabi/MobileDownloadManeger.svg)](https://www.jitpack.io/#mirajabi/MobileDownloadManeger)
 
-## Highlights (v1.3.3)
-- **Resume after reboot**: queued, running, and retrying downloads continue from the last flushed checkpoint. A manual pause stays paused. A checksum or integrity failure deletes the partial file and starts again from byte zero.
-- **Safe range handling**: a ranged response is written only when status 206 and `Content-Range` match the requested bytes. Otherwise the partial file is discarded and one single-stream download starts at byte zero.
-- **Artifact identity**: a changed strong ETag or total size restarts from byte zero. A missing or weak ETag keeps the partial file, and the checksum decides at the end.
-- **One writer per file**: a second request is rejected while the first download is active or paused. If the first request already failed or was cancelled, the new request starts from byte zero.
-- **Full saved configuration**: integrity, installer, free space, public storage, and scheduler options are persisted. A missing or corrupt configuration uses defaults instead of crashing the service.
-- **Pause and stop stay paused**: notification Pause and Stop are not treated as network failures, so a cancelled transfer is not started again.
-- **One download owner**: a second enqueue of the same id reuses the active transfer, or resumes it when it is paused. The on-disk pause record stays until the download actually finishes.
-- **Scheduled hand-off**: WorkManager and AlarmManager start the foreground service. If Android blocks that start, the worker finishes the download itself and then restores the previous manager. Periodic work waits for a network connection, and intervals shorter than 15 minutes are raised to 15.
-- **Checksum on every path**: the expected checksum and algorithm travel with WorkManager data, alarm intents, and paused requests. Older pause files that have no checksum still load.
-- **Range safety**: a ranged response that is not 206 is not written over the middle of a file.
-- **Foreground service contract**: the service calls `startForeground()` before loading saved configuration or touching the network, so `startForegroundService()` no longer crashes when progress has not arrived yet.
-- **Coalesced progress notifications**: progress updates at most once per second and keeps the latest value. Completion, failure, pause, and cancel notifications stay immediate.
-- **Persistent configuration**: download manager configuration is loaded from `DownloadConfigStore` and persists across app restarts and process deaths.
-- **Service configuration API**: `configureService()` sets chunking, retry, notification, storage, and installer options before the service starts.
-- **True pause/resume**: chunk-level state is persisted so APKs resume exactly from the last downloaded byte even across service restarts.
-- **Real-time foreground notification**: merged service/download notification shows speed, remaining bytes, and live buttons (Pause/Resume/Stop).
-- **Public downloads + installer prompt**: storage now defaults to the shared `Download/` folder and can automatically launch the installer for APK/APKS packages.
-- **File integrity validation**: configurable checksum verification, file size validation, and APK structure validation ensure downloaded files are complete and uncorrupted.
-- **Scheduler support**: WorkManager + AlarmManager enable weekly and exact date scheduling with persisted config.
-- **Extensive logging & sample UI**: Kotlin and Java activities demonstrate enqueue/pause/resume/schedule flows end-to-end.
+Android library for large file downloads: parallel ranges, pause and resume, a foreground notification, and a schedule that survives process death. The current release is `v1.3.3`. Minimum SDK is 23.
 
-## Modules
-- `downloader`: reusable library that exposes `MobileDownloadManager`, configuration DSL, and (later) the execution engine.
-- `app`: sample client that exercises every stage of the library. The UI evolves in lockstep with the feature set so manual tests stay straightforward.
+The host app keeps ownership of extraction, package identity, and installation. The library downloads a file and can optionally open the system installer. It does not install a package by itself.
 
-The sample module ships with **both** `MainActivity` (Kotlin) and `JavaSampleActivity`, so you can copy/paste snippets in whichever language you prefer. Both screens expose the same controls (enqueue, pause, resume, stop, weekday schedule, exact schedule) and log the detailed progress coming from the service.
+## Install
 
-## Documentation
-- See `docs/README.md` for the current table of contents.  
-- Stage 1 (`docs/01-configuration.md`) explains the configuration DSL and how the sample activity uses it to preview chunking, retry, scheduler, notification, and storage settings.  
-- Stage 2 (`docs/02-storage.md`) covers the storage resolver, overwrite policy, free-space validation, and the sample dry-run preview.
-- Stage 3 (`docs/03-chunk-engine.md`) describes the chunked downloader, retry/backoff flow, and the sample UI's live status updates.
-- Stage 4 (`docs/04-foreground.md`) details the foreground service, persistent notifications, and how the sample button now mirrors those events.
-- Stage 5 (`docs/05-scheduler.md`) explains WorkManager/AlarmManager scheduling, persisted config, and the sample's Tuesday 00:30 scheduling demo.
-- Stage 6 (`docs/06-pause-resume.md`) introduces resumable downloads, session tracking, and the sample's Pause/Resume controls.
-- Stage 7 (`docs/07-foreground-notify-installer.md`) unifies the notification, enables true parallel downloads, requests storage permissions, and adds the optional post-download installer prompt.
-- Stage 8 (`docs/08-service-configuration.md`) explains `configureService()`, persistence through `DownloadConfigStore`, and why the service enters the foreground before that configuration is read.
-
-### File Integrity & Validation
-- [`docs/APK_INTEGRITY_GUIDE.md`](docs/APK_INTEGRITY_GUIDE.md) - Complete guide for ensuring APK download integrity with checksum verification, file size validation, and APK structure validation.
-- [`docs/APK_STRUCTURE_VALIDATION.md`](docs/APK_STRUCTURE_VALIDATION.md) - How `verifyApkStructure` works: Magic Number check and ZIP structure validation mechanism.
-- [`docs/APK_SIGNATURE_VALIDATION.md`](docs/APK_SIGNATURE_VALIDATION.md) - How `verifyApkSignature` works: PackageManager-based signature verification, why it's expensive, and when to use it.
-- [`docs/CHECKSUM_RETRY_BEST_PRACTICES.md`](docs/CHECKSUM_RETRY_BEST_PRACTICES.md) - Best practices for handling checksum mismatch: IDM behavior, file deletion, error differentiation, and retry strategies.
-- [`docs/RETRY_RESUME_BEHAVIOR.md`](docs/RETRY_RESUME_BEHAVIOR.md) - Retry and resume behavior on checksum mismatch: why we can't detect corrupted sections, and why complete deletion is the best approach.
-- [`docs/CURRENT_RETRY_STATUS.md`](docs/CURRENT_RETRY_STATUS.md) - Current retry implementation status: what's supported, what's not, and comparison between network errors and integrity errors.
-
-## Development Workflow
-1. Implement a feature in the library.
-2. Mirror the change in the sample module with the simplest possible UI or instrumentation hook.
-3. Capture the behavior and usage notes inside the `docs/` folder and link it here.
-
-> Gradle Wrapper 6.7.1 + Android Gradle Plugin 4.1.2 are enforced because the target environment requires them.
-
-## Continuous Integration
-GitHub Actions (`.github/workflows/ci.yml`) runs `./gradlew assemble` on every push/PR with JDK 11 (Temurin). This mirrors the JitPack environment and guarantees the sample + library remain compatible with the requested Gradle/AGP versions.
-
-## JitPack Consumption
-Add the JitPack repository once:
+Kotlin (`settings.gradle.kts` or the root `build.gradle.kts`):
 
 ```kotlin
 repositories {
@@ -68,105 +16,57 @@ repositories {
 }
 ```
 
-Then pull whichever tag you want (example: `v1.3.3`):
-
 ```kotlin
 dependencies {
     implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.3")
 }
 ```
 
-The same coordinate works for Groovy Gradle scripts:
+Java / Groovy:
 
 ```groovy
 repositories {
     maven { url 'https://jitpack.io' }
 }
+```
 
+```groovy
 dependencies {
     implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.3'
 }
 ```
 
-## Kotlin Usage Example
-```kotlin
-private fun enqueueSampleDownload() {
-    val request = DownloadRequest(
-        url = SAMPLE_URL,
-        fileName = "sample-${System.currentTimeMillis()}.apk",
-        destination = DownloadDestination.Auto
-    )
+The library manifest already merges `INTERNET`, the foreground-service permissions, the download service, the alarm and notification receivers, and a `FileProvider`. Call `configureService` once before the first download so those components load your settings instead of the defaults.
 
-    DownloadForegroundService.setNotificationIcon(R.mipmap.ic_launcher)
-    DownloadForegroundService.enqueueDownload(this, request)
-}
+## Read the guide
 
-// During setup, prefer the public Downloads folder with integrity validation:
-MobileDownloadManager.create(this) {
-    storageUsePublicDownloads(true)
-    installerPromptOnCompletion(true)
-    // Enable recommended integrity validation for APK downloads
-    integrityValidationForApk()
-}
+The guide is numbered. Every step has a Kotlin sample and a Java sample, and every section ends with that section filled in, including the optional fields.
 
-// Or configure integrity validation manually:
-MobileDownloadManager.create(this) {
-    integrityValidation(
-        verifyFileSize = true,        // Recommended: true
-        verifyChecksum = true,         // Recommended: true (if checksum provided)
-        verifyApkStructure = true,    // Recommended: true for APKs
-        verifyContentType = false,    // Optional: false (some servers don't send correct type)
-        verifyApkSignature = false    // Optional: false (expensive, only if critical)
-    )
-}
+- [Step-by-step index](docs/README.md)
+- [Open the guide with a Kotlin / Java switch](docs/index.html)
 
-// Download with checksum verification:
-val request = DownloadRequest(
-    url = SAMPLE_URL,
-    fileName = "app.apk",
-    destination = DownloadDestination.Auto,
-    expectedChecksum = "a1b2c3d4e5f6...", // SHA-256 hash (hex string)
-    checksumAlgorithm = ChecksumAlgorithm.SHA256
-)
-```
+`docs/index.html` is one page. The control at the top shows either Kotlin or Java for every step. Open that file in a browser. GitHub shows the HTML source; the rendered switch is the file itself.
 
-## Java Usage Example
-```java
-private void enqueueSampleDownload() {
-    DownloadRequest request = new DownloadRequest(
-            SAMPLE_URL,
-            "sample-" + System.currentTimeMillis() + ".apk",
-            DownloadDestination.Auto.INSTANCE,
-            UUID.randomUUID().toString(),
-            Collections.emptyMap()
-    );
+## What a download does
 
-    DownloadForegroundService.setNotificationIcon(R.mipmap.ic_launcher);
-    DownloadForegroundService.enqueueDownload(this, request);
-}
+- A ranged response is written only when the status is 206 and `Content-Range` matches the requested bytes. Any other ranged result discards the partial file and downloads the whole file once from byte zero.
+- A changed strong ETag or a changed total size starts again from byte zero. A missing or weak ETag keeps the partial file. The checksum is the final check.
+- A manual pause stays paused across reboot. A download that was queued, running, or waiting to retry continues from the last flushed checkpoint. There is no boot receiver. After a force-stop, Android allows that work again when the app may run.
+- A second request for the same file is rejected while the first one is queued, running, waiting to retry, or paused. If the first one already failed or was cancelled, the new request starts from byte zero.
+- Pause and Stop are not network errors, so they are not started again by the scheduler.
+- A missing or corrupt saved configuration uses `DownloadConfig` defaults. The service does not crash in `onCreate`.
 
-// During setup, enable integrity validation:
-DownloadManagerBuilder builder = MobileDownloadManager.builder(this);
-builder.integrityValidationForApk();
-builder.storageUsePublicDownloads(true);
-builder.installerPromptOnCompletion(true);
-MobileDownloadManager manager = builder.build();
+## Changelog
 
-// Download with checksum verification:
-DownloadRequest request = new DownloadRequest(
-    SAMPLE_URL,
-    "app.apk",
-    DownloadDestination.Auto.INSTANCE,
-    UUID.randomUUID().toString(),
-    Collections.emptyMap(),
-    "a1b2c3d4e5f6...",  // expectedChecksum (SHA-256 hex string)
-    ChecksumAlgorithm.SHA256
-);
+### v1.3.3
 
-// During setup:
-MobileDownloadManager.builder(this)
-        .storageUsePublicDownloads(true)
-        .installerPromptOnCompletion(true)
-        .build();
-```
+Interrupted downloads continue from the last checkpoint. A ranged response is kept only when it is the same artifact, and a second request cannot write into a file that is still healthy. The usage guide in `docs/` walks through every setting in Kotlin and Java. JitPack's current image points `JAVA_HOME` at a JDK 11 directory it no longer ships, so the tag installs Temurin 11 there before Gradle starts.
 
+## Requirements
+
+| | |
+|---|---|
+| minSdk | 23 |
+| Artifact | `com.github.mirajabi:MobileDownloadManeger:v1.3.3` |
+| Foreground service type | `dataSync` |
+| Periodic schedule floor | 15 minutes |

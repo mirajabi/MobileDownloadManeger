@@ -1,28 +1,39 @@
-# Documentation Index
+# Guide
 
-## Core Features
+Each step shows Kotlin and Java. Each page ends with that page filled in, including every optional value.
 
-| # | Topic | Summary |
-|---|-------|---------|
-| 1 | [Configuration & Builder](01-configuration.md) | How to customize chunking, retries, notifications, scheduler, storage, and listeners using the fluent DSL. |
-| 2 | [Storage Resolver](02-storage.md) | Directory selection, overwrite policy, free-space validation, and sample-app previews. |
-| 3 | [Chunked Download Engine](03-chunk-engine.md) | Range-aware HTTP downloads, retry/backoff, listener callbacks, and sample UI controls. |
-| 4 | [Foreground Service & Notifications](04-foreground.md) | Persistent service, per-download notifications, and sample status wiring. |
-| 5 | [Scheduler Integration](05-scheduler.md) | WorkManager periodic jobs, AlarmManager exact triggers, config persistence, and sample scheduling UI. |
-| 6 | [Pause/Resume](06-pause-resume.md) | Session tracking, resumable ranges, and sample pause/resume controls. |
-| 7 | [Notifications, Parallelism & Installer](07-foreground-notify-installer.md) | Unified foreground notification, parallel chunking, storage permissions, and optional post-download installer prompt. |
-| 8 | [Service Configuration](08-service-configuration.md) | Persisted `configureService()` settings, the foreground-service startup contract, and the v1.3.2 pause, schedule, and resume rules. |
+Open [index.html](index.html) in a browser to switch the whole guide between Kotlin and Java with one control.
 
-## File Integrity & Validation
-
-| Topic | Summary |
-|-------|---------|
-| [APK Integrity Guide](APK_INTEGRITY_GUIDE.md) | Complete guide for ensuring APK download integrity with checksum verification, file size validation, and APK structure validation. |
-| [APK Structure Validation](APK_STRUCTURE_VALIDATION.md) | How `verifyApkStructure` works: Magic Number check and ZIP structure validation mechanism. |
-| [APK Signature Validation](APK_SIGNATURE_VALIDATION.md) | How `verifyApkSignature` works: PackageManager-based signature verification, why it's expensive, and when to use it. |
-| [Checksum Retry Best Practices](CHECKSUM_RETRY_BEST_PRACTICES.md) | Best practices for handling checksum mismatch: IDM behavior, file deletion, error differentiation, and retry strategies. |
-| [Retry Resume Behavior](RETRY_RESUME_BEHAVIOR.md) | Retry and resume behavior on checksum mismatch: why we can't detect corrupted sections, and why complete deletion is the best approach. |
-| [Current Retry Status](CURRENT_RETRY_STATUS.md) | Current retry implementation status: what's supported, what's not, and comparison between network errors and integrity errors. |
-
-> Each development stage adds a new numbered document here. After review, the same content is linked from the root `README.md`.
-
+| Step | Page | What you fill in |
+|------|------|------------------|
+| 1 | [Setup](01-configuration.md) | JitPack coordinate |
+| 2 | [Setup](01-configuration.md) | One-time `configureService` call |
+| 3 | [Setup](01-configuration.md) | Every optional builder method |
+| 4 | [Setup](01-configuration.md) | Complete configuration |
+| 5 | [Storage](02-storage.md) | `Auto`, `Custom`, and `Scoped` |
+| 6 | [Storage](02-storage.md) | Overwrite, free space, public `Download/` |
+| 7 | [Storage](02-storage.md) | Complete storage setup |
+| 8 | [Download](03-chunk-engine.md) | `DownloadRequest`, including optional fields |
+| 9 | [Download](03-chunk-engine.md) | Enqueue and the listener |
+| 10 | [Download](03-chunk-engine.md) | Complete enqueue |
+| 11 | [Notification](04-foreground.md) | Channel, icon, progress, persistent flag |
+| 12 | [Notification](04-foreground.md) | Complete notification setup |
+| 13 | [Schedule](05-scheduler.md) | Weekday |
+| 14 | [Schedule](05-scheduler.md) | Calendar date |
+| 15 | [Schedule](05-scheduler.md) | Periodic interval |
+| 16 | [Schedule](05-scheduler.md) | AlarmManager or WorkManager, then the complete call |
+| 17 | [Pause and resume](06-pause-resume.md) | Pause |
+| 18 | [Pause and resume](06-pause-resume.md) | Resume and stop |
+| 19 | [Pause and resume](06-pause-resume.md) | Complete controls |
+| 20 | [Installer](07-foreground-notify-installer.md) | Prompt and MIME type |
+| 21 | [Installer](07-foreground-notify-installer.md) | Complete installer setup |
+| 22 | [Service behavior](08-service-configuration.md) | Saved configuration and defaults |
+| 23 | [Service behavior](08-service-configuration.md) | Reboot |
+| 24 | [Service behavior](08-service-configuration.md) | Range, ETag, and checksum |
+| 25 | [Service behavior](08-service-configuration.md) | Two requests, one file |
+| 26 | [Integrity](APK_INTEGRITY_GUIDE.md) | All five integrity flags |
+| 27 | [APK structure](APK_STRUCTURE_VALIDATION.md) | `verifyApkStructure` |
+| 28 | [APK signature](APK_SIGNATURE_VALIDATION.md) | `verifyApkSignature` |
+| 29 | [Checksum](CHECKSUM_RETRY_BEST_PRACTICES.md) | Algorithm, hex length, mismatch |
+| 30 | [Retry](RETRY_RESUME_BEHAVIOR.md) | Network retry versus integrity restart |
+| 31 | [Outcomes](CURRENT_RETRY_STATUS.md) | What the host observes |

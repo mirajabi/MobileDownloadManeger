@@ -1,32 +1,50 @@
-# 4. Foreground Service & Notifications
+# 4. Notification
 
-## Overview
-- `MobileDownloadManager` now keeps downloads alive via `DownloadForegroundService`. The service is started when the first job is enqueued (if `enforceForegroundService = true`) and stopped automatically when the queue drains.
-- `DownloadNotificationHelper` mirrors every lifecycle event: queued, started, progress, completed, failed, and cancelled. Each download gets its own notification plus a persistent foreground notification summarizing the active count.
-- The helper shares a single notification channel (configurable via `NotificationConfig`) and reuses the same instance across the manager and service via `DownloadNotificationRegistry`.
+[All steps](README.md) · [Switch languages](index.html)
 
-## Key Components
-1. **DownloadNotificationHelper**
-   - Ensures the notification channel exists.
-   - Implements `DownloadListener`, so it hooks into all events transparently.
-   - Provides a foreground notification builder and dispatcher used by the service.
-2. **DownloadForegroundService**
-   - Minimal `Service` that calls `startForeground(...)` with the helper’s notification.
-   - Exposes static `start(status)`, `update(status)`, and `stop(context)` helpers.
-   - Declared in the library manifest with `foregroundServiceType="dataSync"`.
-3. **MobileDownloadManager**
-   - Tracks active download count; starts the service on the first job, updates the status text whenever progress events arrive, and stops the service when the count reaches zero.
-   - Pipes listener events through `DownloadNotificationHelper` in addition to user-supplied listeners.
+The service calls `startForeground` before it reads the saved configuration or opens a socket. That keeps `startForegroundService` from crashing the host when the first progress event has not arrived yet.
 
-## Sample App Integration
-- Added `android.permission.FOREGROUND_SERVICE` to the app manifest.
-- When the “Start Sample Download” button is pressed, the app now:
-  1. Starts the foreground service (visible notification “Downloads running”).
-  2. Displays per-download notifications with progress bars.
-  3. Updates the on-screen status text in sync with the notification helper callbacks.
+One notification, id `7001`, shows the active transfer: bytes, speed, and Pause, Resume, and Stop. Those buttons call the running manager first. If the process was recreated, they start the service with the same action. Completion stays visible; stopping the service detaches the foreground state and leaves the result notification.
 
-## Notes & Next Steps
-- Notification appearance (icon/text) comes from `NotificationConfig`; apps can supply their own icons and wording via the builder DSL.
-- Future work can add notification actions (pause/resume/cancel) and richer grouping per download batch.
-- The same infrastructure will be reused once WorkManager/AlarmManager scheduling and installer prompts arrive in later stages.
+## Step 11. Channel, icon, progress, and the ongoing flag
 
+Use a white status-bar icon in `res/drawable`. `notificationPersistent(true)` keeps the notification ongoing while bytes are moving.
+
+**Kotlin**
+
+```kotlin
+DownloadForegroundService.setNotificationIcon(R.drawable.ic_stat_download)
+DownloadForegroundService.configureService(this) {
+    notificationChannel(
+        id = "tms_downloads",
+        name = "TMS downloads",
+        description = "Package downloads"
+    )
+    notificationIcon(R.drawable.ic_stat_download)
+    notificationShowProgress(true)
+    notificationPersistent(true)
+    enforceForeground(true)
+}
+```
+
+**Java**
+
+```java
+DownloadForegroundService.setNotificationIcon(R.drawable.ic_stat_download);
+DownloadForegroundService.configureService(this, builder -> {
+    builder.notificationChannel("tms_downloads", "TMS downloads", "Package downloads");
+    builder.notificationIcon(R.drawable.ic_stat_download);
+    builder.notificationShowProgress(true);
+    builder.notificationPersistent(true);
+    builder.enforceForeground(true);
+    return kotlin.Unit.INSTANCE;
+});
+```
+
+If Android blocks a background start (`ForegroundServiceStartNotAllowedException` on newer OS versions), the scheduled worker finishes that one download itself and then drops the temporary manager. The previous manager is restored.
+
+## Step 12. This section, filled in
+
+Step 11 is the filled notification setup. Pair it with a request from [step 10](03-chunk-engine.md). The host does not build its own `Notification`.
+
+Next: [scheduling](05-scheduler.md).

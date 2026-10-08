@@ -1,32 +1,200 @@
-# 5. Scheduler Integration
+# 5. Schedule
 
-## Overview
-- `DownloadScheduler` now bridges WorkManager (periodic or delayed jobs) and AlarmManager (exact wall-clock triggers). It respects `SchedulerConfig` and even accepts per-request overrides via `MobileDownloadManager.schedule(...)`, supporting weekly (weekday-based) as well as absolute date/time targets.
-- `DownloadConfigStore` persists the active configuration in SharedPreferences so scheduled jobs can recreate the manager after process death.
-- `DownloadRequestAdapter`, `ScheduledDownloadWorker`, and `DownloadAlarmReceiver` serialize each `DownloadRequest` and enqueue it when the OS fires the job.
-- The sample app demonstrates scheduling a download for every Tuesday at 00:30, updating the UI with the human-readable target time.
+[All steps](README.md) · [Switch languages](index.html)
 
-## Flow
-1. `MobileDownloadManager.schedule(request, scheduleTime)`
-   - Delegates to `DownloadScheduler`, which decides between AlarmManager (`useAlarmManager = true`) or WorkManager.
-   - Periodic schedules use `PeriodicWorkRequest`; exact schedules compute the next occurrence (optionally weekday-specific) and either enqueue a `OneTimeWorkRequest` or register an alarm.
-2. When the job fires:
-   - WorkManager runs `ScheduledDownloadWorker`, which loads the persisted config and calls `MobileDownloadManager.enqueue(...)`.
-   - AlarmManager broadcasts to `DownloadAlarmReceiver`, which does the same via a lightweight coroutine scope.
-3. All scheduled and immediate downloads share the same notification/foreground infrastructure added earlier.
+Choose one mode. `exactSchedule` and `exactScheduleDate` clear a periodic interval. `periodicSchedule` clears an exact time.
 
-## Config Persistence
-- `DownloadConfigStore.save(...)` runs whenever a manager is created, storing chunking/retry/notification/scheduler/storage knobs as JSON.
-- Scheduled components load via `DownloadConfigStore.load(...)`. If unavailable, they fall back to defaults, ensuring safety even if the store is cleared.
+Exact schedules use WorkManager unless `schedulerUseAlarmManager(true)`. Alarm exact times require the exact-alarm permission on newer Android versions. If that permission is missing, the scheduler falls back to an inexact alarm. The library does not declare `SCHEDULE_EXACT_ALARM`; add it in the host only if you opt into AlarmManager.
 
-## Sample App Additions
-- New button “Schedule Tuesday 00:30 Download” calls `downloadManager.schedule(...)` with `ScheduleTime(hour = 0, minute = 30, weekday = Weekday.TUESDAY)`.
-- Another button “Schedule Exact Date” schedules a one-off run for tomorrow at 12:30 by passing year/month/day/hour/minute.
-- The UI shows the computed schedule text so testers immediately see when the next run will occur.
-- Existing status + storage preview remain intact, so the sample now covers immediate, scheduled, and diagnostic flows.
+A periodic interval below 15 minutes is raised to 15 and a warning is logged. WorkManager periodic work also waits for a network connection.
 
-## Next Steps
-- Extend the builder to accept per-request overrides (custom weekdays or one-off delays) via convenience helpers.
-- Add UI elements for choosing day/time dynamically and listing scheduled jobs (backed by WorkManager queries).
-- Combine schedules with grouping/constraint settings (Wi-Fi only, charging, etc.) for even finer control.
+`scheduleDownload` stores the request, including checksum and headers, and arms the trigger. It does not download immediately.
 
+## Step 13. Weekday
+
+`weekday = null` means the next matching clock time, every day. Hour is 0–23.
+
+**Kotlin**
+
+```kotlin
+DownloadForegroundService.configureService(this) {
+    exactSchedule(
+        hour = 2,
+        minute = 15,
+        weekday = Weekday.TUESDAY,
+        allowWhileIdle = true
+    )
+    schedulerUseAlarmManager(false)
+}
+
+val request = DownloadRequest(
+    url = "https://downloads.example.com/tms/app-release.apk",
+    fileName = "app-release.apk",
+    id = "tms-tuesday"
+)
+
+DownloadForegroundService.scheduleDownload(
+    this,
+    request,
+    ScheduleTime(hour = 2, minute = 15, weekday = Weekday.TUESDAY)
+)
+```
+
+**Java**
+
+```java
+DownloadForegroundService.configureService(this, builder -> {
+    builder.exactSchedule(2, 15, Weekday.TUESDAY, true);
+    builder.schedulerUseAlarmManager(false);
+    return kotlin.Unit.INSTANCE;
+});
+
+DownloadRequest request = new DownloadRequest(
+        "https://downloads.example.com/tms/app-release.apk",
+        "app-release.apk",
+        DownloadDestination.Auto.INSTANCE,
+        "tms-tuesday",
+        Collections.emptyMap(),
+        null,
+        ChecksumAlgorithm.SHA256
+);
+
+DownloadForegroundService.scheduleDownload(
+        this,
+        request,
+        new ScheduleTime(2, 15, Weekday.TUESDAY, null, null, null)
+);
+```
+
+## Step 14. Calendar date
+
+Month is 1–12. This is a one-shot date, not a weekday.
+
+**Kotlin**
+
+```kotlin
+val whenToRun = ScheduleTime(
+    hour = 12,
+    minute = 30,
+    weekday = null,
+    year = 2026,
+    month = 10,
+    dayOfMonth = 9
+)
+
+DownloadForegroundService.configureService(this) {
+    exactScheduleDate(
+        year = 2026,
+        month = 10,
+        dayOfMonth = 9,
+        hour = 12,
+        minute = 30,
+        allowWhileIdle = true
+    )
+}
+
+DownloadForegroundService.scheduleDownload(this, request, whenToRun)
+```
+
+**Java**
+
+```java
+DownloadForegroundService.configureService(this, builder -> {
+    builder.exactScheduleDate(2026, 10, 9, 12, 30, true);
+    return kotlin.Unit.INSTANCE;
+});
+
+ScheduleTime whenToRun = new ScheduleTime(12, 30, null, 2026, 10, 9);
+DownloadForegroundService.scheduleDownload(this, request, whenToRun);
+```
+
+## Step 15. Periodic interval
+
+`scheduleDownload` always takes a `ScheduleTime`, so it is the exact-time API. A repeating job is `MobileDownloadManager.schedule(request, null)` after `periodicSchedule` is set and no exact time is set. An interval below 15 minutes is stored as requested and raised to 15 when the work is enqueued.
+
+**Kotlin**
+
+```kotlin
+val manager = MobileDownloadManager.create(this) {
+    periodicSchedule(intervalMinutes = 60)
+    schedulerUseAlarmManager(false)
+}
+
+manager.schedule(request)
+```
+
+**Java**
+
+```java
+MobileDownloadManager manager = MobileDownloadManager.builder(this)
+        .periodicSchedule(60)
+        .schedulerUseAlarmManager(false)
+        .build();
+
+manager.schedule(request, null);
+```
+
+## Step 16. This section, filled in
+
+AlarmManager variant of the Tuesday schedule. `useAlarmManager` does not apply to periodic WorkManager jobs.
+
+**Kotlin**
+
+```kotlin
+DownloadForegroundService.configureService(this) {
+    exactSchedule(hour = 2, minute = 15, weekday = Weekday.TUESDAY, allowWhileIdle = true)
+    schedulerUseAlarmManager(true)
+}
+
+val request = DownloadRequest(
+    url = "https://downloads.example.com/tms/app-release.apk",
+    fileName = "app-release.apk",
+    destination = DownloadDestination.Auto,
+    id = "tms-tuesday",
+    headers = emptyMap(),
+    expectedChecksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    checksumAlgorithm = ChecksumAlgorithm.SHA256
+)
+
+DownloadForegroundService.scheduleDownload(
+    this,
+    request,
+    ScheduleTime(
+        hour = 2,
+        minute = 15,
+        weekday = Weekday.TUESDAY,
+        year = null,
+        month = null,
+        dayOfMonth = null
+    )
+)
+```
+
+**Java**
+
+```java
+DownloadForegroundService.configureService(this, builder -> {
+    builder.exactSchedule(2, 15, Weekday.TUESDAY, true);
+    builder.schedulerUseAlarmManager(true);
+    return kotlin.Unit.INSTANCE;
+});
+
+Map<String, String> headers = Collections.emptyMap();
+DownloadRequest request = new DownloadRequest(
+        "https://downloads.example.com/tms/app-release.apk",
+        "app-release.apk",
+        DownloadDestination.Auto.INSTANCE,
+        "tms-tuesday",
+        headers,
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        ChecksumAlgorithm.SHA256
+);
+
+DownloadForegroundService.scheduleDownload(
+        this,
+        request,
+        new ScheduleTime(2, 15, Weekday.TUESDAY, null, null, null)
+);
+```
+
+Next: [pause, resume, and stop](06-pause-resume.md).

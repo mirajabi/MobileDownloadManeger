@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mobile Download Manager</title>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --paper: #fffcf7;
+    --ink: #1d1b16;
+    --muted: #5e584e;
+    --line: #e2d9cc;
+    --accent: #1f4d3a;
+    --accent-2: #e7f2ec;
+    --code: #1a1916;
+    --code-ink: #f3efe6;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background: var(--bg);
+    font: 16px/1.55 "Segoe UI", system-ui, sans-serif;
+  }
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: rgba(244, 241, 234, 0.94);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+  }
+  header a { color: inherit; text-decoration: none; }
+  .brand { font-weight: 650; letter-spacing: -0.02em; }
+  .brand small { display: block; font-weight: 450; color: var(--muted); letter-spacing: 0; }
+  .switch { display: flex; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); }
+  .switch button {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font: inherit;
+    cursor: pointer;
+  }
+  .switch button[aria-pressed="true"] { background: var(--accent); color: white; }
+  .layout { display: grid; grid-template-columns: 230px 1fr; max-width: 1080px; margin: 0 auto; }
+  nav { position: sticky; top: 74px; align-self: start; padding: 22px 8px 40px 22px; max-height: calc(100vh - 74px); overflow: auto; }
+  nav a { display: block; color: var(--muted); text-decoration: none; font-size: 13px; padding: 4px 0; }
+  nav a:hover { color: var(--ink); }
+  nav .group { margin: 14px 0 4px; color: var(--ink); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+  main { padding: 28px 36px 80px 20px; }
+  article {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 24px 8px;
+    margin: 0 0 16px;
+  }
+  h1 { font-size: 34px; line-height: 1.15; letter-spacing: -0.03em; margin: 0 0 8px; }
+  .lede { color: var(--muted); max-width: 62ch; margin-bottom: 22px; }
+  h2 { font-size: 20px; margin: 0 0 8px; letter-spacing: -0.02em; }
+  h2 span {
+    display: inline-block;
+    min-width: 1.6em;
+    margin-right: 8px;
+    color: var(--accent);
+  }
+  p { max-width: 72ch; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 8px 0 16px; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; }
+  pre {
+    background: var(--code);
+    color: var(--code-ink);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow: auto;
+    font: 13px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  body[data-lang="kotlin"] pre.java,
+  body[data-lang="java"] pre.kotlin { display: none; }
+  .lang-label { color: var(--muted); font-size: 12px; margin: 0 0 6px; }
+  body[data-lang="kotlin"] .lang-label.java,
+  body[data-lang="java"] .lang-label.kotlin { display: none; }
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; }
+    nav { position: static; max-height: none; display: flex; gap: 12px; overflow: auto; padding: 12px 16px; }
+    nav .group { display: none; }
+    nav a { white-space: nowrap; }
+    main { padding: 12px 16px 48px; }
+    header { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body data-lang="kotlin">
+<header>
+  <a class="brand" href="#top">Mobile Download Manager<small>v1.3.3 · one control switches every sample</small></a>
+  <div class="switch" role="group" aria-label="Language">
+    <button type="button" id="kotlin" aria-pressed="true">Kotlin</button>
+    <button type="button" id="java" aria-pressed="false">Java</button>
+  </div>
+</header>
+<div class="layout">
+<nav>
+  <div class="group">Setup</div>
+  <a href="#s1">1. Dependency</a>
+  <a href="#s2">2. First call</a>
+  <a href="#s3">3. Every option</a>
+  <a href="#s4">4. Filled setup</a>
+  <div class="group">Storage</div>
+  <a href="#s5">5. Destination</a>
+  <a href="#s6">6. Space and overwrite</a>
+  <a href="#s7">7. Filled storage</a>
+  <div class="group">Download</div>
+  <a href="#s8">8. Request</a>
+  <a href="#s9">9. Enqueue</a>
+  <a href="#s10">10. Filled enqueue</a>
+  <div class="group">Notification</div>
+  <a href="#s11">11. Channel and icon</a>
+  <a href="#s12">12. Filled notification</a>
+  <div class="group">Schedule</div>
+  <a href="#s13">13. Weekday</a>
+  <a href="#s14">14. Date</a>
+  <a href="#s15">15. Periodic</a>
+  <a href="#s16">16. Filled schedule</a>
+  <div class="group">Control</div>
+  <a href="#s17">17. Pause</a>
+  <a href="#s18">18. Resume and stop</a>
+  <a href="#s19">19. Filled controls</a>
+  <div class="group">Installer</div>
+  <a href="#s20">20. Prompt</a>
+  <a href="#s21">21. Filled installer</a>
+  <div class="group">Behavior</div>
+  <a href="#s22">22. Saved config</a>
+  <a href="#s23">23. Reboot</a>
+  <a href="#s24">24. Range and checksum</a>
+  <a href="#s25">25. One writer</a>
+  <a href="#s26">26. Integrity flags</a>
+  <a href="#s27">27. APK structure</a>
+  <a href="#s28">28. Signature</a>
+  <a href="#s29">29. Checksum shape</a>
+  <a href="#s30">30. Retry</a>
+  <a href="#s31">31. Outcomes</a>
+</nav>
+<main id="top">
+  <h1>Step by step</h1>
+  <p class="lede">Configure the service once, then enqueue. Optional fields are filled with a real value and the default is named beside them. The host still extracts and installs. The library only downloads.</p>
+
+  <article id="s1">
+    <h2><span>1</span>Add the library</h2>
+    <p>Put JitPack in the repository list, then depend on tag <code>v1.3.3</code>.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">repositories {
+    maven("https://jitpack.io")
+}
+
+dependencies {
+    implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.3")
+}</pre>
+    <p class="lang-label java">Java / Groovy</p>
+    <pre class="java">repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.3'
+}</pre>
+  </article>
+
+  <article id="s2">
+    <h2><span>2</span>Call configureService once</h2>
+    <p>Do this before the first download. The library manifest already merges the service, receivers, and FileProvider. This call writes the settings that the service reads on the next start.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+    chunkCount(4)
+}</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+    builder.chunkCount(4);
+    return kotlin.Unit.INSTANCE;
+});</pre>
+  </article>
+
+  <article id="s3">
+    <h2><span>3</span>Fill every optional setting</h2>
+    <p>Comments are the defaults. <code>periodicSchedule</code> and <code>exactSchedule</code> clear each other. This sample keeps the weekday schedule. <code>registerListener</code> is the callback for the service. <code>addListener</code> only applies to a manager object you keep yourself.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">val listener = object : DownloadListener {
+    override fun onCompleted(handle: DownloadHandle) {
+        Log.i("MDM", "completed ${handle.id}")
+    }
+    override fun onFailed(handle: DownloadHandle, error: Throwable?) {
+        Log.e("MDM", "failed ${handle.id}", error)
+    }
+}
+
+val downloadDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: filesDir
+
+DownloadForegroundService.setNotificationIcon(R.drawable.ic_stat_download)
+DownloadForegroundService.configureService(this) {
+    chunkCount(4)                         // default 3, minimum 1
+    chunkParallel(true)                   // default true
+    chunkMinSize(256 * 1024L)             // default 512 KB, minimum 64 KB
+    retryPolicy(
+        maxAttempts = 5,                  // default 3
+        initialDelayMillis = 3_000L,     // default 2_000
+        backoffMultiplier = 1.5f          // default 2
+    )
+    enforceForeground(true)               // default true
+    notificationChannel(
+        id = "tms_downloads",
+        name = "TMS downloads",
+        description = "Package downloads"
+    )
+    notificationIcon(R.drawable.ic_stat_download)
+    notificationShowProgress(true)        // default true
+    notificationPersistent(true)          // default true
+    exactSchedule(
+        hour = 2,
+        minute = 15,
+        weekday = Weekday.TUESDAY,        // null means every day
+        allowWhileIdle = true
+    )
+    schedulerUseAlarmManager(false)       // default false
+    storageDestinations(listOf(DownloadDestination.Custom(downloadDir.absolutePath)))
+    storageOverwrite(true)                // default true
+    storageValidateFreeSpace(validate = true, minBytes = 32L * 1024 * 1024)
+    storageUsePublicDownloads(false)      // default false
+    installerPromptOnCompletion(
+        enabled = false,                  // default false
+        fallbackMimeType = "application/vnd.android.package-archive"
+    )
+    integrityValidation(
+        verifyFileSize = true,
+        verifyChecksum = true,
+        verifyApkStructure = true,
+        verifyContentType = false,
+        verifyApkSignature = false
+    )
+}
+DownloadForegroundService.registerListener(listener)</pre>
+    <p class="lang-label java">Java. Pass every argument. Implement every listener method.</p>
+    <pre class="java">DownloadListener listener = new DownloadListener() {
+    @Override public void onQueued(DownloadHandle handle) { }
+    @Override public void onStarted(DownloadHandle handle) { }
+    @Override public void onProgress(DownloadHandle handle, DownloadProgress progress) { }
+    @Override public void onPaused(DownloadHandle handle) { }
+    @Override public void onResumed(DownloadHandle handle) { }
+    @Override public void onCompleted(DownloadHandle handle) {
+        Log.i("MDM", "completed " + handle.getId());
+    }
+    @Override public void onFailed(DownloadHandle handle, Throwable error) {
+        Log.e("MDM", "failed " + handle.getId(), error);
+    }
+    @Override public void onRetry(DownloadHandle handle, int attempt) { }
+    @Override public void onCancelled(DownloadHandle handle) { }
+};
+
+File downloadDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+if (downloadDir == null) downloadDir = getFilesDir();
+File finalDownloadDir = downloadDir;
+
+DownloadForegroundService.setNotificationIcon(R.drawable.ic_stat_download);
+DownloadForegroundService.configureService(this, builder -> {
+    builder.chunkCount(4);
+    builder.chunkParallel(true);
+    builder.chunkMinSize(256 * 1024L);
+    builder.retryPolicy(5, 3_000L, 1.5f);
+    builder.enforceForeground(true);
+    builder.notificationChannel("tms_downloads", "TMS downloads", "Package downloads");
+    builder.notificationIcon(R.drawable.ic_stat_download);
+    builder.notificationShowProgress(true);
+    builder.notificationPersistent(true);
+    builder.exactSchedule(2, 15, Weekday.TUESDAY, true);
+    builder.schedulerUseAlarmManager(false);
+    builder.storageDestinations(Collections.singletonList(
+            new DownloadDestination.Custom(finalDownloadDir.getAbsolutePath())));
+    builder.storageOverwrite(true);
+    builder.storageValidateFreeSpace(true, 32L * 1024 * 1024);
+    builder.storageUsePublicDownloads(false);
+    builder.installerPromptOnCompletion(false, "application/vnd.android.package-archive");
+    builder.integrityValidation(true, true, true, false, false);
+    return kotlin.Unit.INSTANCE;
+});
+DownloadForegroundService.registerListener(listener);</pre>
+  </article>
+
+  <article id="s4">
+    <h2><span>4</span>This setup, filled in</h2>
+    <p>Step 3 is the complete setup. Skipping <code>configureService</code> still downloads: a missing file uses <code>DownloadConfig</code> defaults and the service logs that.</p>
+  </article>
+
+  <article id="s5">
+    <h2><span>5</span>Choose a destination</h2>
+    <p><code>Auto</code> uses app-specific external downloads, then documents, then <code>filesDir/downloads</code>. <code>Scoped</code> is a relative directory under external files, not a Storage Access Framework URI.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">val auto = DownloadDestination.Auto
+val custom = DownloadDestination.Custom(
+    getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)!!.absolutePath
+)
+val scoped = DownloadDestination.Scoped("tms/packages")</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadDestination auto = DownloadDestination.Auto.INSTANCE;
+File dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+DownloadDestination custom = new DownloadDestination.Custom(dir.getAbsolutePath());
+DownloadDestination scoped = new DownloadDestination.Scoped("tms/packages");</pre>
+  </article>
+
+  <article id="s6">
+    <h2><span>6</span>Overwrite, free space, public Download</h2>
+    <p>Free space is checked only when validation is on. The default floor is 10 MB. <code>storageOverwrite(false)</code> fails with <code>StorageResolutionException</code> if that file name already exists. A paused download of the same id is a checkpoint, not this check.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+    storageDestinations(listOf(DownloadDestination.Scoped("tms/packages")))
+    storageOverwrite(false)
+    storageValidateFreeSpace(validate = true, minBytes = 64L * 1024 * 1024)
+    storageUsePublicDownloads(false)
+}</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+    builder.storageDestinations(Collections.singletonList(
+            new DownloadDestination.Scoped("tms/packages")));
+    builder.storageOverwrite(false);
+    builder.storageValidateFreeSpace(true, 64L * 1024 * 1024);
+    builder.storageUsePublicDownloads(false);
+    return kotlin.Unit.INSTANCE;
+});</pre>
+  </article>
+
+  <article id="s7">
+    <h2><span>7</span>Storage, filled in</h2>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">val packages = File(getExternalFilesDir(null) ?: filesDir, "tms/packages")
+
+DownloadForegroundService.configureService(this) {
+    storageDestinations(listOf(DownloadDestination.Custom(packages.absolutePath)))
+    storageOverwrite(true)
+    storageValidateFreeSpace(validate = true, minBytes = 64L * 1024 * 1024)
+    storageUsePublicDownloads(false)
+}</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">File root = getExternalFilesDir(null);
+if (root == null) root = getFilesDir();
+File packages = new File(root, "tms/packages");
+
+DownloadForegroundService.configureService(this, builder -> {
+    builder.storageDestinations(Collections.singletonList(
+            new DownloadDestination.Custom(packages.getAbsolutePath())));
+    builder.storageOverwrite(true);
+    builder.storageValidateFreeSpace(true, 64L * 1024 * 1024);
+    builder.storageUsePublicDownloads(false);
+    return kotlin.Unit.INSTANCE;
+});</pre>
+  </article>
+
+  <article id="s8">
+    <h2><span>8</span>Build the request</h2>
+    <p><code>url</code> and <code>fileName</code> are required. Checksum hex length is 64 for SHA-256, 128 for SHA-512, and 32 for MD5. Blank or null means no checksum. A bad length fails in <code>onFailed</code> before any byte is written. Java has no default arguments on <code>DownloadRequest</code>, so pass all seven.</p>
+    <table>
+      <tr><th>Field</th><th>Default</th></tr>
+      <tr><td>destination</td><td>Auto</td></tr>
+      <tr><td>id</td><td>random UUID</td></tr>
+      <tr><td>headers</td><td>empty. Do not set Range yourself</td></tr>
+      <tr><td>expectedChecksum</td><td>null</td></tr>
+      <tr><td>checksumAlgorithm</td><td>SHA256</td></tr>
+    </table>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">val request = DownloadRequest(
+    url = "https://downloads.example.com/tms/app-release.apk",
+    fileName = "app-release.apk",
+    destination = DownloadDestination.Auto,
+    id = "tms-app-release",
+    headers = mapOf("Authorization" to "Bearer token"),
+    expectedChecksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    checksumAlgorithm = ChecksumAlgorithm.SHA256
+)</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">Map&lt;String, String&gt; headers = new HashMap&lt;&gt;();
+headers.put("Authorization", "Bearer token");
+
+DownloadRequest request = new DownloadRequest(
+        "https://downloads.example.com/tms/app-release.apk",
+        "app-release.apk",
+        DownloadDestination.Auto.INSTANCE,
+        "tms-app-release",
+        headers,
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        ChecksumAlgorithm.SHA256
+);</pre>
+  </article>
+
+  <article id="s9">
+    <h2><span>9</span>Enqueue and listen</h2>
+    <p><code>enqueueDownload</code> returns as soon as the service is asked to start. Keep the id. Progress is coalesced to about one update per second. Completion, failure, pause, and cancel are immediate.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">DownloadForegroundService.registerListener(object : DownloadListener {
+    override fun onProgress(handle: DownloadHandle, progress: DownloadProgress) {
+        Log.i("MDM", "${progress.percent ?: 0}%")
+    }
+    override fun onFailed(handle: DownloadHandle, error: Throwable?) {
+        Log.e("MDM", error?.message ?: "failed")
+    }
+})
+
+DownloadForegroundService.enqueueDownload(this, request)</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadForegroundService.registerListener(new DownloadListener() {
+    @Override public void onQueued(DownloadHandle handle) { }
+    @Override public void onStarted(DownloadHandle handle) { }
+    @Override public void onProgress(DownloadHandle handle, DownloadProgress progress) {
+        int percent = progress.getPercent() == null ? 0 : progress.getPercent();
+        Log.i("MDM", percent + "%");
+    }
+    @Override public void onPaused(DownloadHandle handle) { }
+    @Override public void onResumed(DownloadHandle handle) { }
+    @Override public void onCompleted(DownloadHandle handle) { }
+    @Override public void onFailed(DownloadHandle handle, Throwable error) {
+        Log.e("MDM", error == null ? "failed" : String.valueOf(error.getMessage()));
+    }
+    @Override public void onRetry(DownloadHandle handle, int attempt) { }
+    @Override public void onCancelled(DownloadHandle handle) { }
+});
+
+DownloadForegroundService.enqueueDownload(this, request);</pre>
+  </article>
+
+  <article id="s10">
+    <h2><span>10</span>Enqueue, filled in</h2>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">val request = DownloadRequest(
+    url = "https://downloads.example.com/tms/app-release.apk",
+    fileName = "app-release.apk",
+    destination = DownloadDestination.Scoped("tms/packages"),
+    id = "tms-app-release",
+    headers = mapOf("Authorization" to "Bearer token"),
+    expectedChecksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    checksumAlgorithm = ChecksumAlgorithm.SHA256
+)
+
+DownloadForegroundService.registerListener(object : DownloadListener {
+    override fun onCompleted(handle: DownloadHandle) {
+        Log.i("MDM", "ready ${handle.id}")
+    }
+})
+
+DownloadForegroundService.enqueueDownload(this, request)</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">Map&lt;String, String&gt; headers = new HashMap&lt;&gt;();
+headers.put("Authorization", "Bearer token");
+
+DownloadRequest request = new DownloadRequest(
+        "https://downloads.example.com/tms/app-release.apk",
+        "app-release.apk",
+        new DownloadDestination.Scoped("tms/packages"),
+        "tms-app-release",
+        headers,
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        ChecksumAlgorithm.SHA256
+);
+
+DownloadForegroundService.registerListener(new DownloadListener() {
+    @Override public void onQueued(DownloadHandle handle) { }
+    @Override public void onStarted(DownloadHandle handle) { }
+    @Override public void onProgress(DownloadHandle handle, DownloadProgress progress) { }
+    @Override public void onPaused(DownloadHandle handle) { }
+    @Override public void onResumed(DownloadHandle handle) { }
+    @Override public void onCompleted(DownloadHandle handle) {
+        Log.i("MDM", "ready " + handle.getId());
+    }
+    @Override public void onFailed(DownloadHandle handle, Throwable error) { }
+    @Override public void onRetry(DownloadHandle handle, int attempt) { }
+    @Override public void onCancelled(DownloadHandle handle) { }
+});
+
+DownloadForegroundService.enqueueDownload(this, request);</pre>
+  </article>
+
+  <article id="s11">
+    <h2><span>11</span>Notification channel and icon</h2>
+    <p>The service calls <code>startForeground</code> before it reads config or opens a socket. One notification, id 7001, shows Pause, Resume, and Stop. <code>setNotificationIcon</code> covers the startup notification. <code>notificationIcon</code> is the saved icon.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">DownloadForegroundService.setNotificationIcon(R.drawable.ic_stat_download)
+DownloadForegroundService.configureService(this) {
+    notificationChannel("tms_downloads", "TMS downloads", "Package downloads")
+    notificationIcon(R.drawable.ic_stat_download)
+    notificationShowProgress(true)
+    notificationPersistent(true)
+    enforceForeground(true)
+}</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadForegroundService.setNotificationIcon(R.drawable.ic_stat_download);
+DownloadForegroundService.configureService(this, builder -> {
+    builder.notificationChannel("tms_downloads", "TMS downloads", "Package downloads");
+    builder.notificationIcon(R.drawable.ic_stat_download);
+    builder.notificationShowProgress(true);
+    builder.notificationPersistent(true);
+    builder.enforceForeground(true);
+    return kotlin.Unit.INSTANCE;
+});</pre>
+  </article>
+
+  <article id="s12">
+    <h2><span>12</span>Notification, filled in</h2>
+    <p>Step 11 is the filled notification. The host does not build the <code>Notification</code> object. If Android blocks a background service start, scheduled work finishes that one download on its own and then restores the previous manager.</p>
+  </article>
+
+  <article id="s13">
+    <h2><span>13</span>Weekday schedule</h2>
+    <p><code>scheduleDownload</code> arms the clock. It does not download now. A null weekday means every day. Hour is 0–23.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+    exactSchedule(hour = 2, minute = 15, weekday = Weekday.TUESDAY, allowWhileIdle = true)
+    schedulerUseAlarmManager(false)
+}
+
+DownloadForegroundService.scheduleDownload(
+    this,
+    request,
+    ScheduleTime(hour = 2, minute = 15, weekday = Weekday.TUESDAY)
+)</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+    builder.exactSchedule(2, 15, Weekday.TUESDAY, true);
+    builder.schedulerUseAlarmManager(false);
+    return kotlin.Unit.INSTANCE;
+});
+
+DownloadForegroundService.scheduleDownload(
+        this,
+        request,
+        new ScheduleTime(2, 15, Weekday.TUESDAY, null, null, null)
+);</pre>
+  </article>
+
+  <article id="s14">
+    <h2><span>14</span>Calendar date</h2>
+    <p>Month is 1–12. This fires once.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">val whenToRun = ScheduleTime(
+    hour = 12, minute = 30, weekday = null,
+    year = 2026, month = 10, dayOfMonth = 9
+)
+
+DownloadForegroundService.configureService(this) {
+    exactScheduleDate(2026, 10, 9, 12, 30, allowWhileIdle = true)
+}
+
+DownloadForegroundService.scheduleDownload(this, request, whenToRun)</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+    builder.exactScheduleDate(2026, 10, 9, 12, 30, true);
+    return kotlin.Unit.INSTANCE;
+});
+
+ScheduleTime whenToRun = new ScheduleTime(12, 30, null, 2026, 10, 9);
+DownloadForegroundService.scheduleDownload(this, request, whenToRun);</pre>
+  </article>
+
+  <article id="s15">
+    <h2><span>15</span>Periodic interval</h2>
+    <p><code>scheduleDownload</code> always receives a time, so it is not the periodic API. Call <code>schedule(request)</code> with no time after <code>periodicSchedule</code>. Intervals under 15 minutes are raised to 15. The work waits for a network.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">val manager = MobileDownloadManager.create(this) {
+    periodicSchedule(intervalMinutes = 60)
+    schedulerUseAlarmManager(false)
+}
+
+manager.schedule(request)</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">MobileDownloadManager manager = MobileDownloadManager.builder(this)
+        .periodicSchedule(60)
+        .schedulerUseAlarmManager(false)
+        .build();
+
+manager.schedule(request, null);</pre>
+  </article>
+
+  <article id="s16">
+    <h2><span>16</span>Schedule, filled in</h2>
+    <p>AlarmManager variant. Add <code>SCHEDULE_EXACT_ALARM</code> in the host only if you opt in. Without that permission the library uses an inexact alarm.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+    exactSchedule(hour = 2, minute = 15, weekday = Weekday.TUESDAY, allowWhileIdle = true)
+    schedulerUseAlarmManager(true)
+}
+
+val request = DownloadRequest(
+    url = "https://downloads.example.com/tms/app-release.apk",
+    fileName = "app-release.apk",
+    destination = DownloadDestination.Auto,
+    id = "tms-tuesday",
+    headers = emptyMap(),
+    expectedChecksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    checksumAlgorithm = ChecksumAlgorithm.SHA256
+)
+
+DownloadForegroundService.scheduleDownload(
+    this,
+    request,
+    ScheduleTime(hour = 2, minute = 15, weekday = Weekday.TUESDAY)
+)</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+    builder.exactSchedule(2, 15, Weekday.TUESDAY, true);
+    builder.schedulerUseAlarmManager(true);
+    return kotlin.Unit.INSTANCE;
+});
+
+DownloadRequest request = new DownloadRequest(
+        "https://downloads.example.com/tms/app-release.apk",
+        "app-release.apk",
+        DownloadDestination.Auto.INSTANCE,
+        "tms-tuesday",
+        Collections.&lt;String, String&gt;emptyMap(),
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        ChecksumAlgorithm.SHA256
+);
+
+DownloadForegroundService.scheduleDownload(
+        this,
+        request,
+        new ScheduleTime(2, 15, Weekday.TUESDAY, null, null, null)
+);</pre>
+  </article>
+
+  <article id="s17">
+    <h2><span>17</span>Pause</h2>
+    <p>The checkpoint is written first. The pause file stays until resume finishes or the user stops. Pause is not retried as a network error.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">DownloadForegroundService.pauseDownload(this, "tms-app-release")</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadForegroundService.pauseDownload(this, "tms-app-release");</pre>
+  </article>
+
+  <article id="s18">
+    <h2><span>18</span>Resume and stop</h2>
+    <p>Resume continues from the saved offsets. A changed strong ETag or total size discards the partial file first. Stop deletes the checkpoint.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">DownloadForegroundService.resumeDownload(this, "tms-app-release")
+DownloadForegroundService.stopDownload(this, "tms-app-release")</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadForegroundService.resumeDownload(this, "tms-app-release");
+DownloadForegroundService.stopDownload(this, "tms-app-release");</pre>
+  </article>
+
+  <article id="s19">
+    <h2><span>19</span>Controls, filled in</h2>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">val id = "tms-app-release"
+
+pauseButton.setOnClickListener { DownloadForegroundService.pauseDownload(this, id) }
+resumeButton.setOnClickListener { DownloadForegroundService.resumeDownload(this, id) }
+stopButton.setOnClickListener { DownloadForegroundService.stopDownload(this, id) }</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">final String id = "tms-app-release";
+
+pauseButton.setOnClickListener(v -> DownloadForegroundService.pauseDownload(this, id));
+resumeButton.setOnClickListener(v -> DownloadForegroundService.resumeDownload(this, id));
+stopButton.setOnClickListener(v -> DownloadForegroundService.stopDownload(this, id));</pre>
+  </article>
+
+  <article id="s20">
+    <h2><span>20</span>Installer prompt</h2>
+    <p>Default is false. Leave it false when the host installs the package. True opens the system installer after a successful download only. A failed checksum does not open it. The FileProvider authority is <code>${applicationId}.downloader.provider</code>.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+    installerPromptOnCompletion(
+        enabled = true,
+        fallbackMimeType = "application/vnd.android.package-archive"
+    )
+}</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+    builder.installerPromptOnCompletion(true, "application/vnd.android.package-archive");
+    return kotlin.Unit.INSTANCE;
+});</pre>
+  </article>
+
+  <article id="s21">
+    <h2><span>21</span>Installer, filled in</h2>
+    <p>Prompt off, MIME fallback still stored.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+    storageUsePublicDownloads(false)
+    installerPromptOnCompletion(
+        enabled = false,
+        fallbackMimeType = "application/vnd.android.package-archive"
+    )
+    integrityValidation(
+        verifyFileSize = true,
+        verifyChecksum = true,
+        verifyApkStructure = true,
+        verifyContentType = false,
+        verifyApkSignature = false
+    )
+}</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+    builder.storageUsePublicDownloads(false);
+    builder.installerPromptOnCompletion(false, "application/vnd.android.package-archive");
+    builder.integrityValidation(true, true, true, false, false);
+    return kotlin.Unit.INSTANCE;
+});</pre>
+  </article>
+
+  <article id="s22">
+    <h2><span>22</span>What is saved</h2>
+    <p>Chunking, retry, notification, one schedule mode, storage, installer, and all five integrity flags are written. Listeners are not. A missing or corrupt file logs a warning and uses defaults. <code>onCreate</code> does not throw.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+    chunkCount(4)
+    retryPolicy(maxAttempts = 5, initialDelayMillis = 2_000L, backoffMultiplier = 2f)
+    notificationChannel("tms_downloads", "TMS downloads", "Package downloads")
+    notificationIcon(R.drawable.ic_stat_download)
+    storageOverwrite(true)
+    storageValidateFreeSpace(true, 32L * 1024 * 1024)
+    storageUsePublicDownloads(false)
+    installerPromptOnCompletion(false, "application/vnd.android.package-archive")
+    integrityValidation(true, true, true, false, false)
+}</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+    builder.chunkCount(4);
+    builder.retryPolicy(5, 2_000L, 2f);
+    builder.notificationChannel("tms_downloads", "TMS downloads", "Package downloads");
+    builder.notificationIcon(R.drawable.ic_stat_download);
+    builder.storageOverwrite(true);
+    builder.storageValidateFreeSpace(true, 32L * 1024 * 1024);
+    builder.storageUsePublicDownloads(false);
+    builder.installerPromptOnCompletion(false, "application/vnd.android.package-archive");
+    builder.integrityValidation(true, true, true, false, false);
+    return kotlin.Unit.INSTANCE;
+});</pre>
+  </article>
+
+  <article id="s23">
+    <h2><span>23</span>Reboot</h2>
+    <table>
+      <tr><th>When the process died</th><th>Next time the app may run</th></tr>
+      <tr><td>Queued, running, or waiting to retry</td><td>Continues from the last flushed checkpoint</td></tr>
+      <tr><td>Paused by the user</td><td>Stays paused</td></tr>
+      <tr><td>Failed or cancelled</td><td>Stays stopped</td></tr>
+      <tr><td>Completed</td><td>The recovery record is already gone</td></tr>
+    </table>
+    <p>There is no boot receiver. A force-stop waits until Android allows the app to run. <code>recoverDownloads</code> does not unpause a manual pause.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">DownloadForegroundService.recoverDownloads(this)</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadForegroundService.recoverDownloads(this);</pre>
+  </article>
+
+  <article id="s24">
+    <h2><span>24</span>Range, validators, checksum</h2>
+    <table>
+      <tr><th>What came back</th><th>What is written</th></tr>
+      <tr><td>206 and Content-Range matches</td><td>Append at that offset</td></tr>
+      <tr><td>200, or a 206 that does not match, past byte zero</td><td>Partial file deleted, one full download</td></tr>
+      <tr><td>416 and the local file is already the known size</td><td>Checksum runs, no body is appended</td></tr>
+      <tr><td>Strong ETag or total size changed</td><td>Restart from byte zero</td></tr>
+      <tr><td>No validator, or only a weak ETag</td><td>Keep the partial bytes</td></tr>
+      <tr><td>Checksum or integrity failure</td><td>Delete and retry from byte zero</td></tr>
+      <tr><td>Bad checksum hex</td><td>onFailed, nothing downloaded</td></tr>
+    </table>
+  </article>
+
+  <article id="s25">
+    <h2><span>25</span>One writer per file</h2>
+    <p>The same id and the same url, file name, and checksum reuses the active download or resumes a pause. A different healthy download on that path fails in <code>onFailed</code> with <code>IllegalStateException</code> and does not touch the file. A failed or cancelled download may be replaced from byte zero.</p>
+  </article>
+
+  <article id="s26">
+    <h2><span>26</span>All five integrity flags</h2>
+    <p><code>integrityValidationForApk()</code> is size, checksum, and structure on, content type and signature off. The second call below is the same set written out. Use one of them.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+    integrityValidation(
+        verifyFileSize = true,
+        verifyChecksum = true,
+        verifyApkStructure = true,
+        verifyContentType = false,
+        verifyApkSignature = false
+    )
+}</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+    builder.integrityValidation(true, true, true, false, false);
+    return kotlin.Unit.INSTANCE;
+});</pre>
+  </article>
+
+  <article id="s27">
+    <h2><span>27</span>APK structure</h2>
+    <p>Only <code>.apk</code> and <code>.apks</code> are read. The file must start with <code>PK</code> and open as a ZIP that has at least one entry. A missing <code>AndroidManifest.xml</code> is logged and does not fail the download.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">integrityValidation(verifyApkStructure = true)</pre>
+    <p class="lang-label java">Java. Null keeps the other flags.</p>
+    <pre class="java">builder.integrityValidation(null, null, true, null, null);</pre>
+  </article>
+
+  <article id="s28">
+    <h2><span>28</span>Signature</h2>
+    <p>Off by default. <code>PackageManager</code> only checks that a signature can be read. It does not compare the signer to a certificate you trust. Leave this false when the host does that check.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">integrityValidation(verifyApkSignature = false)</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">builder.integrityValidation(null, null, null, null, false);</pre>
+  </article>
+
+  <article id="s29">
+    <h2><span>29</span>Checksum shape</h2>
+    <p>SHA-256 below is 64 hex characters. Pass null when you have no digest. The value travels with WorkManager, alarms, and the pause record.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">DownloadRequest(
+    url = "https://downloads.example.com/tms/app-release.apk",
+    fileName = "app-release.apk",
+    id = "tms-app-release",
+    expectedChecksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    checksumAlgorithm = ChecksumAlgorithm.SHA256
+)</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">new DownloadRequest(
+        "https://downloads.example.com/tms/app-release.apk",
+        "app-release.apk",
+        DownloadDestination.Auto.INSTANCE,
+        "tms-app-release",
+        Collections.&lt;String, String&gt;emptyMap(),
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        ChecksumAlgorithm.SHA256
+);</pre>
+  </article>
+
+  <article id="s30">
+    <h2><span>30</span>Network retry and integrity restart</h2>
+    <table>
+      <tr><th>Cause</th><th>Partial file</th><th>Callback</th></tr>
+      <tr><td>Network error, attempts left</td><td>Kept</td><td>onRetry</td></tr>
+      <tr><td>Network error, attempts spent</td><td>Kept until replaced</td><td>onFailed</td></tr>
+      <tr><td>Checksum, size, or structure</td><td>Deleted, then retry from byte zero</td><td>onRetry, then onFailed</td></tr>
+      <tr><td>User pause</td><td>Kept</td><td>onPaused</td></tr>
+      <tr><td>User stop</td><td>Checkpoint removed</td><td>onCancelled</td></tr>
+    </table>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">retryPolicy(maxAttempts = 5, initialDelayMillis = 2_000L, backoffMultiplier = 2f)</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">builder.retryPolicy(5, 2_000L, 2f);</pre>
+  </article>
+
+  <article id="s31">
+    <h2><span>31</span>What you observe</h2>
+    <p><code>onCompleted</code> is the only signal that the file is ready. Pause, stop, and a rejected second writer do not complete.</p>
+    <p class="lang-label kotlin">Kotlin</p>
+    <pre class="kotlin">override fun onFailed(handle: DownloadHandle, error: Throwable?) {
+    when (error) {
+        is IllegalStateException -> { /* second writer rejected */ }
+        is IllegalArgumentException -> { /* checksum shape rejected */ }
+        else -> { /* network or integrity exhausted */ }
+    }
+}</pre>
+    <p class="lang-label java">Java</p>
+    <pre class="java">@Override public void onFailed(DownloadHandle handle, Throwable error) {
+    if (error instanceof IllegalStateException) {
+        // Second writer rejected.
+    } else if (error instanceof IllegalArgumentException) {
+        // Checksum shape rejected.
+    }
+}</pre>
+    <p>Order of work: save the config, enqueue one request, wire pause and stop, then treat <code>onCompleted</code> as the file being ready for the host to extract or install.</p>
+  </article>
+</main>
+</div>
+<script>
+  var key = "mdm-lang";
+  function apply(lang) {
+    document.body.setAttribute("data-lang", lang);
+    document.getElementById("kotlin").setAttribute("aria-pressed", lang === "kotlin" ? "true" : "false");
+    document.getElementById("java").setAttribute("aria-pressed", lang === "java" ? "true" : "false");
+    try { localStorage.setItem(key, lang); } catch (e) {}
+  }
+  document.getElementById("kotlin").onclick = function () { apply("kotlin"); };
+  document.getElementById("java").onclick = function () { apply("java"); };
+  try {
+    var saved = localStorage.getItem(key);
+    if (saved === "java" || saved === "kotlin") apply(saved);
+  } catch (e) {}
+</script>
+</body>
+</html>

@@ -1,158 +1,100 @@
-# APK Download Integrity Guide
+# 9. Integrity flags
 
-## Priority-ordered steps to ensure downloaded file integrity
+[All steps](README.md) · [Switch languages](index.html)
 
-### Stage 1: Pre-Download Validation
-- ✅ **URL and network connectivity check**: Ensure server accessibility
-- ✅ **Content-Length retrieval**: Check file size before download
-- ✅ **Free space check**: Ensure sufficient storage (currently implemented)
-- ⚠️ **Checksum retrieval from server**: If server provides `ETag` or `Content-MD5` header, store it
+All five flags are optional. Defaults are already the recommended APK set: size, checksum, and structure on; content type and signature off. `integrityValidationForApk()` writes that same set.
 
-### Stage 2: During Download Validation
-- ✅ **Range Headers check**: Ensure chunk ranges are correct
-- ✅ **Content-Range check**: Match with Content-Length
-- ⚠️ **Incremental Hash calculation**: Calculate hash during download (for large files)
-- ⚠️ **Network Errors check**: Retry mechanism (currently implemented)
+Checksum bytes live on the request, not on this config. `verifyChecksum` does nothing when `expectedChecksum` is null or blank.
 
-### Stage 3: Post-Download Validation
+## Step 26. Set every flag
 
-#### 3.1 File Size Validation
-```
-- Compare downloaded file size with Content-Length
-- If different → download incomplete → retry
-```
-
-#### 3.2 Checksum/Hash Verification (Integrity Check)
-```
-- If MD5/SHA-256 received from server → compare
-- If provided in DownloadRequest → compare
-- If different → file corrupted → retry
-```
-
-#### 3.3 Content-Type Validation
-```
-- Check MIME type from response header
-- For APK should be: application/vnd.android.package-archive
-- If different → warning or reject
-
-⚠️ Important note: This check is disabled by default because:
-  - Many servers don't send correct Content-Type headers
-  - CDNs or Proxies may modify Content-Type headers
-  - File may be valid but Content-Type incorrect
-  - APK structure validation (Magic Number + ZIP) is more reliable
-
-✅ When to enable:
-  - When you're sure the server sends correct Content-Type
-  - For higher security in sensitive environments
-  - When you want to prevent downloading wrong files (e.g., HTML error page)
-```
-
-#### 3.4 APK Structure Validation
-```
-- Check Magic Number: APK must start with "PK" (ZIP format)
-- Check ZIP structure: Ensure ZIP structure integrity
-- Check AndroidManifest.xml: Verify manifest existence and validity
-```
-
-#### 3.5 APK Signature Verification
-```
-- Check signature presence in APK
-- Verify signature validity (optional - requires PackageManager)
-- If signature invalid → reject
-```
-
-### Stage 4: Final Validation
-- ✅ **File existence check**: Ensure file exists in final path
-- ⚠️ **Read access check**: Ensure file is readable
-- ⚠️ **Install access check**: For APK, check installation capability
-
-## Suggested Implementation
-
-### 1. Add IntegrityConfig to DownloadConfig
-```kotlin
-data class IntegrityConfig(
-    val verifyFileSize: Boolean = true,
-    val verifyChecksum: Boolean = true,
-    val checksumAlgorithm: ChecksumAlgorithm = ChecksumAlgorithm.SHA256,
-    val expectedChecksum: String? = null, // from DownloadRequest
-    val verifyApkStructure: Boolean = true,
-    val verifyApkSignature: Boolean = false // optional
-)
-
-enum class ChecksumAlgorithm {
-    MD5, SHA256, SHA512
-}
-```
-
-### 2. Add checksum to DownloadRequest
-```kotlin
-data class DownloadRequest(
-    val url: String,
-    val fileName: String,
-    val destination: DownloadDestination = DownloadDestination.Auto,
-    val id: String = UUID.randomUUID().toString(),
-    val headers: Map<String, String> = emptyMap(),
-    val expectedChecksum: String? = null, // new
-    val checksumAlgorithm: ChecksumAlgorithm = ChecksumAlgorithm.SHA256 // new
-)
-```
-
-### 3. Create FileIntegrityVerifier
-```kotlin
-internal object FileIntegrityVerifier {
-    fun verifyFileSize(file: File, expectedSize: Long?): Boolean
-    fun calculateChecksum(file: File, algorithm: ChecksumAlgorithm): String
-    fun verifyChecksum(file: File, expected: String, algorithm: ChecksumAlgorithm): Boolean
-    fun verifyApkStructure(file: File): Boolean
-    fun verifyApkSignature(context: Context, file: File): Boolean
-}
-```
-
-### 4. Integration in MobileDownloadManager
-```kotlin
-// After successful download:
-if (config.integrity.verifyFileSize) {
-    verifyFileSize(resolution.file, totalBytes)
-}
-if (config.integrity.verifyChecksum && request.expectedChecksum != null) {
-    verifyChecksum(resolution.file, request.expectedChecksum, request.checksumAlgorithm)
-}
-if (config.integrity.verifyApkStructure && isApkFile(resolution.file)) {
-    verifyApkStructure(resolution.file)
-}
-```
-
-## Implementation Priority
-
-1. **High Priority (Critical)**:
-   - ✅ File Size Validation
-   - ✅ Checksum Verification (MD5/SHA256)
-   - ✅ APK Structure Validation (Magic Number + ZIP)
-
-2. **Medium Priority (Important)**:
-   - ⚠️ Content-Type Validation
-   - ⚠️ Incremental Hash (for large files)
-
-3. **Low Priority (Optional)**:
-   - ⚠️ APK Signature Verification
-   - ⚠️ ETag/Content-MD5 from Response Headers
-
-## Usage Example
+**Kotlin**
 
 ```kotlin
-val request = DownloadRequest(
-    url = "https://example.com/app.apk",
-    fileName = "app.apk",
-    expectedChecksum = "a1b2c3d4e5f6...", // SHA256 hash
-    checksumAlgorithm = ChecksumAlgorithm.SHA256
-)
+DownloadForegroundService.configureService(this) {
+    integrityValidationForApk()
+}
 
-val config = DownloadConfig(
-    integrity = IntegrityConfig(
+DownloadForegroundService.configureService(this) {
+    integrityValidation(
         verifyFileSize = true,
         verifyChecksum = true,
         verifyApkStructure = true,
+        verifyContentType = false,
         verifyApkSignature = false
     )
+}
+```
+
+**Java**
+
+```java
+DownloadForegroundService.configureService(this, builder -> {
+    builder.integrityValidationForApk();
+    return kotlin.Unit.INSTANCE;
+});
+
+DownloadForegroundService.configureService(this, builder -> {
+    builder.integrityValidation(true, true, true, false, false);
+    return kotlin.Unit.INSTANCE;
+});
+```
+
+The second call replaces the first. Use one.
+
+| Flag | Default | When it fails |
+|------|---------|----------------|
+| `verifyFileSize` | true | Local length does not match the known total |
+| `verifyChecksum` | true | Hex digest does not match `expectedChecksum` |
+| `verifyApkStructure` | true | `.apk` / `.apks` is not a ZIP that starts with `PK` |
+| `verifyContentType` | false | Response type does not match the expected MIME type. Many servers send a wrong type, so this stays off unless you control the server |
+| `verifyApkSignature` | false | `PackageManager` cannot read a signature. Unsigned packages fail. This is slow |
+
+A failed check deletes the file, clears the checkpoint, and retries from byte zero while `maxAttempts` remains. The installer prompt does not run.
+
+## This section, filled in
+
+**Kotlin**
+
+```kotlin
+DownloadForegroundService.configureService(this) {
+    retryPolicy(maxAttempts = 5, initialDelayMillis = 2_000L, backoffMultiplier = 2f)
+    integrityValidation(
+        verifyFileSize = true,
+        verifyChecksum = true,
+        verifyApkStructure = true,
+        verifyContentType = false,
+        verifyApkSignature = false
+    )
+}
+
+val request = DownloadRequest(
+    url = "https://downloads.example.com/tms/app-release.apk",
+    fileName = "app-release.apk",
+    id = "tms-app-release",
+    expectedChecksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    checksumAlgorithm = ChecksumAlgorithm.SHA256
 )
 ```
+
+**Java**
+
+```java
+DownloadForegroundService.configureService(this, builder -> {
+    builder.retryPolicy(5, 2_000L, 2f);
+    builder.integrityValidation(true, true, true, false, false);
+    return kotlin.Unit.INSTANCE;
+});
+
+DownloadRequest request = new DownloadRequest(
+        "https://downloads.example.com/tms/app-release.apk",
+        "app-release.apk",
+        DownloadDestination.Auto.INSTANCE,
+        "tms-app-release",
+        Collections.emptyMap(),
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        ChecksumAlgorithm.SHA256
+);
+```
+
+Next: [what the structure check looks at](APK_STRUCTURE_VALIDATION.md).
