@@ -117,6 +117,10 @@
   body[data-lang="kotlin"] pre.java,
   body[data-lang="java"] pre.kotlin { display: none; }
   .lang-label { display: none; }
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 760px; margin: 8px 0 18px; }
+  .shots figure { margin: 0; }
+  .shots img { width: 100%; border-radius: 18px; border: 1px solid var(--line); background: #12161c; }
+  .shots figcaption { color: var(--muted); font-size: 13px; margin-top: 6px; }
   body[data-lang="kotlin"] .lang-label.java,
   body[data-lang="java"] .lang-label.kotlin { display: none; }
   @media (max-width: 800px) {
@@ -140,6 +144,8 @@
 </header>
 <div class="layout">
 <nav>
+  <div class="group">Sample</div>
+  <a href="#fetch">Fetch</a>
   <div class="group">In an app</div>
   <a href="#host-activity">Activity</a>
   <a href="#host-fragment">Fragment</a>
@@ -189,6 +195,32 @@
 <main id="top">
   <h1>Step by step</h1>
   <p class="lede">Configure the service once, then enqueue. Optional fields are filled with a real value and the default is named beside them. The host still extracts and installs. The library only downloads.</p>
+
+  <p class="lede">Configure the service once, then enqueue. Optional fields are filled with a real value and the default is named beside them. The host still extracts and installs. The library only downloads.</p>
+
+  <article id="fetch">
+    <h2>Fetch, the sample app</h2>
+    <p>The <code>showcase</code> module is a separate app. It does not change the library. Paste one link or a whole list, then decide when it should start: now, in a few minutes, on a date, on a weekday, or on a repeat. The clock is WorkManager or AlarmManager. Chunks, the notification icon, storage, the installer prompt, and the file checks live on the engine screen.</p>
+    <p>Open the module in Android Studio and run it. The package name is <code>com.miaadrajabi.fetch</code>.</p>
+    <div class="shots">
+      <figure>
+        <img src="screenshots/queue.png" alt="Two downloads waiting for Saturday at 00:33">
+        <figcaption>The queue, after two links were scheduled for the same morning.</figcaption>
+      </figure>
+      <figure>
+        <img src="screenshots/new-download.png" alt="New download screen with two pasted links">
+        <figcaption>Paste several addresses. Each one becomes its own file.</figcaption>
+      </figure>
+      <figure>
+        <img src="screenshots/schedule.png" alt="Date, time, WorkManager, and AlarmManager">
+        <figcaption>Pick a day and a time, then choose WorkManager or AlarmManager.</figcaption>
+      </figure>
+      <figure>
+        <img src="screenshots/engine.png" alt="Storage, clock, installer, and file checks">
+        <figcaption>Where the file goes, the default clock, and what gets checked at the end.</figcaption>
+      </figure>
+    </div>
+  </article>
 
   <article id="host-activity">
     <h2>From an Activity</h2>

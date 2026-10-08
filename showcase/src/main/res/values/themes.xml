@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Fetch" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/copper</item>
+        <item name="colorPrimaryVariant">@color/copperDark</item>
+        <item name="colorOnPrimary">@color/ink</item>
+        <item name="colorSecondary">@color/copper</item>
+        <item name="colorSecondaryVariant">@color/copperDark</item>
+        <item name="colorOnSecondary">@color/ink</item>
+        <item name="colorSurface">@color/panel</item>
+        <item name="colorOnSurface">@color/paper</item>
+        <item name="android:colorBackground">@color/ink</item>
+        <item name="android:statusBarColor">@color/ink</item>
+        <item name="android:navigationBarColor">@color/ink</item>
+        <item name="android:windowBackground">@color/ink</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:textColorPrimary">@color/paper</item>
+        <item name="android:textColorSecondary">@color/muted</item>
+        <item name="textInputStyle">@style/Widget.Fetch.TextInput</item>
+        <item name="materialButtonStyle">@style/Widget.Fetch.Button</item>
+        <item name="checkboxStyle">@style/Widget.Fetch.Check</item>
+        <item name="switchStyle">@style/Widget.Fetch.Switch</item>
+        <item name="chipStyle">@style/Widget.Fetch.Chip</item>
+    </style>
+
+    <style name="Widget.Fetch.TextInput" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/field_stroke</item>
+        <item name="boxBackgroundColor">@color/panel</item>
+        <item name="hintTextColor">@color/copper</item>
+        <item name="android:textColorHint">@color/muted</item>
+    </style>
+
+    <style name="Widget.Fetch.Button" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/copper</item>
+        <item name="android:textColor">@color/ink</item>
+        <item name="cornerRadius">16dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="Widget.Fetch.TextButton" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textColor">@color/copper</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="rippleColor">@color/copperSoft</item>
+    </style>
+
+    <style name="Widget.Fetch.Chip" parent="Widget.MaterialComponents.Chip.Choice">
+        <item name="chipBackgroundColor">@color/chip_bg</item>
+        <item name="android:textColor">@color/chip_text</item>
+        <item name="chipStrokeColor">@color/line</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <style name="Widget.Fetch.Check" parent="Widget.MaterialComponents.CompoundButton.CheckBox">
+        <item name="buttonTint">@color/copper</item>
+        <item name="android:textColor">@color/paper</item>
+    </style>
+
+    <style name="Widget.Fetch.Switch" parent="Widget.MaterialComponents.CompoundButton.Switch">
+        <item name="thumbTint">@color/switch_thumb</item>
+        <item name="trackTint">@color/switch_track</item>
+        <item name="android:textColor">@color/paper</item>
+    </style>
+
+    <style name="Text.Fetch.Title" parent="@android:style/TextAppearance">
+        <item name="android:textColor">@color/paper</item>
+        <item name="android:textSize">32sp</item>
+        <item name="android:letterSpacing">-0.03</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="Text.Fetch.Section" parent="@android:style/TextAppearance">
+        <item name="android:textColor">@color/copper</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="Text.Fetch.Body" parent="@android:style/TextAppearance">
+        <item name="android:textColor">@color/muted</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineSpacingExtra">3dp</item>
+    </style>
+</resources>

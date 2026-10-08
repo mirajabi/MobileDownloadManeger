@@ -47,6 +47,19 @@ The guide is numbered. Every step has a Kotlin sample and a Java sample, and eve
 
 The switch runs on GitHub Pages. One control at the top shows either Kotlin or Java for every step. GitHub's file view only shows the HTML source, so the page above is the one to open.
 
+## Try it in Fetch
+
+`showcase` is a separate app that sits on this library. Paste one link or several, pick a time, and turn the engine options on from the screen. The library module is unchanged.
+
+Run the `showcase` module from Android Studio. The screens are also at the top of the [guide](https://mirajabi.github.io/MobileDownloadManeger/#fetch).
+
+<p align="center">
+  <img src="docs/screenshots/queue.png" width="180" alt="Queue">
+  <img src="docs/screenshots/new-download.png" width="180" alt="New download">
+  <img src="docs/screenshots/schedule.png" width="180" alt="Schedule">
+  <img src="docs/screenshots/engine.png" width="180" alt="Engine">
+</p>
+
 ## What a download does
 
 - A request can keep a byte window. `rangeStart` and `rangeEndInclusive` are both inclusive. Leave them unset to take the whole file. The saved file contains only that window, and the checksum covers those bytes.

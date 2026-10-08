@@ -23,7 +23,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Assemble Debug Artifacts
-        run: ./gradlew :downloader:assembleDebug :app:assembleDebug --stacktrace
+        run: ./gradlew :downloader:assembleDebug :app:assembleDebug :showcase:assembleDebug --stacktrace
 
       - name: Run Unit Tests
         run: ./gradlew :downloader:testDebugUnitTest --stacktrace

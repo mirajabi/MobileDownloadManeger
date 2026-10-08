@@ -1,0 +1,501 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ink"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="20dp">
+
+        <ImageButton
+            android:id="@+id/close"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Close"
+            android:src="@drawable/ic_close" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="Engine"
+            android:textColor="@color/paper"
+            android:textSize="20sp" />
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/Text.Fetch.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="These settings belong to the download service. The next start picks them up. A transfer that is already running keeps the settings it started with." />
+
+            <TextView
+                style="@style/Text.Fetch.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="Connections" />
+
+            <TextView
+                android:id="@+id/chunkValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textColor="@color/paper"
+                android:textSize="16sp" />
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/chunks"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:stepSize="1"
+                android:value="4"
+                android:valueFrom="1"
+                android:valueTo="8"
+                app:haloColor="@color/copperSoft"
+                app:labelBehavior="gone"
+                app:thumbColor="@color/copper"
+                app:trackColorActive="@color/copper"
+                app:trackColorInactive="@color/track" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/parallel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Run those connections together" />
+
+            <TextView
+                android:id="@+id/minChunkValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/paper"
+                android:textSize="16sp" />
+
+            <TextView
+                style="@style/Text.Fetch.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Smallest piece. The library will not go under 64 KB." />
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/minChunk"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:stepSize="64"
+                android:value="256"
+                android:valueFrom="64"
+                android:valueTo="2048"
+                app:haloColor="@color/copperSoft"
+                app:labelBehavior="gone"
+                app:thumbColor="@color/copper"
+                app:trackColorActive="@color/copper"
+                app:trackColorInactive="@color/track" />
+
+            <TextView
+                style="@style/Text.Fetch.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="If the network drops" />
+
+            <TextView
+                android:id="@+id/attemptsValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textColor="@color/paper"
+                android:textSize="16sp" />
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/attempts"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:stepSize="1"
+                android:value="5"
+                android:valueFrom="1"
+                android:valueTo="8"
+                app:haloColor="@color/copperSoft"
+                app:labelBehavior="gone"
+                app:thumbColor="@color/copper"
+                app:trackColorActive="@color/copper"
+                app:trackColorInactive="@color/track" />
+
+            <TextView
+                android:id="@+id/delayValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/paper"
+                android:textSize="16sp" />
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/delay"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:stepSize="1"
+                android:value="3"
+                android:valueFrom="1"
+                android:valueTo="30"
+                app:haloColor="@color/copperSoft"
+                app:labelBehavior="gone"
+                app:thumbColor="@color/copper"
+                app:trackColorActive="@color/copper"
+                app:trackColorInactive="@color/track" />
+
+            <TextView
+                android:id="@+id/backoffValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/paper"
+                android:textSize="16sp" />
+
+            <TextView
+                style="@style/Text.Fetch.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Each later try waits this many times longer than the one before it." />
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/backoff"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:stepSize="1"
+                android:value="20"
+                android:valueFrom="10"
+                android:valueTo="30"
+                app:haloColor="@color/copperSoft"
+                app:labelBehavior="gone"
+                app:thumbColor="@color/copper"
+                app:trackColorActive="@color/copper"
+                app:trackColorInactive="@color/track" />
+
+            <TextView
+                style="@style/Text.Fetch.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Notification" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Fetch.TextInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:hint="Channel name">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/channel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:textColor="@color/paper" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                style="@style/Text.Fetch.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="The small icon in the status bar. Pause, Resume, and Stop sit on the notification itself." />
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/iconGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/iconArrow"
+                    style="@style/Widget.Fetch.Chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Arrow"
+                    app:chipIcon="@drawable/ic_stat_arrow"
+                    app:chipIconTint="@color/chip_text" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/iconTray"
+                    style="@style/Widget.Fetch.Chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tray"
+                    app:chipIcon="@drawable/ic_stat_tray"
+                    app:chipIconTint="@color/chip_text" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/iconBolt"
+                    style="@style/Widget.Fetch.Chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Bolt"
+                    app:chipIcon="@drawable/ic_stat_bolt"
+                    app:chipIconTint="@color/chip_text" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/iconLayers"
+                    style="@style/Widget.Fetch.Chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Layers"
+                    app:chipIcon="@drawable/ic_stat_layers"
+                    app:chipIconTint="@color/chip_text" />
+            </com.google.android.material.chip.ChipGroup>
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/showProgress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Show the percentage" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/persistent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Keep the notification while it runs" />
+
+            <TextView
+                style="@style/Text.Fetch.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:text="Where files go" />
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/destinationGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/destAuto"
+                    style="@style/Widget.Fetch.Chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Let the library choose" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/destScoped"
+                    style="@style/Widget.Fetch.Chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="App folder" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/destCustom"
+                    style="@style/Widget.Fetch.Chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Absolute path" />
+            </com.google.android.material.chip.ChipGroup>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/folderLayout"
+                style="@style/Widget.Fetch.TextInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="Folder inside app storage"
+                android:visibility="gone">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/folder"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:textColor="@color/paper" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/publicDownloads"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Prefer the public Downloads folder" />
+
+            <TextView
+                style="@style/Text.Fetch.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="That preference applies when the library is choosing the folder. If the public folder is not writable, it falls back." />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/overwrite"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Replace a file that already has this name" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/checkSpace"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Check free space first" />
+
+            <TextView
+                android:id="@+id/freeValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/paper"
+                android:textSize="16sp" />
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/freeSpace"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:stepSize="1"
+                android:value="10"
+                android:valueFrom="1"
+                android:valueTo="512"
+                app:haloColor="@color/copperSoft"
+                app:labelBehavior="gone"
+                app:thumbColor="@color/copper"
+                app:trackColorActive="@color/copper"
+                app:trackColorInactive="@color/track" />
+
+            <TextView
+                android:id="@+id/landing"
+                style="@style/Text.Fetch.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                style="@style/Text.Fetch.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:text="Default clock" />
+
+            <TextView
+                style="@style/Text.Fetch.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="New schedules start on this clock. You can still switch it on the download itself. A repeat always uses WorkManager." />
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/clockDefaultGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/defaultWork"
+                    style="@style/Widget.Fetch.Chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="WorkManager" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/defaultAlarm"
+                    style="@style/Widget.Fetch.Chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="AlarmManager" />
+            </com.google.android.material.chip.ChipGroup>
+
+            <TextView
+                style="@style/Text.Fetch.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:text="After the file is saved" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/promptInstaller"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Offer the system installer" />
+
+            <TextView
+                style="@style/Text.Fetch.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Leave this off when your own app installs the package. A failed checksum never opens the installer." />
+
+            <TextView
+                style="@style/Text.Fetch.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:text="Checking the file" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/verifySize"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Size matches what the server promised" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/verifyChecksum"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Checksum, when you provided one" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/verifyApk"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="APK structure, for .apk and .apks" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/verifyType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Content-Type header" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/verifySignature"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="APK signature can be read" />
+
+            <TextView
+                style="@style/Text.Fetch.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Content-Type is off by default because many servers send the wrong one. Signature only checks that a signature exists. It does not decide who you trust." />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/save"
+        style="@style/Widget.Fetch.Button"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_margin="20dp"
+        android:text="Save engine" />
+</LinearLayout>

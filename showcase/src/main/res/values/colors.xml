@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ink">#FF12161C</color>
+    <color name="inkDeep">#FF0C0F13</color>
+    <color name="panel">#FF1C232D</color>
+    <color name="panelHigh">#FF26303C</color>
+    <color name="paper">#FFF6F3EC</color>
+    <color name="muted">#FF9AA4B0</color>
+    <color name="line">#FF33404E</color>
+    <color name="copper">#FFE2A15A</color>
+    <color name="copperDark">#FFB67934</color>
+    <color name="copperSoft">#33E2A15A</color>
+    <color name="amber">#FFE6C07B</color>
+    <color name="green">#FF8FCBB0</color>
+    <color name="rose">#FFE08B93</color>
+    <color name="track">#FF2A3441</color>
+</resources>
