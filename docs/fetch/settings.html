@@ -5,17 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Settings · Fetch</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
-<header>
-  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
-  <div class="top-links">
+<header class="topbar">
+  <a class="brand" href="index.html">
+    <svg class="mark" viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="12" fill="#1c1b1f"/><circle cx="18" cy="18" r="7" fill="none" stroke="#d0bcff" stroke-width="1.6"/><circle cx="18" cy="11" r="2.2" fill="#e8def8"/></svg>
+    <span>Fetch<small>Source documentation</small></span>
+  </a>
+  <nav class="top-links" aria-label="Primary">
     <a href="index.html">Sources</a>
-    <a href="../index.html">Library guide</a>
-  </div>
+    <a href="../index.html">Install guide</a>
+  </nav>
 </header>
 <div class="layout">
 <nav>
@@ -161,6 +164,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
-<script>hljs.highlightAll();</script>
+<script src="fetch.js"></script>
 </body>
 </html>

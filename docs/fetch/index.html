@@ -3,19 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fetch sources · Fetch</title>
+<title>Fetch documentation · Sources</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
-<header>
-  <a class="brand" href="index.html">Fetch<small>Source beside the explanation</small></a>
-  <div class="top-links">
+<header class="topbar">
+  <a class="brand" href="index.html">
+    <svg class="mark" viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="12" fill="#1c1b1f"/><circle cx="18" cy="18" r="7" fill="none" stroke="#d0bcff" stroke-width="1.6"/><circle cx="18" cy="11" r="2.2" fill="#e8def8"/></svg>
+    <span>Fetch<small>Source documentation</small></span>
+  </a>
+  <nav class="top-links" aria-label="Primary">
     <a href="index.html">Sources</a>
-    <a href="../index.html">Library guide</a>
-  </div>
+    <a href="../index.html">Install guide</a>
+  </nav>
 </header>
 <div class="layout">
 <nav>
@@ -47,33 +50,36 @@
 <a href="look.html">Theme and motion</a>
 </nav>
 <main>
-<p class="kicker">showcase · com.miaadrajabi.fetch</p>
-<h1>Fetch, one source at a time</h1>
-<p class="lede">Each file has its own page. The explanation sits beside the lines it describes. The library reference, with the Kotlin and Java switch, stays on the <a href="../index.html">main guide</a>.</p>
-<div class="shots">
-  <figure><img src="../screenshots/downloading.png" alt="Queue while a file downloads"><figcaption>Queue</figcaption></figure>
-  <figure><img src="../screenshots/notification.png" alt="Foreground notification"><figcaption>Notification</figcaption></figure>
-  <figure><img src="../screenshots/engine.png" alt="Engine settings"><figcaption>Engine</figcaption></figure>
+<p class="kicker">Fetch documentation</p>
+<h1>The sample, one file at a time.</h1>
+<p class="lede">Each source file has its own page. The note sits beside the lines it describes. The install path, with a Kotlin and Java switch on every sample, is the <a href="../index.html">install guide</a>.</p>
+<div class="stage">
+  <figure class="phone"><div class="bezel"><img src="../screenshots/downloading.png" alt="Queue while a file downloads"></div><figcaption>Queue</figcaption></figure>
+  <figure class="phone"><div class="bezel"><img src="../screenshots/new-download.png" alt="New download"></div><figcaption>New download</figcaption></figure>
+  <figure class="phone"><div class="bezel"><img src="../screenshots/schedule.png" alt="Schedule"></div><figcaption>Schedule</figcaption></figure>
+  <figure class="phone"><div class="bezel"><img src="../screenshots/engine.png" alt="Engine settings"></div><figcaption>Engine</figcaption></figure>
+  <figure class="phone"><div class="bezel"><img src="../screenshots/notification.png" alt="Notification"></div><figcaption>Notification</figcaption></figure>
+  <figure class="phone"><div class="bezel"><img src="../screenshots/queue.png" alt="Scheduled downloads"></div><figcaption>Waiting</figcaption></figure>
 </div>
 <div class="catalog">
-<a href="manifest.html"><strong>Manifest</strong><span>What the system may start</span><em>AndroidManifest.xml</em></a>
+<a href="manifest.html"><strong>Manifest</strong><span>What the system is allowed to start</span><em>AndroidManifest.xml</em></a>
 <a href="fetch-app.html"><strong>FetchApp.kt</strong><span>Load the queue and configure the service</span><em>FetchApp.kt</em></a>
-<a href="engine.html"><strong>EngineSettings.kt</strong><span>Every switch, saved</span><em>EngineSettings.kt</em></a>
-<a href="desk.html"><strong>DownloadDesk.kt</strong><span>The only library calls</span><em>DownloadDesk.kt</em></a>
+<a href="engine.html"><strong>EngineSettings.kt</strong><span>Every switch, saved on the device</span><em>EngineSettings.kt</em></a>
+<a href="desk.html"><strong>DownloadDesk.kt</strong><span>The only calls into the library</span><em>DownloadDesk.kt</em></a>
 <a href="links.html"><strong>LinkParser.kt</strong><span>Paste and share become URLs</span><em>LinkParser.kt</em></a>
 <a href="composer.html"><strong>ComposerActivity.kt</strong><span>New download, range, checksum, clock</span><em>ComposerActivity.kt</em></a>
 <a href="queue.html"><strong>QueueActivity.kt</strong><span>Pause, resume, copy, move, rename</span><em>QueueActivity.kt</em></a>
 <a href="adapter.html"><strong>QueueAdapter.kt</strong><span>Which button a row shows</span><em>QueueAdapter.kt</em></a>
 <a href="transfer.html"><strong>Transfer.kt</strong><span>The row object</span><em>Transfer.kt</em></a>
 <a href="store.html"><strong>TransferStore.kt</strong><span>Listener callbacks become rows</span><em>TransferStore.kt</em></a>
-<a href="saved-files.html"><strong>SavedFiles.kt</strong><span>Copy bytes and decode the new path</span><em>SavedFiles.kt</em></a>
+<a href="saved-files.html"><strong>SavedFiles.kt</strong><span>Copy bytes and read the new path</span><em>SavedFiles.kt</em></a>
 <a href="folder.html"><strong>FolderActivity.kt</strong><span>List a directory Fetch can see</span><em>FolderActivity.kt</em></a>
 <a href="settings.html"><strong>SettingsActivity.kt</strong><span>Save the engine, mail, GitHub</span><em>SettingsActivity.kt</em></a>
 <a href="foreground.html"><strong>FetchForeground.kt</strong><span>Is a Fetch screen in front?</span><em>FetchForeground.kt</em></a>
 <a href="clip-offer.html"><strong>ClipOffer.kt</strong><span>Offer a copied link once</span><em>ClipOffer.kt</em></a>
 <a href="clip-watch.html"><strong>ClipWatchService.kt</strong><span>Dialog in front, notification behind</span><em>ClipWatchService.kt</em></a>
 <a href="offer.html"><strong>OfferActivity.kt</strong><span>Start this download?</span><em>OfferActivity.kt</em></a>
-<a href="widget.html"><strong>FetchWidget.kt</strong><span>Home-screen glance</span><em>FetchWidget.kt</em></a>
+<a href="widget.html"><strong>FetchWidget.kt</strong><span>A glance on the home screen</span><em>FetchWidget.kt</em></a>
 <a href="look.html"><strong>Theme and motion</strong><span>Colors and the list animation</span><em>colors.xml</em></a>
 </div>
 <div class="pager"><span></span><a href="manifest.html" style="text-align:right"><span>Next source</span>Manifest</a></div>
@@ -82,6 +88,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
-<script>hljs.highlightAll();</script>
+<script src="fetch.js"></script>
 </body>
 </html>

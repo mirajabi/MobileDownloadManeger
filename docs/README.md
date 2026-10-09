@@ -1,8 +1,8 @@
-# Guide
+# SDK chapters
 
-Each step shows Kotlin and Java. Each page ends with that page filled in, including every optional value.
+These Markdown files are the downloader SDK, step by step. The same path as a designed page is the [SDK guide](https://mirajabi.github.io/MobileDownloadManeger/#ch-call). Install starts at [setup](01-configuration.md), or in the [install guide](https://mirajabi.github.io/MobileDownloadManeger/#ch-setup). Fetch, the sample app, is the [app guide](https://mirajabi.github.io/MobileDownloadManeger/fetch/) and the [Fetch pages](fetch/README.md).
 
-Open the [guide](https://mirajabi.github.io/MobileDownloadManeger/) to switch the library reference between Kotlin and Java. The [Fetch source guide](https://mirajabi.github.io/MobileDownloadManeger/fetch/) is separate: one page per file, with the explanation beside the code.
+Each step has a Kotlin sample and a Java sample. Each page ends with that page filled in, including the optional values.
 
 | Step | Page | What you fill in |
 |------|------|------------------|

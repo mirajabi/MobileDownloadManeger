@@ -3,262 +3,165 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mobile Download Manager</title>
-<style>
-  :root {
-    --bg: #f4f1ea;
-    --paper: #fffcf7;
-    --ink: #1d1b16;
-    --muted: #5e584e;
-    --line: #e2d9cc;
-    --accent: #1f4d3a;
-    --accent-2: #e7f2ec;
-    --code: #1a1916;
-    --code-ink: #f3efe6;
-  }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    margin: 0;
-    color: var(--ink);
-    background:
-      radial-gradient(1200px 420px at 10% -10%, #efe6d4 0%, transparent 55%),
-      var(--bg);
-    font: 17px/1.65 "Source Sans 3", "Segoe UI", system-ui, sans-serif;
-  }
-  header {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 28px;
-    background: rgba(244, 241, 234, 0.94);
-    border-bottom: 1px solid var(--line);
-    backdrop-filter: blur(8px);
-  }
-  header a { color: inherit; text-decoration: none; }
-  .brand { font-weight: 650; letter-spacing: -0.02em; }
-  .brand small { display: block; font-weight: 450; color: var(--muted); letter-spacing: 0; }
-  .switch { display: flex; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); }
-  .switch button {
-    border: 0;
-    background: transparent;
-    color: var(--muted);
-    border-radius: 999px;
-    padding: 6px 14px;
-    font: inherit;
-    cursor: pointer;
-  }
-  .switch button[aria-pressed="true"] { background: var(--accent); color: white; }
-  .layout { display: grid; grid-template-columns: 230px 1fr; max-width: 1080px; margin: 0 auto; }
-  nav { position: sticky; top: 74px; align-self: start; padding: 22px 8px 40px 22px; max-height: calc(100vh - 74px); overflow: auto; }
-  nav a { display: block; color: var(--muted); text-decoration: none; font-size: 13px; padding: 4px 0; }
-  nav a:hover { color: var(--ink); }
-  nav .group { margin: 14px 0 4px; color: var(--ink); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
-  main { padding: 28px 36px 80px 20px; }
-  article {
-    background: var(--paper);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 22px 24px 8px;
-    margin: 0 0 16px;
-  }
-  h1 { font-family: Fraunces, Georgia, serif; font-size: 46px; font-weight: 560; line-height: 1.08; letter-spacing: -0.03em; margin: 0 0 12px; }
-  .lede { color: var(--muted); max-width: 66ch; margin-bottom: 22px; font-size: 18px; }
-  h2 { font-family: Fraunces, Georgia, serif; font-size: 28px; font-weight: 560; margin: 0 0 10px; letter-spacing: -0.02em; }
-  h3 { font-size: 16px; margin: 18px 0 6px; letter-spacing: -0.01em; }
-  .kicker { margin: 0 0 8px; color: var(--accent); font-size: 12px; font-weight: 650; letter-spacing: 0.14em; text-transform: uppercase; }
-  .hero { margin: 0 0 22px; }
-  .map { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0 8px; }
-  .map a {
-    display: block;
-    padding: 12px 14px;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    background: var(--paper);
-    color: inherit;
-    text-decoration: none;
-  }
-  .map a strong { display: block; font-size: 15px; }
-  .map a span { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
-  .map a:hover { border-color: var(--accent); }
-  .callout {
-    margin: 0 0 16px;
-    padding: 12px 14px;
-    border-left: 3px solid var(--accent);
-    background: var(--accent-2);
-    border-radius: 0 10px 10px 0;
-    max-width: 72ch;
-  }
-  .callout p { margin: 0; }
-  .path {
-    display: inline-block;
-    margin: 0 0 10px;
-    padding: 3px 8px;
-    border-radius: 999px;
-    background: #efe8dc;
-    color: var(--ink);
-    font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
-  }
-  ol.walk { margin: 0 0 16px; padding-left: 1.2em; max-width: 72ch; }
-  ol.walk li { margin: 0 0 8px; }
-  pre.sample::after { content: "Fetch"; }
-  h2 span {
-    display: inline-block;
-    min-width: 1.6em;
-    margin-right: 8px;
-    color: var(--accent);
-  }
-  p { max-width: 72ch; }
-  table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 8px 0 16px; }
-  th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-  th { color: var(--muted); font-weight: 600; }
-  pre {
-    position: relative;
-    margin: 0 0 16px;
-    background: #282c34;
-    border: 1px solid #2d2d2d;
-    border-radius: 10px;
-    padding: 34px 0 0;
-    overflow: hidden;
-    box-shadow: 0 10px 28px rgba(30, 24, 16, 0.08);
-  }
-  pre::before {
-    content: "";
-    position: absolute;
-    top: 14px;
-    left: 14px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #ff5f57;
-    box-shadow: 16px 0 0 #febc2e, 32px 0 0 #28c840;
-  }
-  pre::after {
-    content: "Kotlin";
-    position: absolute;
-    top: 8px;
-    left: 62px;
-    color: #9a9488;
-    font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
-  }
-  pre.java::after { content: "Java"; }
-  pre code {
-    display: block;
-    padding: 8px 16px 16px;
-    overflow: auto;
-    font: 13px/1.55 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-    background: transparent !important;
-  }
-  body[data-lang="kotlin"] pre.java,
-  body[data-lang="java"] pre.kotlin { display: none; }
-  .lang-label { display: none; }
-  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 760px; margin: 8px 0 18px; }
-  .shots figure { margin: 0; }
-  .shots img { width: 100%; border-radius: 18px; border: 1px solid var(--line); background: #12161c; }
-  .shots figcaption { color: var(--muted); font-size: 13px; margin-top: 6px; }
-  body[data-lang="kotlin"] .lang-label.java,
-  body[data-lang="java"] .lang-label.kotlin { display: none; }
-  @media (max-width: 800px) {
-    .layout { grid-template-columns: 1fr; }
-    nav { position: static; max-height: none; display: flex; gap: 12px; overflow: auto; padding: 12px 16px; }
-    nav .group { display: none; }
-    nav a { white-space: nowrap; }
-    main { padding: 12px 16px 48px; }
-    header { padding: 12px 16px; }
-    .map, .shots { grid-template-columns: 1fr; }
-    h1 { font-size: 34px; }
-  }
-</style>
+<title>Fetch documentation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,640&family=Source+Sans+3:wght@400;600;650&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,640&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="guide.css">
 </head>
-<body data-lang="kotlin">
-<header>
-  <a class="brand" href="#top">Mobile Download Manager<small>v1.3.7 · library reference</small></a>
-  <div class="switch" role="group" aria-label="Language">
-    <button type="button" id="kotlin" aria-pressed="true">Kotlin</button>
-    <button type="button" id="java" aria-pressed="false">Java</button>
+<body>
+<a class="brand" href="#top" style="position:absolute;left:-999px">Skip to content</a>
+<header class="topbar">
+  <a class="brand" href="#top">
+    <svg class="mark" viewBox="0 0 36 36" aria-hidden="true">
+      <rect width="36" height="36" rx="12" fill="#1b2130"/>
+      <circle cx="18" cy="18" r="7" fill="none" stroke="#c8c2ff" stroke-width="1.6"/>
+      <circle cx="18" cy="11" r="2.2" fill="#8ef0c6"/>
+      <path d="M18 18 L25 22" stroke="#8b82ff" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    <span>Fetch<small>Documentation · v1.3.7</small></span>
+  </a>
+  <nav class="top-links" aria-label="Primary">
+    <a href="#ch-setup">Install</a>
+    <a href="#ch-call">In an app</a>
+    <a href="fetch/index.html">Source pages</a>
+  </nav>
+  <div class="grow"></div>
+  <div class="lang-global" role="group" aria-label="Set every sample">
+    <button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button>
+    <button type="button" data-pick="java" aria-pressed="false">Java</button>
   </div>
 </header>
-<div class="layout">
-<nav>
-  <div class="group">Sample</div>
-  <a href="fetch/index.html">Fetch sources</a>
-  <div class="group">Library</div>
-  <a href="#library">Reference</a>
-  <div class="group">In an app</div>
-  <a href="#host-activity">Activity</a>
-  <a href="#host-fragment">Fragment</a>
-  <a href="#host-worker">Worker</a>
-  <a href="#host-service">Your service</a>
-  <a href="#host-full">Every feature</a>
-  <div class="group">Setup</div>
-  <a href="#s1">1. Dependency</a>
-  <a href="#s2">2. First call</a>
-  <a href="#s3">3. Every option</a>
-  <a href="#s4">4. Filled setup</a>
+
+<div class="shell">
+<nav class="side" aria-label="Chapters">
+  <input class="search" id="find" type="search" placeholder="Find a step" aria-label="Find a step">
+  <div class="group">Start</div>
+  <a href="#ch-call"><span class="dot"></span>How a call looks</a>
+  <a href="#host-activity"><span class="dot"></span>Activity</a>
+  <a href="#host-fragment"><span class="dot"></span>Fragment</a>
+  <a href="#host-worker"><span class="dot"></span>Worker</a>
+  <a href="#host-service"><span class="dot"></span>Your service</a>
+  <a href="#host-full"><span class="dot"></span>Every feature</a>
+  <div class="group">Install</div>
+  <a href="#s1"><span class="dot"></span>1. Dependency</a>
+  <a href="#s2"><span class="dot"></span>2. First call</a>
+  <a href="#s3"><span class="dot"></span>3. Every option</a>
+  <a href="#s4"><span class="dot"></span>4. Filled setup</a>
   <div class="group">Storage</div>
-  <a href="#s5">5. Destination</a>
-  <a href="#s6">6. Space and overwrite</a>
-  <a href="#s7">7. Filled storage</a>
+  <a href="#s5"><span class="dot"></span>5. Destination</a>
+  <a href="#s6"><span class="dot"></span>6. Space and overwrite</a>
+  <a href="#s7"><span class="dot"></span>7. Filled storage</a>
   <div class="group">Download</div>
-  <a href="#s8">8. Request</a>
-  <a href="#s9">9. Enqueue</a>
-  <a href="#s10">10. Filled enqueue</a>
+  <a href="#s8"><span class="dot"></span>8. Request</a>
+  <a href="#s9"><span class="dot"></span>9. Enqueue</a>
+  <a href="#s10"><span class="dot"></span>10. Filled enqueue</a>
   <div class="group">Notification</div>
-  <a href="#s11">11. Channel and icon</a>
-  <a href="#s12">12. Filled notification</a>
+  <a href="#s11"><span class="dot"></span>11. Channel and icon</a>
+  <a href="#s12"><span class="dot"></span>12. Filled notification</a>
   <div class="group">Schedule</div>
-  <a href="#s13">13. Weekday</a>
-  <a href="#s14">14. Date</a>
-  <a href="#s15">15. Periodic</a>
-  <a href="#s16">16. Filled schedule</a>
+  <a href="#s13"><span class="dot"></span>13. Weekday</a>
+  <a href="#s14"><span class="dot"></span>14. Date</a>
+  <a href="#s15"><span class="dot"></span>15. Periodic</a>
+  <a href="#s16"><span class="dot"></span>16. Filled schedule</a>
   <div class="group">Control</div>
-  <a href="#s17">17. Pause</a>
-  <a href="#s18">18. Resume and stop</a>
-  <a href="#s19">19. Filled controls</a>
+  <a href="#s17"><span class="dot"></span>17. Pause</a>
+  <a href="#s18"><span class="dot"></span>18. Resume and stop</a>
+  <a href="#s19"><span class="dot"></span>19. Filled controls</a>
   <div class="group">Installer</div>
-  <a href="#s20">20. Prompt</a>
-  <a href="#s21">21. Filled installer</a>
-  <div class="group">Behavior</div>
-  <a href="#s22">22. Saved config</a>
-  <a href="#s23">23. Reboot</a>
-  <a href="#s24">24. Range and checksum</a>
-  <a href="#s25">25. One writer</a>
-  <a href="#s26">26. Integrity flags</a>
-  <a href="#s27">27. APK structure</a>
-  <a href="#s28">28. Signature</a>
-  <a href="#s29">29. Checksum shape</a>
-  <a href="#s30">30. Retry</a>
-  <a href="#s31">31. Outcomes</a>
+  <a href="#s20"><span class="dot"></span>20. Prompt</a>
+  <a href="#s21"><span class="dot"></span>21. Filled installer</a>
+  <div class="group">After the download</div>
+  <a href="#s22"><span class="dot"></span>22. Saved config</a>
+  <a href="#s23"><span class="dot"></span>23. Reboot</a>
+  <a href="#s24"><span class="dot"></span>24. Range and checksum</a>
+  <a href="#s25"><span class="dot"></span>25. One writer</a>
+  <a href="#s26"><span class="dot"></span>26. Integrity flags</a>
+  <a href="#s27"><span class="dot"></span>27. APK structure</a>
+  <a href="#s28"><span class="dot"></span>28. Signature</a>
+  <a href="#s29"><span class="dot"></span>29. Checksum shape</a>
+  <a href="#s30"><span class="dot"></span>30. Retry</a>
+  <a href="#s31"><span class="dot"></span>31. Outcomes</a>
 </nav>
+
 <main id="top">
-  <section class="hero">
-    <p class="kicker">Library</p>
-    <h1>Step by step</h1>
-    <p class="lede">Configure the service once, then enqueue. Optional fields are filled with a real value and the default is named beside them. The host still extracts and installs. The library only downloads. The switch above shows every sample in Kotlin or in Java.</p>
-    <div class="map">
-      <a href="fetch/index.html"><strong>Fetch, source by source</strong><span>Each file of the sample app has its own page. The explanation sits beside the code.</span></a>
-      <a href="#host-activity"><strong>Call it from an app</strong><span>Activity, fragment, worker, and a background service.</span></a>
+  <section class="hero reveal">
+    <svg class="orbit" viewBox="0 0 148 148" aria-hidden="true">
+      <circle cx="74" cy="74" r="46" fill="none" stroke="#d9d6f5" stroke-width="1"/>
+      <g class="ring">
+        <circle cx="74" cy="28" r="6" fill="#5b4bff"/>
+        <circle cx="120" cy="74" r="4" fill="#0f9f6e"/>
+        <circle cx="40" cy="108" r="3" fill="#f0b429"/>
+      </g>
+      <rect x="62" y="62" width="24" height="28" rx="4" fill="#fff" stroke="#1b2130"/>
+      <path d="M68 74h12M68 80h8" stroke="#5b4bff" stroke-width="1.4"/>
+    </svg>
+    <p class="kicker">Fetch documentation</p>
+    <h1>Install it, then start a download.</h1>
+    <p class="lede">This is the install path for Fetch, and for any app that downloads with the same library. Work through the chapters in order. Each code sample can show Kotlin or Java on its own, and the switch at the top sets every sample at once.</p>
+    <div class="cards">
+      <article><span class="n">1</span><strong>Add the library</strong><span>JitPack, tag v1.3.7. Sync, and the dependency is on the classpath.</span></article>
+      <article><span class="n">2</span><strong>Configure once</strong><span>Write the service settings before the first download. Do this from Application, or from the first screen.</span></article>
+      <article><span class="n">3</span><strong>Enqueue a file</strong><span>The library saves the bytes. Your app still extracts the archive and installs the package.</span></article>
+    </div>
+    <div class="trail">
+      <svg class="seal" viewBox="0 0 54 54" aria-hidden="true">
+        <circle cx="27" cy="27" r="24" fill="#efedff" stroke="#5b4bff" stroke-width="1.5"/>
+        <path d="M18 28 l6 6 12-14" fill="none" stroke="#5b4bff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <p><strong>Your path through the guide</strong><span id="seen-count">0 of 36 steps along the path</span></p>
+        <div class="bar" aria-hidden="true"><i></i></div>
+        <div class="chapters">
+          <a href="#ch-call">Calls</a>
+          <a href="#ch-setup">Install</a>
+          <a href="#ch-storage">Storage</a>
+          <a href="#ch-download">Download</a>
+          <a href="#ch-notify">Notification</a>
+          <a href="#ch-schedule">Schedule</a>
+          <a href="#ch-control">Control</a>
+          <a href="#ch-install">Installer</a>
+          <a href="#ch-behavior">After</a>
+        </div>
+      </div>
     </div>
   </section>
 
-  <article id="library">
-    <p class="kicker">Library reference</p>
-    <h2>Calls you can paste</h2>
-    <p>The sample app's source is on its <a href="fetch/index.html">own pages</a>. From here down, each step is the library call in Kotlin and in Java.</p>
-  </article>
+  <div class="callout reveal">
+    <p>Fetch keeps the screen, the queue, and the clipboard offer. The library only moves bytes. Leave the installer prompt off when your own code installs the package.</p>
+  </div>
 
-  <article id="host-activity">
-    <h2>From an Activity</h2>
-    <p>Call <code>configureService</code> once, usually from the Activity that owns the screen, or from <code>Application</code>. After that the Activity only builds a request and listens. The byte window is part of the request. Parallel connections are part of the saved config, through <code>chunkCount</code>.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">class DownloadActivity : AppCompatActivity() {
+  <div class="stage reveal" aria-label="Fetch screens">
+    <figure class="phone"><div class="bezel"><img src="screenshots/downloading.png" alt="Queue while a file downloads"></div><figcaption>Queue</figcaption></figure>
+    <figure class="phone"><div class="bezel"><img src="screenshots/new-download.png" alt="New download screen"></div><figcaption>New download</figcaption></figure>
+    <figure class="phone"><div class="bezel"><img src="screenshots/schedule.png" alt="Schedule a download"></div><figcaption>Schedule</figcaption></figure>
+    <figure class="phone"><div class="bezel"><img src="screenshots/engine.png" alt="Engine settings"></div><figcaption>Engine</figcaption></figure>
+    <figure class="phone"><div class="bezel"><img src="screenshots/notification.png" alt="Foreground notification"></div><figcaption>Notification</figcaption></figure>
+    <figure class="phone"><div class="bezel"><img src="screenshots/queue.png" alt="Scheduled rows"></div><figcaption>Waiting</figcaption></figure>
+  </div>
+
+  <section class="chapter" id="ch-call">
+    <header class="chapter-head reveal">
+      <p class="kicker">Chapter 1</p>
+      <h2>Where the call lives</h2>
+      <p>The same request works from an Activity, a Fragment, a Worker, or a service you already run. Configure the library once. After that, enqueue and listen.</p>
+      <svg class="glyph" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="22" fill="#efedff"/><path d="M28 36h16M36 28v16" stroke="#5b4bff" stroke-width="2" stroke-linecap="round"/></svg>
+    </header>
+
+    <article class="step" id="library">
+      <h3>Calls you can paste</h3>
+      <p>The Fetch source, file by file, lives on its <a href="fetch/index.html">own pages</a>. From here down, each step is a library call. Open a sample and pick Kotlin or Java on that sample.</p>
+    </article>
+
+    <article class="step" id="host-activity">
+      <h3><span class="badge">A</span>From an Activity</h3>
+      <p>Call <code>configureService</code> once, usually from the Activity that owns the screen, or from <code>Application</code>. After that the Activity only builds a request and listens. The byte window belongs on the request. Parallel connections belong on the saved config, through <code>chunkCount</code>.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Activity sample language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">class DownloadActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -292,15 +195,14 @@
         })
         DownloadForegroundService.enqueueDownload(this, request)
     }
-}</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">public class DownloadActivity extends AppCompatActivity {
+}</code></pre>
+        <pre class="java"><code class="language-java">public class DownloadActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         // Parallel connections. chunkCount is how many ranges run together.
-        DownloadForegroundService.configureService(this, builder -> {
+        DownloadForegroundService.configureService(this, builder -&gt; {
             builder.chunkCount(4);
             builder.chunkParallel(true);
             return kotlin.Unit.INSTANCE;
@@ -325,30 +227,51 @@
         );
 
         DownloadForegroundService.registerListener(new DownloadListener() {
-            @Override public void onQueued(DownloadHandle handle) { }
-            @Override public void onStarted(DownloadHandle handle) { }
-            @Override public void onProgress(DownloadHandle handle, DownloadProgress progress) { }
-            @Override public void onPaused(DownloadHandle handle) { }
-            @Override public void onResumed(DownloadHandle handle) { }
-            @Override public void onCompleted(DownloadHandle handle) {
+            @Override
+            public void onQueued(DownloadHandle handle) {
+            }
+            @Override
+            public void onStarted(DownloadHandle handle) {
+            }
+            @Override
+            public void onProgress(DownloadHandle handle, DownloadProgress progress) {
+            }
+            @Override
+            public void onPaused(DownloadHandle handle) {
+            }
+            @Override
+            public void onResumed(DownloadHandle handle) {
+            }
+            @Override
+            public void onCompleted(DownloadHandle handle) {
                 Log.i("MDM", "ready " + handle.getId());
             }
-            @Override public void onFailed(DownloadHandle handle, Throwable error) {
+            @Override
+            public void onFailed(DownloadHandle handle, Throwable error) {
                 Log.e("MDM", "failed " + handle.getId(), error);
             }
-            @Override public void onRetry(DownloadHandle handle, int attempt) { }
-            @Override public void onCancelled(DownloadHandle handle) { }
+            @Override
+            public void onRetry(DownloadHandle handle, int attempt) {
+            }
+            @Override
+            public void onCancelled(DownloadHandle handle) {
+            }
         });
         DownloadForegroundService.enqueueDownload(this, request);
     }
-}</pre>
-  </article>
+}</code></pre>
+      </div>
+    </article>
 
-  <article id="host-fragment">
-    <h2>From a Fragment</h2>
-    <p>A Fragment does not own the process. Use <code>requireContext()</code> and keep the download id in the Fragment so a button can pause the same transfer. Configure the service in the Activity, once. Doing it again from every Fragment just rewrites the same file.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">class DownloadFragment : Fragment() {
+    <article class="step" id="host-fragment">
+      <h3><span class="badge">B</span>From a Fragment</h3>
+      <p>A Fragment does not own the process. Use <code>requireContext()</code> and keep the download id in the Fragment so a button can pause that same transfer. Configure the service in the Activity, once. Calling it again from every Fragment only rewrites the same file.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Fragment sample language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">class DownloadFragment : Fragment() {
     private val downloadId = "tms-app-release"
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -365,9 +288,8 @@
             DownloadForegroundService.pauseDownload(context, downloadId)
         }
     }
-}</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">public class DownloadFragment extends Fragment {
+}</code></pre>
+        <pre class="java"><code class="language-java">public class DownloadFragment extends Fragment {
     private final String downloadId = "tms-app-release";
 
     @Override
@@ -385,17 +307,22 @@
                 0L,
                 4_194_303L
         ));
-        view.findViewById(R.id.pause).setOnClickListener(v ->
+        view.findViewById(R.id.pause).setOnClickListener(v -&gt;
                 DownloadForegroundService.pauseDownload(context, downloadId));
     }
-}</pre>
-  </article>
+}</code></pre>
+      </div>
+    </article>
 
-  <article id="host-worker">
-    <h2>From a Worker</h2>
-    <p>WorkManager should hand the file to the foreground service and return. The transfer itself keeps running after <code>doWork</code> ends. Build the request from the input data, including the byte window, so a retry of the work does not invent a different range.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">class EnqueueDownloadWorker(
+    <article class="step" id="host-worker">
+      <h3><span class="badge">C</span>From a Worker</h3>
+      <p>WorkManager should hand the file to the foreground service and return. The transfer keeps running after <code>doWork</code> ends. Build the request from the input data, including the byte window, so a retry of the work does not invent a different range.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Worker sample language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">class EnqueueDownloadWorker(
     context: Context,
     params: WorkerParameters
 ) : Worker(context, params) {
@@ -407,8 +334,8 @@
             fileName = "app-release.apk",
             id = "tms-app-release",
             // Byte range carried in the work input. -1 means "not set".
-            rangeStart = start.takeIf { it >= 0L },
-            rangeEndInclusive = end.takeIf { it >= 0L }
+            rangeStart = start.takeIf { it &gt;= 0L },
+            rangeEndInclusive = end.takeIf { it &gt;= 0L }
         )
         DownloadForegroundService.enqueueDownload(applicationContext, request)
         return Result.success()
@@ -419,9 +346,8 @@
         const val KEY_START = "range_start"
         const val KEY_END = "range_end"
     }
-}</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">public class EnqueueDownloadWorker extends Worker {
+}</code></pre>
+        <pre class="java"><code class="language-java">public class EnqueueDownloadWorker extends Worker {
     static final String KEY_URL = "url";
     static final String KEY_START = "range_start";
     static final String KEY_END = "range_end";
@@ -446,20 +372,25 @@
                 null,
                 ChecksumAlgorithm.SHA256,
                 // Byte range from the work input. Null leaves that end open.
-                start >= 0L ? Long.valueOf(start) : null,
-                end >= 0L ? Long.valueOf(end) : null
+                start &gt;= 0L ? Long.valueOf(start) : null,
+                end &gt;= 0L ? Long.valueOf(end) : null
         );
         DownloadForegroundService.enqueueDownload(getApplicationContext(), request);
         return Result.success();
     }
-}</pre>
-  </article>
+}</code></pre>
+      </div>
+    </article>
 
-  <article id="host-service">
-    <h2>From your own background service</h2>
-    <p>If another component already runs in the background, it should not open the socket itself. It asks <code>DownloadForegroundService</code> to start. That service calls <code>startForeground</code> before it reads config or touches the network.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">class TmsHandoffService : Service() {
+    <article class="step" id="host-service">
+      <h3><span class="badge">D</span>From your own background service</h3>
+      <p>If another component already runs in the background, it should not open the socket itself. Ask <code>DownloadForegroundService</code> to start. That service calls <code>startForeground</code> before it reads config or touches the network.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Service sample language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">class TmsHandoffService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val url = intent?.getStringExtra("url") ?: return START_NOT_STICKY
         DownloadForegroundService.enqueueDownload(this, DownloadRequest(
@@ -475,9 +406,8 @@
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
-}</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">public class TmsHandoffService extends Service {
+}</code></pre>
+        <pre class="java"><code class="language-java">public class TmsHandoffService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent == null || intent.getStringExtra("url") == null) return START_NOT_STICKY;
@@ -503,14 +433,19 @@
     public IBinder onBind(Intent intent) {
         return null;
     }
-}</pre>
-  </article>
+}</code></pre>
+      </div>
+    </article>
 
-  <article id="host-full">
-    <h2>Every feature in one place</h2>
-    <p>This is the shape to copy when you want the whole library, not a slice of it. Comments name the feature. The byte window is optional: leave both ends null and the download is the whole file, which is what you want for an APK the host will install.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">class TmsDownloadActivity : AppCompatActivity() {
+    <article class="step" id="host-full">
+      <h3><span class="badge">E</span>Every feature in one place</h3>
+      <p>Copy this shape when you want the whole library, not a slice of it. Comments name the feature. The byte window is optional: leave both ends null and the download is the whole file, which is what you want for an APK the host will install.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Full sample language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">class TmsDownloadActivity : AppCompatActivity() {
     private val downloadId = "tms-app-release"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -566,16 +501,15 @@
     fun pause() = DownloadForegroundService.pauseDownload(this, downloadId)
     fun resume() = DownloadForegroundService.resumeDownload(this, downloadId)
     fun stop() = DownloadForegroundService.stopDownload(this, downloadId)
-}</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">public class TmsDownloadActivity extends AppCompatActivity {
+}</code></pre>
+        <pre class="java"><code class="language-java">public class TmsDownloadActivity extends AppCompatActivity {
     private final String downloadId = "tms-app-release";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         DownloadForegroundService.setNotificationIcon(R.drawable.ic_stat_download);
-        DownloadForegroundService.configureService(this, builder -> {
+        DownloadForegroundService.configureService(this, builder -&gt; {
             builder.chunkCount(4); // Parallel connections.
             builder.chunkParallel(true);
             builder.chunkMinSize(256 * 1024L);
@@ -609,15 +543,33 @@
                 null
         );
         DownloadForegroundService.registerListener(new DownloadListener() {
-            @Override public void onQueued(DownloadHandle handle) { }
-            @Override public void onStarted(DownloadHandle handle) { }
-            @Override public void onProgress(DownloadHandle handle, DownloadProgress progress) { }
-            @Override public void onPaused(DownloadHandle handle) { }
-            @Override public void onResumed(DownloadHandle handle) { }
-            @Override public void onCompleted(DownloadHandle handle) { }
-            @Override public void onFailed(DownloadHandle handle, Throwable error) { }
-            @Override public void onRetry(DownloadHandle handle, int attempt) { }
-            @Override public void onCancelled(DownloadHandle handle) { }
+            @Override
+            public void onQueued(DownloadHandle handle) {
+            }
+            @Override
+            public void onStarted(DownloadHandle handle) {
+            }
+            @Override
+            public void onProgress(DownloadHandle handle, DownloadProgress progress) {
+            }
+            @Override
+            public void onPaused(DownloadHandle handle) {
+            }
+            @Override
+            public void onResumed(DownloadHandle handle) {
+            }
+            @Override
+            public void onCompleted(DownloadHandle handle) {
+            }
+            @Override
+            public void onFailed(DownloadHandle handle, Throwable error) {
+            }
+            @Override
+            public void onRetry(DownloadHandle handle, int attempt) {
+            }
+            @Override
+            public void onCancelled(DownloadHandle handle) {
+            }
         });
         DownloadForegroundService.enqueueDownload(this, request);
     }
@@ -625,49 +577,69 @@
     void pause() { DownloadForegroundService.pauseDownload(this, downloadId); }
     void resume() { DownloadForegroundService.resumeDownload(this, downloadId); }
     void stop() { DownloadForegroundService.stopDownload(this, downloadId); }
-}</pre>
-  </article>
+}</code></pre>
+      </div>
+    </article>
+  </section>
+  <section class="chapter" id="ch-setup">
+    <header class="chapter-head reveal">
+      <p class="kicker">Chapter 2 · Install</p>
+      <h2>Add the library and configure it once</h2>
+      <p>Four short steps. The first puts the artifact on the classpath. The next three write the settings the service will read.</p>
+    </header>
 
-  <article id="s1">
-    <h2><span>1</span>Add the library</h2>
-    <p>Put JitPack in the repository list, then depend on tag <code>v1.3.7</code>.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">repositories {
+    <article class="step" id="s1">
+      <h3><span class="badge">1</span>Add the library</h3>
+      <p>Put JitPack in the repository list, then depend on tag <code>v1.3.7</code>. The next Gradle sync downloads it. Java projects use the Groovy form of the same two blocks.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Dependency language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">repositories {
     maven("https://jitpack.io")
 }
 
 dependencies {
     implementation("com.github.mirajabi:MobileDownloadManeger:v1.3.7")
-}</pre>
-    <p class="lang-label java">Java / Groovy</p>
-    <pre class="java">repositories {
+}</code></pre>
+        <pre class="java"><code class="language-groovy">repositories {
     maven { url 'https://jitpack.io' }
 }
 
 dependencies {
     implementation 'com.github.mirajabi:MobileDownloadManeger:v1.3.7'
-}</pre>
-  </article>
+}</code></pre>
+      </div>
+    </article>
 
-  <article id="s2">
-    <h2><span>2</span>Call configureService once</h2>
-    <p>Do this before the first download. The library manifest already merges the service, receivers, and FileProvider. This call writes the settings that the service reads on the next start.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+    <article class="step" id="s2">
+      <h3><span class="badge">2</span>Call configureService once</h3>
+      <p>Do this before the first download. The library manifest already merges the service, the receivers, and the FileProvider. This call writes the settings that the service reads the next time it starts.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Configure sample language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">DownloadForegroundService.configureService(this) {
     chunkCount(4)
-}</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+}</code></pre>
+        <pre class="java"><code class="language-java">DownloadForegroundService.configureService(this, builder -&gt; {
     builder.chunkCount(4);
     return kotlin.Unit.INSTANCE;
-});</pre>
-  </article>
+});</code></pre>
+      </div>
+    </article>
 
-  <article id="s3">
-    <h2><span>3</span>Fill every optional setting</h2>
-    <p>Comments are the defaults. <code>periodicSchedule</code> and <code>exactSchedule</code> clear each other. This sample keeps the weekday schedule. <code>registerListener</code> is the callback for the service. <code>addListener</code> only applies to a manager object you keep yourself.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">val listener = object : DownloadListener {
+    <article class="step" id="s3">
+      <h3><span class="badge">3</span>Fill every optional setting</h3>
+      <p>The comments are the defaults. <code>periodicSchedule</code> and <code>exactSchedule</code> clear each other, so this sample keeps the weekday schedule. <code>registerListener</code> is the callback for the service. <code>addListener</code> only applies to a manager object you keep yourself.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Full setup language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">val listener = object : DownloadListener {
     override fun onCompleted(handle: DownloadHandle) {
         Log.i("MDM", "completed ${handle.id}")
     }
@@ -720,22 +692,37 @@ DownloadForegroundService.configureService(this) {
         verifyApkSignature = false
     )
 }
-DownloadForegroundService.registerListener(listener)</pre>
-    <p class="lang-label java">Java. Pass every argument. Implement every listener method.</p>
-    <pre class="java">DownloadListener listener = new DownloadListener() {
-    @Override public void onQueued(DownloadHandle handle) { }
-    @Override public void onStarted(DownloadHandle handle) { }
-    @Override public void onProgress(DownloadHandle handle, DownloadProgress progress) { }
-    @Override public void onPaused(DownloadHandle handle) { }
-    @Override public void onResumed(DownloadHandle handle) { }
-    @Override public void onCompleted(DownloadHandle handle) {
+DownloadForegroundService.registerListener(listener)</code></pre>
+        <pre class="java"><code class="language-java">DownloadListener listener = new DownloadListener() {
+    @Override
+    public void onQueued(DownloadHandle handle) {
+    }
+    @Override
+    public void onStarted(DownloadHandle handle) {
+    }
+    @Override
+    public void onProgress(DownloadHandle handle, DownloadProgress progress) {
+    }
+    @Override
+    public void onPaused(DownloadHandle handle) {
+    }
+    @Override
+    public void onResumed(DownloadHandle handle) {
+    }
+    @Override
+    public void onCompleted(DownloadHandle handle) {
         Log.i("MDM", "completed " + handle.getId());
     }
-    @Override public void onFailed(DownloadHandle handle, Throwable error) {
+    @Override
+    public void onFailed(DownloadHandle handle, Throwable error) {
         Log.e("MDM", "failed " + handle.getId(), error);
     }
-    @Override public void onRetry(DownloadHandle handle, int attempt) { }
-    @Override public void onCancelled(DownloadHandle handle) { }
+    @Override
+    public void onRetry(DownloadHandle handle, int attempt) {
+    }
+    @Override
+    public void onCancelled(DownloadHandle handle) {
+    }
 };
 
 File downloadDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
@@ -743,7 +730,7 @@ if (downloadDir == null) downloadDir = getFilesDir();
 File finalDownloadDir = downloadDir;
 
 DownloadForegroundService.setNotificationIcon(R.drawable.ic_stat_download);
-DownloadForegroundService.configureService(this, builder -> {
+DownloadForegroundService.configureService(this, builder -&gt; {
     builder.chunkCount(4);
     builder.chunkParallel(true);
     builder.chunkMinSize(256 * 1024L);
@@ -764,90 +751,124 @@ DownloadForegroundService.configureService(this, builder -> {
     builder.integrityValidation(true, true, true, false, false);
     return kotlin.Unit.INSTANCE;
 });
-DownloadForegroundService.registerListener(listener);</pre>
-  </article>
+DownloadForegroundService.registerListener(listener);</code></pre>
+      </div>
+    </article>
 
-  <article id="s4">
-    <h2><span>4</span>This setup, filled in</h2>
-    <p>Step 3 is the complete setup. Skipping <code>configureService</code> still downloads: a missing file uses <code>DownloadConfig</code> defaults and the service logs that.</p>
-  </article>
+    <article class="step" id="s4">
+      <h3><span class="badge">4</span>This setup, filled in</h3>
+      <p>Step 3 is already the complete setup. If you skip <code>configureService</code>, a download still starts: a missing file uses <code>DownloadConfig</code> defaults, and the service writes that to the log.</p>
+    </article>
+  </section>
 
-  <article id="s5">
-    <h2><span>5</span>Choose a destination</h2>
-    <p><code>Auto</code> uses app-specific external downloads, then documents, then <code>filesDir/downloads</code>. <code>Scoped</code> is a relative directory under external files, not a Storage Access Framework URI.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">val auto = DownloadDestination.Auto
+  <section class="chapter" id="ch-storage">
+    <header class="chapter-head reveal">
+      <p class="kicker">Chapter 3 · Storage</p>
+      <h2>Choose where the file lands</h2>
+      <p><code>Auto</code> tries app-specific external downloads, then documents, then <code>filesDir/downloads</code>. <code>Scoped</code> is a relative directory under external files. It is not a Storage Access Framework URI.</p>
+    </header>
+
+    <article class="step" id="s5">
+      <h3><span class="badge">5</span>Choose a destination</h3>
+      <p>Pick one of the three shapes. Most apps can stay on <code>Auto</code> until they need a folder they can name.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Destination language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">val auto = DownloadDestination.Auto
 val custom = DownloadDestination.Custom(
     getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)!!.absolutePath
 )
-val scoped = DownloadDestination.Scoped("tms/packages")</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadDestination auto = DownloadDestination.Auto.INSTANCE;
+val scoped = DownloadDestination.Scoped("tms/packages")</code></pre>
+        <pre class="java"><code class="language-java">DownloadDestination auto = DownloadDestination.Auto.INSTANCE;
 File dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
 DownloadDestination custom = new DownloadDestination.Custom(dir.getAbsolutePath());
-DownloadDestination scoped = new DownloadDestination.Scoped("tms/packages");</pre>
-  </article>
+DownloadDestination scoped = new DownloadDestination.Scoped("tms/packages");</code></pre>
+      </div>
+    </article>
 
-  <article id="s6">
-    <h2><span>6</span>Overwrite, free space, public Download</h2>
-    <p>Free space is checked only when validation is on. The default floor is 10 MB. <code>storageOverwrite(false)</code> fails with <code>StorageResolutionException</code> if that file name already exists. A paused download of the same id is a checkpoint, not this check.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+    <article class="step" id="s6">
+      <h3><span class="badge">6</span>Overwrite, free space, public Download</h3>
+      <p>Free space is checked only when validation is on. The default floor is 10 MB. <code>storageOverwrite(false)</code> fails with <code>StorageResolutionException</code> if that file name already exists. A paused download of the same id is a checkpoint, so it does not trip this check.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Storage flags language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">DownloadForegroundService.configureService(this) {
     storageDestinations(listOf(DownloadDestination.Scoped("tms/packages")))
     storageOverwrite(false)
     storageValidateFreeSpace(validate = true, minBytes = 64L * 1024 * 1024)
     storageUsePublicDownloads(false)
-}</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+}</code></pre>
+        <pre class="java"><code class="language-java">DownloadForegroundService.configureService(this, builder -&gt; {
     builder.storageDestinations(Collections.singletonList(
             new DownloadDestination.Scoped("tms/packages")));
     builder.storageOverwrite(false);
     builder.storageValidateFreeSpace(true, 64L * 1024 * 1024);
     builder.storageUsePublicDownloads(false);
     return kotlin.Unit.INSTANCE;
-});</pre>
-  </article>
+});</code></pre>
+      </div>
+    </article>
 
-  <article id="s7">
-    <h2><span>7</span>Storage, filled in</h2>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">val packages = File(getExternalFilesDir(null) ?: filesDir, "tms/packages")
+    <article class="step" id="s7">
+      <h3><span class="badge">7</span>Storage, filled in</h3>
+      <p>This is a custom folder under external files, with overwrite on and a 64 MB floor. Public Downloads stays off.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Filled storage language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">val packages = File(getExternalFilesDir(null) ?: filesDir, "tms/packages")
 
 DownloadForegroundService.configureService(this) {
     storageDestinations(listOf(DownloadDestination.Custom(packages.absolutePath)))
     storageOverwrite(true)
     storageValidateFreeSpace(validate = true, minBytes = 64L * 1024 * 1024)
     storageUsePublicDownloads(false)
-}</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">File root = getExternalFilesDir(null);
+}</code></pre>
+        <pre class="java"><code class="language-java">File root = getExternalFilesDir(null);
 if (root == null) root = getFilesDir();
 File packages = new File(root, "tms/packages");
 
-DownloadForegroundService.configureService(this, builder -> {
+DownloadForegroundService.configureService(this, builder -&gt; {
     builder.storageDestinations(Collections.singletonList(
             new DownloadDestination.Custom(packages.getAbsolutePath())));
     builder.storageOverwrite(true);
     builder.storageValidateFreeSpace(true, 64L * 1024 * 1024);
     builder.storageUsePublicDownloads(false);
     return kotlin.Unit.INSTANCE;
-});</pre>
-  </article>
+});</code></pre>
+      </div>
+    </article>
+  </section>
 
-  <article id="s8">
-    <h2><span>8</span>Build the request</h2>
-    <p><code>url</code> and <code>fileName</code> are required. Checksum hex length is 64 for SHA-256, 128 for SHA-512, and 32 for MD5. Blank or null means no checksum. A bad length fails in <code>onFailed</code> before any byte is written. <code>rangeStart</code> and <code>rangeEndInclusive</code> are optional and inclusive. Leave either one null to leave that end open. The older Java constructor still works; pass the two range arguments only when you want a window.</p>
-    <table>
-      <tr><th>Field</th><th>Default</th></tr>
-      <tr><td>destination</td><td>Auto</td></tr>
-      <tr><td>id</td><td>random UUID</td></tr>
-      <tr><td>headers</td><td>empty. Do not set Range yourself</td></tr>
-      <tr><td>expectedChecksum</td><td>null</td></tr>
-      <tr><td>checksumAlgorithm</td><td>SHA256</td></tr>
-    </table>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">val request = DownloadRequest(
+  <section class="chapter" id="ch-download">
+    <header class="chapter-head reveal">
+      <p class="kicker">Chapter 4 · Download</p>
+      <h2>Build a request and enqueue it</h2>
+      <p><code>url</code> and <code>fileName</code> are required. Everything else has a default, and you can leave it alone until you need it.</p>
+    </header>
+
+    <article class="step" id="s8">
+      <h3><span class="badge">8</span>Build the request</h3>
+      <p>Checksum hex length is 64 for SHA-256, 128 for SHA-512, and 32 for MD5. Blank or null means no checksum. A bad length fails in <code>onFailed</code> before any byte is written. <code>rangeStart</code> and <code>rangeEndInclusive</code> are optional and inclusive. Leave either one null to leave that end open. The older Java constructor still works; pass the two range arguments only when you want a window.</p>
+      <table>
+        <tr><th>Field</th><th>Default</th></tr>
+        <tr><td>destination</td><td>Auto</td></tr>
+        <tr><td>id</td><td>random UUID</td></tr>
+        <tr><td>headers</td><td>empty. Do not set Range yourself</td></tr>
+        <tr><td>expectedChecksum</td><td>null</td></tr>
+        <tr><td>checksumAlgorithm</td><td>SHA256</td></tr>
+      </table>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Request language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">val request = DownloadRequest(
     url = "https://downloads.example.com/tms/app-release.apk",
     fileName = "app-release.apk",
     destination = DownloadDestination.Auto,
@@ -855,9 +876,8 @@ DownloadForegroundService.configureService(this, builder -> {
     headers = mapOf("Authorization" to "Bearer token"),
     expectedChecksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     checksumAlgorithm = ChecksumAlgorithm.SHA256
-)</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">Map&lt;String, String&gt; headers = new HashMap&lt;&gt;();
+)</code></pre>
+        <pre class="java"><code class="language-java">Map&lt;String, String&gt; headers = new HashMap&lt;&gt;();
 headers.put("Authorization", "Bearer token");
 
 DownloadRequest request = new DownloadRequest(
@@ -868,14 +888,19 @@ DownloadRequest request = new DownloadRequest(
         headers,
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
         ChecksumAlgorithm.SHA256
-);</pre>
-  </article>
+);</code></pre>
+      </div>
+    </article>
 
-  <article id="s9">
-    <h2><span>9</span>Enqueue and listen</h2>
-    <p><code>enqueueDownload</code> returns as soon as the service is asked to start. Keep the id. Progress is coalesced to about one update per second. Completion, failure, pause, and cancel are immediate.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">DownloadForegroundService.registerListener(object : DownloadListener {
+    <article class="step" id="s9">
+      <h3><span class="badge">9</span>Enqueue and listen</h3>
+      <p><code>enqueueDownload</code> returns as soon as the service is asked to start. Keep the id. Progress is coalesced to about one update a second. Completion, failure, pause, and cancel arrive immediately.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Enqueue language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">DownloadForegroundService.registerListener(object : DownloadListener {
     override fun onProgress(handle: DownloadHandle, progress: DownloadProgress) {
         Log.i("MDM", "${progress.percent ?: 0}%")
     }
@@ -884,32 +909,53 @@ DownloadRequest request = new DownloadRequest(
     }
 })
 
-DownloadForegroundService.enqueueDownload(this, request)</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadForegroundService.registerListener(new DownloadListener() {
-    @Override public void onQueued(DownloadHandle handle) { }
-    @Override public void onStarted(DownloadHandle handle) { }
-    @Override public void onProgress(DownloadHandle handle, DownloadProgress progress) {
+DownloadForegroundService.enqueueDownload(this, request)</code></pre>
+        <pre class="java"><code class="language-java">DownloadForegroundService.registerListener(new DownloadListener() {
+    @Override
+    public void onQueued(DownloadHandle handle) {
+    }
+    @Override
+    public void onStarted(DownloadHandle handle) {
+    }
+    @Override
+    public void onProgress(DownloadHandle handle, DownloadProgress progress) {
         int percent = progress.getPercent() == null ? 0 : progress.getPercent();
         Log.i("MDM", percent + "%");
     }
-    @Override public void onPaused(DownloadHandle handle) { }
-    @Override public void onResumed(DownloadHandle handle) { }
-    @Override public void onCompleted(DownloadHandle handle) { }
-    @Override public void onFailed(DownloadHandle handle, Throwable error) {
+    @Override
+    public void onPaused(DownloadHandle handle) {
+    }
+    @Override
+    public void onResumed(DownloadHandle handle) {
+    }
+    @Override
+    public void onCompleted(DownloadHandle handle) {
+    }
+    @Override
+    public void onFailed(DownloadHandle handle, Throwable error) {
         Log.e("MDM", error == null ? "failed" : String.valueOf(error.getMessage()));
     }
-    @Override public void onRetry(DownloadHandle handle, int attempt) { }
-    @Override public void onCancelled(DownloadHandle handle) { }
+    @Override
+    public void onRetry(DownloadHandle handle, int attempt) {
+    }
+    @Override
+    public void onCancelled(DownloadHandle handle) {
+    }
 });
 
-DownloadForegroundService.enqueueDownload(this, request);</pre>
-  </article>
+DownloadForegroundService.enqueueDownload(this, request);</code></pre>
+      </div>
+    </article>
 
-  <article id="s10">
-    <h2><span>10</span>Enqueue, filled in</h2>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">val request = DownloadRequest(
+    <article class="step" id="s10">
+      <h3><span class="badge">10</span>Enqueue, filled in</h3>
+      <p>A scoped folder, a stable id, one header, and a SHA-256 digest. The listener only waits for completion. That is enough to know the file is ready.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Filled enqueue language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">val request = DownloadRequest(
     url = "https://downloads.example.com/tms/app-release.apk",
     fileName = "app-release.apk",
     destination = DownloadDestination.Scoped("tms/packages"),
@@ -925,9 +971,8 @@ DownloadForegroundService.registerListener(object : DownloadListener {
     }
 })
 
-DownloadForegroundService.enqueueDownload(this, request)</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">Map&lt;String, String&gt; headers = new HashMap&lt;&gt;();
+DownloadForegroundService.enqueueDownload(this, request)</code></pre>
+        <pre class="java"><code class="language-java">Map&lt;String, String&gt; headers = new HashMap&lt;&gt;();
 headers.put("Authorization", "Bearer token");
 
 DownloadRequest request = new DownloadRequest(
@@ -941,56 +986,98 @@ DownloadRequest request = new DownloadRequest(
 );
 
 DownloadForegroundService.registerListener(new DownloadListener() {
-    @Override public void onQueued(DownloadHandle handle) { }
-    @Override public void onStarted(DownloadHandle handle) { }
-    @Override public void onProgress(DownloadHandle handle, DownloadProgress progress) { }
-    @Override public void onPaused(DownloadHandle handle) { }
-    @Override public void onResumed(DownloadHandle handle) { }
-    @Override public void onCompleted(DownloadHandle handle) {
+    @Override
+    public void onQueued(DownloadHandle handle) {
+    }
+    @Override
+    public void onStarted(DownloadHandle handle) {
+    }
+    @Override
+    public void onProgress(DownloadHandle handle, DownloadProgress progress) {
+    }
+    @Override
+    public void onPaused(DownloadHandle handle) {
+    }
+    @Override
+    public void onResumed(DownloadHandle handle) {
+    }
+    @Override
+    public void onCompleted(DownloadHandle handle) {
         Log.i("MDM", "ready " + handle.getId());
     }
-    @Override public void onFailed(DownloadHandle handle, Throwable error) { }
-    @Override public void onRetry(DownloadHandle handle, int attempt) { }
-    @Override public void onCancelled(DownloadHandle handle) { }
+    @Override
+    public void onFailed(DownloadHandle handle, Throwable error) {
+    }
+    @Override
+    public void onRetry(DownloadHandle handle, int attempt) {
+    }
+    @Override
+    public void onCancelled(DownloadHandle handle) {
+    }
 });
 
-DownloadForegroundService.enqueueDownload(this, request);</pre>
-  </article>
+DownloadForegroundService.enqueueDownload(this, request);</code></pre>
+      </div>
+    </article>
+  </section>
 
-  <article id="s11">
-    <h2><span>11</span>Notification channel and icon</h2>
-    <p>The service calls <code>startForeground</code> before it reads config or opens a socket. One notification, id 7001, shows Pause, Resume, and Stop. <code>setNotificationIcon</code> covers the startup notification. <code>notificationIcon</code> is the saved icon.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">DownloadForegroundService.setNotificationIcon(R.drawable.ic_stat_download)
+  <section class="chapter" id="ch-notify">
+    <header class="chapter-head reveal">
+      <p class="kicker">Chapter 5 · Notification</p>
+      <h2>Show the transfer while it runs</h2>
+      <p>The service calls <code>startForeground</code> before it reads config or opens a socket. One notification, id 7001, shows Pause, Resume, and Stop.</p>
+    </header>
+
+    <article class="step" id="s11">
+      <h3><span class="badge">11</span>Notification channel and icon</h3>
+      <p><code>setNotificationIcon</code> covers the short startup notification. <code>notificationIcon</code> is the icon stored with the config and used for the download itself. Set both to the same drawable.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Notification language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">DownloadForegroundService.setNotificationIcon(R.drawable.ic_stat_download)
 DownloadForegroundService.configureService(this) {
     notificationChannel("tms_downloads", "TMS downloads", "Package downloads")
     notificationIcon(R.drawable.ic_stat_download)
     notificationShowProgress(true)
     notificationPersistent(true)
     enforceForeground(true)
-}</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadForegroundService.setNotificationIcon(R.drawable.ic_stat_download);
-DownloadForegroundService.configureService(this, builder -> {
+}</code></pre>
+        <pre class="java"><code class="language-java">DownloadForegroundService.setNotificationIcon(R.drawable.ic_stat_download);
+DownloadForegroundService.configureService(this, builder -&gt; {
     builder.notificationChannel("tms_downloads", "TMS downloads", "Package downloads");
     builder.notificationIcon(R.drawable.ic_stat_download);
     builder.notificationShowProgress(true);
     builder.notificationPersistent(true);
     builder.enforceForeground(true);
     return kotlin.Unit.INSTANCE;
-});</pre>
-  </article>
+});</code></pre>
+      </div>
+    </article>
 
-  <article id="s12">
-    <h2><span>12</span>Notification, filled in</h2>
-    <p>Step 11 is the filled notification. The host does not build the <code>Notification</code> object. If Android blocks a background service start, scheduled work finishes that one download on its own and then restores the previous manager.</p>
-  </article>
+    <article class="step" id="s12">
+      <h3><span class="badge">12</span>Notification, filled in</h3>
+      <p>Step 11 is the filled notification. The host does not build the <code>Notification</code> object. If Android blocks a background service start, scheduled work finishes that one download on its own and then restores the previous manager.</p>
+    </article>
+  </section>
 
-  <article id="s13">
-    <h2><span>13</span>Weekday schedule</h2>
-    <p><code>scheduleDownload</code> arms the clock. It does not download now. A null weekday means every day. Hour is 0–23.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+  <section class="chapter" id="ch-schedule">
+    <header class="chapter-head reveal">
+      <p class="kicker">Chapter 6 · Schedule</p>
+      <h2>Run it later</h2>
+      <p><code>scheduleDownload</code> arms the clock. It does not download now. A null weekday means every day. Hour is 0–23.</p>
+    </header>
+
+    <article class="step" id="s13">
+      <h3><span class="badge">13</span>Weekday schedule</h3>
+      <p>Tuesday at 02:15, and the device may be idle. WorkManager is the scheduler unless you opt into AlarmManager.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Weekday language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">DownloadForegroundService.configureService(this) {
     exactSchedule(hour = 2, minute = 15, weekday = Weekday.TUESDAY, allowWhileIdle = true)
     schedulerUseAlarmManager(false)
 }
@@ -999,9 +1086,8 @@ DownloadForegroundService.scheduleDownload(
     this,
     request,
     ScheduleTime(hour = 2, minute = 15, weekday = Weekday.TUESDAY)
-)</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+)</code></pre>
+        <pre class="java"><code class="language-java">DownloadForegroundService.configureService(this, builder -&gt; {
     builder.exactSchedule(2, 15, Weekday.TUESDAY, true);
     builder.schedulerUseAlarmManager(false);
     return kotlin.Unit.INSTANCE;
@@ -1011,14 +1097,19 @@ DownloadForegroundService.scheduleDownload(
         this,
         request,
         new ScheduleTime(2, 15, Weekday.TUESDAY, null, null, null)
-);</pre>
-  </article>
+);</code></pre>
+      </div>
+    </article>
 
-  <article id="s14">
-    <h2><span>14</span>Calendar date</h2>
-    <p>Month is 1–12. This fires once.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">val whenToRun = ScheduleTime(
+    <article class="step" id="s14">
+      <h3><span class="badge">14</span>Calendar date</h3>
+      <p>Month is 1–12. This fires once, on that date, and then it is done.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Date language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">val whenToRun = ScheduleTime(
     hour = 12, minute = 30, weekday = null,
     year = 2026, month = 10, dayOfMonth = 9
 )
@@ -1027,41 +1118,49 @@ DownloadForegroundService.configureService(this) {
     exactScheduleDate(2026, 10, 9, 12, 30, allowWhileIdle = true)
 }
 
-DownloadForegroundService.scheduleDownload(this, request, whenToRun)</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+DownloadForegroundService.scheduleDownload(this, request, whenToRun)</code></pre>
+        <pre class="java"><code class="language-java">DownloadForegroundService.configureService(this, builder -&gt; {
     builder.exactScheduleDate(2026, 10, 9, 12, 30, true);
     return kotlin.Unit.INSTANCE;
 });
 
 ScheduleTime whenToRun = new ScheduleTime(12, 30, null, 2026, 10, 9);
-DownloadForegroundService.scheduleDownload(this, request, whenToRun);</pre>
-  </article>
+DownloadForegroundService.scheduleDownload(this, request, whenToRun);</code></pre>
+      </div>
+    </article>
 
-  <article id="s15">
-    <h2><span>15</span>Periodic interval</h2>
-    <p><code>scheduleDownload</code> always receives a time, so it is not the periodic API. Call <code>schedule(request)</code> with no time after <code>periodicSchedule</code>. Intervals under 15 minutes are raised to 15. The work waits for a network.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">val manager = MobileDownloadManager.create(this) {
+    <article class="step" id="s15">
+      <h3><span class="badge">15</span>Periodic interval</h3>
+      <p><code>scheduleDownload</code> always receives a time, so it is not the periodic API. Call <code>schedule(request)</code> with no time after <code>periodicSchedule</code>. Intervals under 15 minutes are raised to 15. The work waits for a network.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Periodic language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">val manager = MobileDownloadManager.create(this) {
     periodicSchedule(intervalMinutes = 60)
     schedulerUseAlarmManager(false)
 }
 
-manager.schedule(request)</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">MobileDownloadManager manager = MobileDownloadManager.builder(this)
+manager.schedule(request)</code></pre>
+        <pre class="java"><code class="language-java">MobileDownloadManager manager = MobileDownloadManager.builder(this)
         .periodicSchedule(60)
         .schedulerUseAlarmManager(false)
         .build();
 
-manager.schedule(request, null);</pre>
-  </article>
+manager.schedule(request, null);</code></pre>
+      </div>
+    </article>
 
-  <article id="s16">
-    <h2><span>16</span>Schedule, filled in</h2>
-    <p>AlarmManager variant. Add <code>SCHEDULE_EXACT_ALARM</code> in the host only if you opt in. Without that permission the library uses an inexact alarm.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+    <article class="step" id="s16">
+      <h3><span class="badge">16</span>Schedule, filled in</h3>
+      <p>This variant uses AlarmManager. Add <code>SCHEDULE_EXACT_ALARM</code> in the host only if you opt in. Without that permission the library uses an inexact alarm.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Filled schedule language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">DownloadForegroundService.configureService(this) {
     exactSchedule(hour = 2, minute = 15, weekday = Weekday.TUESDAY, allowWhileIdle = true)
     schedulerUseAlarmManager(true)
 }
@@ -1080,9 +1179,8 @@ DownloadForegroundService.scheduleDownload(
     this,
     request,
     ScheduleTime(hour = 2, minute = 15, weekday = Weekday.TUESDAY)
-)</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+)</code></pre>
+        <pre class="java"><code class="language-java">DownloadForegroundService.configureService(this, builder -&gt; {
     builder.exactSchedule(2, 15, Weekday.TUESDAY, true);
     builder.schedulerUseAlarmManager(true);
     return kotlin.Unit.INSTANCE;
@@ -1102,67 +1200,105 @@ DownloadForegroundService.scheduleDownload(
         this,
         request,
         new ScheduleTime(2, 15, Weekday.TUESDAY, null, null, null)
-);</pre>
-  </article>
+);</code></pre>
+      </div>
+    </article>
+  </section>
 
-  <article id="s17">
-    <h2><span>17</span>Pause</h2>
-    <p>The checkpoint is written first. The pause file stays until resume finishes or the user stops. Pause is not retried as a network error.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">DownloadForegroundService.pauseDownload(this, "tms-app-release")</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadForegroundService.pauseDownload(this, "tms-app-release");</pre>
-  </article>
+  <section class="chapter" id="ch-control">
+    <header class="chapter-head reveal">
+      <p class="kicker">Chapter 7 · Control</p>
+      <h2>Pause, resume, and stop</h2>
+      <p>Pause writes the checkpoint first. That pause file stays until resume finishes or the user stops. Pause is not retried as a network error.</p>
+    </header>
 
-  <article id="s18">
-    <h2><span>18</span>Resume and stop</h2>
-    <p>Resume continues from the saved offsets. A manual pause uses the pause record. A failed download uses the failed recovery record and continues from the bytes already flushed. A new enqueue of that same id still starts at byte zero. A changed strong ETag or total size discards the partial file first. Stop deletes the checkpoint. Reboot does not auto-start a failed download.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">DownloadForegroundService.resumeDownload(this, "tms-app-release")
-DownloadForegroundService.stopDownload(this, "tms-app-release")</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadForegroundService.resumeDownload(this, "tms-app-release");
-DownloadForegroundService.stopDownload(this, "tms-app-release");</pre>
-  </article>
+    <article class="step" id="s17">
+      <h3><span class="badge">17</span>Pause</h3>
+      <p>Pass the same id you used on the request. The bytes already flushed stay on disk.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Pause language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">DownloadForegroundService.pauseDownload(this, "tms-app-release")</code></pre>
+        <pre class="java"><code class="language-java">DownloadForegroundService.pauseDownload(this, "tms-app-release");</code></pre>
+      </div>
+    </article>
 
-  <article id="s19">
-    <h2><span>19</span>Controls, filled in</h2>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">val id = "tms-app-release"
+    <article class="step" id="s18">
+      <h3><span class="badge">18</span>Resume and stop</h3>
+      <p>Resume continues from the saved offsets. A manual pause uses the pause record. A failed download uses the failed recovery record and continues from the bytes already flushed. A new enqueue of that same id still starts at byte zero. A changed strong ETag or total size discards the partial file first. Stop deletes the checkpoint. Reboot does not auto-start a failed download.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Resume language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">DownloadForegroundService.resumeDownload(this, "tms-app-release")
+DownloadForegroundService.stopDownload(this, "tms-app-release")</code></pre>
+        <pre class="java"><code class="language-java">DownloadForegroundService.resumeDownload(this, "tms-app-release");
+DownloadForegroundService.stopDownload(this, "tms-app-release");</code></pre>
+      </div>
+    </article>
+
+    <article class="step" id="s19">
+      <h3><span class="badge">19</span>Controls, filled in</h3>
+      <p>Wire the three buttons to the same id. That is the whole control surface Fetch shows on a row.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Controls language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">val id = "tms-app-release"
 
 pauseButton.setOnClickListener { DownloadForegroundService.pauseDownload(this, id) }
 resumeButton.setOnClickListener { DownloadForegroundService.resumeDownload(this, id) }
-stopButton.setOnClickListener { DownloadForegroundService.stopDownload(this, id) }</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">final String id = "tms-app-release";
+stopButton.setOnClickListener { DownloadForegroundService.stopDownload(this, id) }</code></pre>
+        <pre class="java"><code class="language-java">final String id = "tms-app-release";
 
-pauseButton.setOnClickListener(v -> DownloadForegroundService.pauseDownload(this, id));
-resumeButton.setOnClickListener(v -> DownloadForegroundService.resumeDownload(this, id));
-stopButton.setOnClickListener(v -> DownloadForegroundService.stopDownload(this, id));</pre>
-  </article>
+pauseButton.setOnClickListener(v -&gt; DownloadForegroundService.pauseDownload(this, id));
+resumeButton.setOnClickListener(v -&gt; DownloadForegroundService.resumeDownload(this, id));
+stopButton.setOnClickListener(v -&gt; DownloadForegroundService.stopDownload(this, id));</code></pre>
+      </div>
+    </article>
+  </section>
 
-  <article id="s20">
-    <h2><span>20</span>Installer prompt</h2>
-    <p>Default is false. Leave it false when the host installs the package. True opens the system installer after a successful download only. A failed checksum does not open it. The FileProvider authority is <code>${applicationId}.downloader.provider</code>.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+  <section class="chapter" id="ch-install">
+    <header class="chapter-head reveal">
+      <p class="kicker">Chapter 8 · Installer</p>
+      <h2>Let the system open the package, or don't</h2>
+      <p>The default is false. Leave it false when the host installs the package. True opens the system installer after a successful download only. A failed checksum does not open it. The FileProvider authority is <code>${applicationId}.downloader.provider</code>.</p>
+    </header>
+
+    <article class="step" id="s20">
+      <h3><span class="badge">20</span>Installer prompt</h3>
+      <p>Turn the prompt on only when you want Android's installer to appear as soon as the file is valid.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Installer language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">DownloadForegroundService.configureService(this) {
     installerPromptOnCompletion(
         enabled = true,
         fallbackMimeType = "application/vnd.android.package-archive"
     )
-}</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+}</code></pre>
+        <pre class="java"><code class="language-java">DownloadForegroundService.configureService(this, builder -&gt; {
     builder.installerPromptOnCompletion(true, "application/vnd.android.package-archive");
     return kotlin.Unit.INSTANCE;
-});</pre>
-  </article>
+});</code></pre>
+      </div>
+    </article>
 
-  <article id="s21">
-    <h2><span>21</span>Installer, filled in</h2>
-    <p>Prompt off, MIME fallback still stored.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+    <article class="step" id="s21">
+      <h3><span class="badge">21</span>Installer, filled in</h3>
+      <p>Prompt off, MIME fallback still stored, and the five integrity flags written beside it. This is the shape Fetch uses: the app decides what to do with the file.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Filled installer language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">DownloadForegroundService.configureService(this) {
     storageUsePublicDownloads(false)
     installerPromptOnCompletion(
         enabled = false,
@@ -1175,21 +1311,33 @@ stopButton.setOnClickListener(v -> DownloadForegroundService.stopDownload(this, 
         verifyContentType = false,
         verifyApkSignature = false
     )
-}</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+}</code></pre>
+        <pre class="java"><code class="language-java">DownloadForegroundService.configureService(this, builder -&gt; {
     builder.storageUsePublicDownloads(false);
     builder.installerPromptOnCompletion(false, "application/vnd.android.package-archive");
     builder.integrityValidation(true, true, true, false, false);
     return kotlin.Unit.INSTANCE;
-});</pre>
-  </article>
+});</code></pre>
+      </div>
+    </article>
+  </section>
 
-  <article id="s22">
-    <h2><span>22</span>What is saved</h2>
-    <p>Chunking, retry, notification, one schedule mode, storage, installer, and all five integrity flags are written. Listeners are not. A missing or corrupt file logs a warning and uses defaults. <code>onCreate</code> does not throw.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+  <section class="chapter" id="ch-behavior">
+    <header class="chapter-head reveal">
+      <p class="kicker">Chapter 9 · After the download</p>
+      <h2>What the service remembers</h2>
+      <p>Chunking, retry, notification, one schedule mode, storage, the installer, and all five integrity flags are written. Listeners are not. A missing or corrupt file logs a warning and uses defaults. <code>onCreate</code> does not throw.</p>
+    </header>
+
+    <article class="step" id="s22">
+      <h3><span class="badge">22</span>What is saved</h3>
+      <p>Call this once per process start if you want these values. They are read back the next time the service starts, including after the process was killed.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Saved config language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">DownloadForegroundService.configureService(this) {
     chunkCount(4)
     retryPolicy(maxAttempts = 5, initialDelayMillis = 2_000L, backoffMultiplier = 2f)
     notificationChannel("tms_downloads", "TMS downloads", "Package downloads")
@@ -1199,9 +1347,8 @@ stopButton.setOnClickListener(v -> DownloadForegroundService.stopDownload(this, 
     storageUsePublicDownloads(false)
     installerPromptOnCompletion(false, "application/vnd.android.package-archive")
     integrityValidation(true, true, true, false, false)
-}</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+}</code></pre>
+        <pre class="java"><code class="language-java">DownloadForegroundService.configureService(this, builder -&gt; {
     builder.chunkCount(4);
     builder.retryPolicy(5, 2_000L, 2f);
     builder.notificationChannel("tms_downloads", "TMS downloads", "Package downloads");
@@ -1212,49 +1359,58 @@ stopButton.setOnClickListener(v -> DownloadForegroundService.stopDownload(this, 
     builder.installerPromptOnCompletion(false, "application/vnd.android.package-archive");
     builder.integrityValidation(true, true, true, false, false);
     return kotlin.Unit.INSTANCE;
-});</pre>
-  </article>
+});</code></pre>
+      </div>
+    </article>
 
-  <article id="s23">
-    <h2><span>23</span>Reboot</h2>
-    <table>
-      <tr><th>When the process died</th><th>Next time the app may run</th></tr>
-      <tr><td>Queued, running, or waiting to retry</td><td>Continues from the last flushed checkpoint</td></tr>
-      <tr><td>Paused by the user</td><td>Stays paused</td></tr>
-      <tr><td>Failed or cancelled</td><td>Stays stopped</td></tr>
-      <tr><td>Completed</td><td>The recovery record is already gone</td></tr>
-    </table>
-    <p>There is no boot receiver. A force-stop waits until Android allows the app to run. <code>recoverDownloads</code> does not unpause a manual pause.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">DownloadForegroundService.recoverDownloads(this)</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadForegroundService.recoverDownloads(this);</pre>
-  </article>
+    <article class="step" id="s23">
+      <h3><span class="badge">23</span>Reboot</h3>
+      <table>
+        <tr><th>When the process died</th><th>Next time the app may run</th></tr>
+        <tr><td>Queued, running, or waiting to retry</td><td>Continues from the last flushed checkpoint</td></tr>
+        <tr><td>Paused by the user</td><td>Stays paused</td></tr>
+        <tr><td>Failed or cancelled</td><td>Stays stopped</td></tr>
+        <tr><td>Completed</td><td>The recovery record is already gone</td></tr>
+      </table>
+      <p>There is no boot receiver. A force-stop waits until Android allows the app to run. <code>recoverDownloads</code> does not unpause a manual pause.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Recover language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">DownloadForegroundService.recoverDownloads(this)</code></pre>
+        <pre class="java"><code class="language-java">DownloadForegroundService.recoverDownloads(this);</code></pre>
+      </div>
+    </article>
 
-  <article id="s24">
-    <h2><span>24</span>Range, validators, checksum</h2>
-    <table>
-      <tr><th>What came back</th><th>What is written</th></tr>
-      <tr><td>206 and Content-Range matches</td><td>Append at that offset</td></tr>
-      <tr><td>200, or a 206 that does not match, past byte zero</td><td>Partial file deleted, one full download</td></tr>
-      <tr><td>416 and the local file is already the known size</td><td>Checksum runs, no body is appended</td></tr>
-      <tr><td>Strong ETag or total size changed</td><td>Restart from byte zero</td></tr>
-      <tr><td>No validator, or only a weak ETag</td><td>Keep the partial bytes</td></tr>
-      <tr><td>Checksum or integrity failure</td><td>Delete and retry from byte zero</td></tr>
-      <tr><td>Bad checksum hex</td><td>onFailed, nothing downloaded</td></tr>
-    </table>
-  </article>
+    <article class="step" id="s24">
+      <h3><span class="badge">24</span>Range, validators, checksum</h3>
+      <table>
+        <tr><th>What came back</th><th>What is written</th></tr>
+        <tr><td>206 and Content-Range matches</td><td>Append at that offset</td></tr>
+        <tr><td>200, or a 206 that does not match, past byte zero</td><td>Partial file deleted, one full download</td></tr>
+        <tr><td>416 and the local file is already the known size</td><td>Checksum runs, no body is appended</td></tr>
+        <tr><td>Strong ETag or total size changed</td><td>Restart from byte zero</td></tr>
+        <tr><td>No validator, or only a weak ETag</td><td>Keep the partial bytes</td></tr>
+        <tr><td>Checksum or integrity failure</td><td>Delete and retry from byte zero</td></tr>
+        <tr><td>Bad checksum hex</td><td>onFailed, nothing downloaded</td></tr>
+      </table>
+    </article>
 
-  <article id="s25">
-    <h2><span>25</span>One writer per file</h2>
-    <p>The same id and the same url, file name, and checksum reuses the active download or resumes a pause. A different healthy download on that path fails in <code>onFailed</code> with <code>IllegalStateException</code> and does not touch the file. A failed or cancelled download may be replaced from byte zero.</p>
-  </article>
+    <article class="step" id="s25">
+      <h3><span class="badge">25</span>One writer per file</h3>
+      <p>The same id and the same url, file name, and checksum reuses the active download or resumes a pause. A different healthy download on that path fails in <code>onFailed</code> with <code>IllegalStateException</code> and does not touch the file. A failed or cancelled download may be replaced from byte zero.</p>
+    </article>
 
-  <article id="s26">
-    <h2><span>26</span>All five integrity flags</h2>
-    <p><code>integrityValidationForApk()</code> is size, checksum, and structure on, content type and signature off. The second call below is the same set written out. Use one of them.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">DownloadForegroundService.configureService(this) {
+    <article class="step" id="s26">
+      <h3><span class="badge">26</span>All five integrity flags</h3>
+      <p><code>integrityValidationForApk()</code> turns size, checksum, and structure on, and leaves content type and signature off. The call below is that same set written out. Use one of them.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Integrity language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">DownloadForegroundService.configureService(this) {
     integrityValidation(
         verifyFileSize = true,
         verifyChecksum = true,
@@ -1262,45 +1418,56 @@ stopButton.setOnClickListener(v -> DownloadForegroundService.stopDownload(this, 
         verifyContentType = false,
         verifyApkSignature = false
     )
-}</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">DownloadForegroundService.configureService(this, builder -> {
+}</code></pre>
+        <pre class="java"><code class="language-java">DownloadForegroundService.configureService(this, builder -&gt; {
     builder.integrityValidation(true, true, true, false, false);
     return kotlin.Unit.INSTANCE;
-});</pre>
-  </article>
+});</code></pre>
+      </div>
+    </article>
 
-  <article id="s27">
-    <h2><span>27</span>APK structure</h2>
-    <p>Only <code>.apk</code> and <code>.apks</code> are read. The file must start with <code>PK</code> and open as a ZIP that has at least one entry. A missing <code>AndroidManifest.xml</code> is logged and does not fail the download.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">integrityValidation(verifyApkStructure = true)</pre>
-    <p class="lang-label java">Java. Null keeps the other flags.</p>
-    <pre class="java">builder.integrityValidation(null, null, true, null, null);</pre>
-  </article>
+    <article class="step" id="s27">
+      <h3><span class="badge">27</span>APK structure</h3>
+      <p>Only <code>.apk</code> and <code>.apks</code> are read. The file must start with <code>PK</code> and open as a ZIP that has at least one entry. A missing <code>AndroidManifest.xml</code> is logged and does not fail the download.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Structure language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">integrityValidation(verifyApkStructure = true)</code></pre>
+        <pre class="java"><code class="language-java">builder.integrityValidation(null, null, true, null, null);</code></pre>
+      </div>
+    </article>
 
-  <article id="s28">
-    <h2><span>28</span>Signature</h2>
-    <p>Off by default. <code>PackageManager</code> only checks that a signature can be read. It does not compare the signer to a certificate you trust. Leave this false when the host does that check.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">integrityValidation(verifyApkSignature = false)</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">builder.integrityValidation(null, null, null, null, false);</pre>
-  </article>
+    <article class="step" id="s28">
+      <h3><span class="badge">28</span>Signature</h3>
+      <p>Off by default. <code>PackageManager</code> only checks that a signature can be read. It does not compare the signer to a certificate you trust. Leave this false when the host does that check.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Signature language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">integrityValidation(verifyApkSignature = false)</code></pre>
+        <pre class="java"><code class="language-java">builder.integrityValidation(null, null, null, null, false);</code></pre>
+      </div>
+    </article>
 
-  <article id="s29">
-    <h2><span>29</span>Checksum shape</h2>
-    <p>SHA-256 below is 64 hex characters. Pass null when you have no digest. The value travels with WorkManager, alarms, and the pause record.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">DownloadRequest(
+    <article class="step" id="s29">
+      <h3><span class="badge">29</span>Checksum shape</h3>
+      <p>SHA-256 below is 64 hex characters. Pass null when you have no digest. The value travels with WorkManager, alarms, and the pause record.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Checksum language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">DownloadRequest(
     url = "https://downloads.example.com/tms/app-release.apk",
     fileName = "app-release.apk",
     id = "tms-app-release",
     expectedChecksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     checksumAlgorithm = ChecksumAlgorithm.SHA256
-)</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">new DownloadRequest(
+)</code></pre>
+        <pre class="java"><code class="language-java">new DownloadRequest(
         "https://downloads.example.com/tms/app-release.apk",
         "app-release.apk",
         DownloadDestination.Auto.INSTANCE,
@@ -1308,73 +1475,71 @@ stopButton.setOnClickListener(v -> DownloadForegroundService.stopDownload(this, 
         Collections.&lt;String, String&gt;emptyMap(),
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
         ChecksumAlgorithm.SHA256
-);</pre>
-  </article>
+);</code></pre>
+      </div>
+    </article>
 
-  <article id="s30">
-    <h2><span>30</span>Network retry and integrity restart</h2>
-    <table>
-      <tr><th>Cause</th><th>Partial file</th><th>Callback</th></tr>
-      <tr><td>Network error, attempts left</td><td>Kept</td><td>onRetry</td></tr>
-      <tr><td>Network error, attempts spent</td><td>Kept until replaced</td><td>onFailed</td></tr>
-      <tr><td>Checksum, size, or structure</td><td>Deleted, then retry from byte zero</td><td>onRetry, then onFailed</td></tr>
-      <tr><td>User pause</td><td>Kept</td><td>onPaused</td></tr>
-      <tr><td>User stop</td><td>Checkpoint removed</td><td>onCancelled</td></tr>
-    </table>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">retryPolicy(maxAttempts = 5, initialDelayMillis = 2_000L, backoffMultiplier = 2f)</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">builder.retryPolicy(5, 2_000L, 2f);</pre>
-  </article>
+    <article class="step" id="s30">
+      <h3><span class="badge">30</span>Network retry and integrity restart</h3>
+      <table>
+        <tr><th>Cause</th><th>Partial file</th><th>Callback</th></tr>
+        <tr><td>Network error, attempts left</td><td>Kept</td><td>onRetry</td></tr>
+        <tr><td>Network error, attempts spent</td><td>Kept until replaced</td><td>onFailed</td></tr>
+        <tr><td>Checksum, size, or structure</td><td>Deleted, then retry from byte zero</td><td>onRetry, then onFailed</td></tr>
+        <tr><td>User pause</td><td>Kept</td><td>onPaused</td></tr>
+        <tr><td>User stop</td><td>Checkpoint removed</td><td>onCancelled</td></tr>
+      </table>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Retry language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">retryPolicy(maxAttempts = 5, initialDelayMillis = 2_000L, backoffMultiplier = 2f)</code></pre>
+        <pre class="java"><code class="language-java">builder.retryPolicy(5, 2_000L, 2f);</code></pre>
+      </div>
+    </article>
 
-  <article id="s31">
-    <h2><span>31</span>What you observe</h2>
-    <p><code>onCompleted</code> is the only signal that the file is ready. Pause, stop, and a rejected second writer do not complete.</p>
-    <p class="lang-label kotlin">Kotlin</p>
-    <pre class="kotlin">override fun onFailed(handle: DownloadHandle, error: Throwable?) {
+    <article class="step" id="s31">
+      <h3><span class="badge">31</span>What you observe</h3>
+      <p><code>onCompleted</code> is the only signal that the file is ready. Pause, stop, and a rejected second writer do not complete. Save the config, enqueue one request, wire pause and stop, then treat <code>onCompleted</code> as the moment the host may extract or install.</p>
+      <div class="snippet" data-lang="kotlin">
+        <div class="snippet-bar">
+          <div class="snippet-tabs" role="tablist" aria-label="Outcomes language"><button type="button" data-pick="kotlin" aria-pressed="true">Kotlin</button><button type="button" data-pick="java" aria-pressed="false">Java</button></div>
+          <button type="button" class="copy">Copy</button>
+        </div>
+        <pre class="kotlin"><code class="language-kotlin">override fun onFailed(handle: DownloadHandle, error: Throwable?) {
     when (error) {
-        is IllegalStateException -> { /* second writer rejected */ }
-        is IllegalArgumentException -> { /* checksum shape rejected */ }
-        else -> { /* network or integrity exhausted */ }
+        is IllegalStateException -&gt; { /* second writer rejected */ }
+        is IllegalArgumentException -&gt; { /* checksum shape rejected */ }
+        else -&gt; { /* network or integrity exhausted */ }
     }
-}</pre>
-    <p class="lang-label java">Java</p>
-    <pre class="java">@Override public void onFailed(DownloadHandle handle, Throwable error) {
+}</code></pre>
+        <pre class="java"><code class="language-java">@Override public void onFailed(DownloadHandle handle, Throwable error) {
     if (error instanceof IllegalStateException) {
         // Second writer rejected.
     } else if (error instanceof IllegalArgumentException) {
         // Checksum shape rejected.
     }
-}</pre>
-    <p>Order of work: save the config, enqueue one request, wire pause and stop, then treat <code>onCompleted</code> as the file being ready for the host to extract or install.</p>
-  </article>
+}</code></pre>
+      </div>
+    </article>
+  </section>
+
 </main>
+
+<aside class="rail" aria-label="On this page">
+  <h4 id="rail-title">On this page</h4>
+  <div id="rail-links"></div>
+  <div class="meter">
+    <strong>Keep going</strong>
+    <span>Steps you have passed stay marked in the sidebar. Finish the path and the seal glows.</span>
+  </div>
+</aside>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
-<script>
-  document.querySelectorAll("pre.kotlin, pre.java, pre.sample").forEach(function (pre) {
-    var code = document.createElement("code");
-    code.className = pre.classList.contains("java") ? "language-java" : "language-kotlin";
-    code.textContent = pre.textContent;
-    pre.textContent = "";
-    pre.appendChild(code);
-  });
-  hljs.highlightAll();
-  var key = "mdm-lang";
-  function apply(lang) {
-    document.body.setAttribute("data-lang", lang);
-    document.getElementById("kotlin").setAttribute("aria-pressed", lang === "kotlin" ? "true" : "false");
-    document.getElementById("java").setAttribute("aria-pressed", lang === "java" ? "true" : "false");
-    try { localStorage.setItem(key, lang); } catch (e) {}
-  }
-  document.getElementById("kotlin").onclick = function () { apply("kotlin"); };
-  document.getElementById("java").onclick = function () { apply("java"); };
-  try {
-    var saved = localStorage.getItem(key);
-    if (saved === "java" || saved === "kotlin") apply(saved);
-  } catch (e) {}
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/groovy.min.js"></script>
+<script src="guide.js"></script>
 </body>
 </html>
