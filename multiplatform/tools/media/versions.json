@@ -1,0 +1,113 @@
+{
+  "yt-dlp": {
+    "version": "2026.08.19",
+    "assets": {
+      "yt-dlp.exe": {
+        "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp.exe",
+        "sha256": "66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a"
+      },
+      "yt-dlp_linux": {
+        "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_linux",
+        "sha256": "58162f9bfdc27458ea47bfcb311cf47028f17d8154a8bf7d689861d46399230a"
+      },
+      "yt-dlp_linux_aarch64": {
+        "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_linux_aarch64",
+        "sha256": "b16e4dab368a816cd05d477d698a605a6ae87ccee1c8ffd38fa21d7254141fcc"
+      },
+      "yt-dlp_macos": {
+        "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_macos",
+        "sha256": "0f192b7ec147ab6288885d6351d9ab67367640029b4377576ef46dd79cf7b202"
+      }
+    }
+  },
+  "deno": {
+    "version": "v2.9.7",
+    "assets": {
+      "deno-aarch64-apple-darwin.zip": {
+        "url": "https://github.com/denoland/deno/releases/download/v2.9.7/deno-aarch64-apple-darwin.zip",
+        "sha256": "5cd46d6268f6f78f5d88bdc7159d20bd44cdaa4b3303474839f87ec6fe7ae25c"
+      },
+      "deno-aarch64-unknown-linux-gnu.zip": {
+        "url": "https://github.com/denoland/deno/releases/download/v2.9.7/deno-aarch64-unknown-linux-gnu.zip",
+        "sha256": "c832298b1ad4422481334855f6003e0f54145762c5a134f20a489511d2f65bbf"
+      },
+      "deno-x86_64-apple-darwin.zip": {
+        "url": "https://github.com/denoland/deno/releases/download/v2.9.7/deno-x86_64-apple-darwin.zip",
+        "sha256": "95daaff11c116a52ad54785e7914c8e9c9cdcaba793c5ed929c74ca2d8e6259a"
+      },
+      "deno-x86_64-pc-windows-msvc.zip": {
+        "url": "https://github.com/denoland/deno/releases/download/v2.9.7/deno-x86_64-pc-windows-msvc.zip",
+        "sha256": "a0c3101b4158d1dfb7d6a78a7bf0f3de80c96bb423c152beec8beb22786f2238"
+      },
+      "deno-x86_64-unknown-linux-gnu.zip": {
+        "url": "https://github.com/denoland/deno/releases/download/v2.9.7/deno-x86_64-unknown-linux-gnu.zip",
+        "sha256": "c6527f24f4b16031d3ae4fa9f658d5f11534c8d84ce7dc8502420280919c3490"
+      }
+    }
+  },
+  "ffmpeg": {
+    "version": "b6.1.1",
+    "assets": {
+      "darwin-arm64.LICENSE": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/darwin-arm64.LICENSE",
+        "sha256": "cb48bf09a11f5fb576cddb0431c8f5ed0a60157a9ec942adffc13907cbe083f2"
+      },
+      "darwin-arm64.README": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/darwin-arm64.README",
+        "sha256": "05ba4b92c96605434b1aaae3eedf5a2c280c9607bf78ffca9a5b536d9af2dc6a"
+      },
+      "darwin-x64.LICENSE": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/darwin-x64.LICENSE",
+        "sha256": "2e1d16c72fd74e12063776371da757322f8b77589386532f4fd8634bde7de1af"
+      },
+      "darwin-x64.README": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/darwin-x64.README",
+        "sha256": "e88a0325f8e5b75210355e37341824f074d3cd82def2125be54c914b62848a36"
+      },
+      "ffmpeg-darwin-arm64.gz": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-darwin-arm64.gz",
+        "sha256": "8923876afa8db5585022d7860ec7e589af192f441c56793971276d450ed3bbfa"
+      },
+      "ffmpeg-darwin-x64.gz": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-darwin-x64.gz",
+        "sha256": "929b375c1182d956c51f7ac25e0b2b0411fb01f6f407aa15c9758efeb4242106"
+      },
+      "ffmpeg-linux-arm64.gz": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-linux-arm64.gz",
+        "sha256": "754a678672298bc68156adff58aa7385a592c2b30b1d0ae8750c45c915c4bac0"
+      },
+      "ffmpeg-linux-x64.gz": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-linux-x64.gz",
+        "sha256": "bfe8a8fc511530457b528c48d77b5737527b504a3797a9bc4866aeca69c2dffa"
+      },
+      "ffmpeg-win32-x64.gz": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-win32-x64.gz",
+        "sha256": "8883a3dffbd0a16cf4ef95206ea05283f78908dbfb118f73c83f4951dcc06d77"
+      },
+      "linux-arm64.LICENSE": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/linux-arm64.LICENSE",
+        "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+      },
+      "linux-arm64.README": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/linux-arm64.README",
+        "sha256": "d6777d2fd276b23f0ac6666fa619e88ffe4826521881c7ff83836e30cb4acec2"
+      },
+      "linux-x64.LICENSE": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/linux-x64.LICENSE",
+        "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+      },
+      "linux-x64.README": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/linux-x64.README",
+        "sha256": "72f4b1b06d419d22ace6e7cc75f06826f90737345aa0b1736158929f4aacc537"
+      },
+      "win32-x64.LICENSE": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/win32-x64.LICENSE",
+        "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+      },
+      "win32-x64.README": {
+        "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/win32-x64.README",
+        "sha256": "a636a7183c58006351acbaf35303c0ed85c6e1320fd4e80de453ba6157de6311"
+      }
+    }
+  }
+}

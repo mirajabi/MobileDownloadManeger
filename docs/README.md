@@ -1,5 +1,7 @@
 # SDK chapters
 
+Looking for the KMP desktop app? Open the [Fetch Desktop website](https://mirajabi.github.io/MobileDownloadManeger/desktop/) or its separate [desktop README](../multiplatform/desktopApp/README.md).
+
 These Markdown files are the downloader SDK, step by step. The same path as a designed page is the [SDK guide](https://mirajabi.github.io/MobileDownloadManeger/#ch-call). Install starts at [setup](01-configuration.md), or in the [install guide](https://mirajabi.github.io/MobileDownloadManeger/#ch-setup). Fetch, the sample app, is the [app guide](https://mirajabi.github.io/MobileDownloadManeger/fetch/) and the [Fetch pages](fetch/README.md).
 
 Each step has a Kotlin sample and a Java sample. Each page ends with that page filled in, including the optional values.

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+  <title>Fetch — folded download ribbon</title>
+  <defs>
+    <linearGradient id="base" x1="160" y1="96" x2="880" y2="960" gradientUnits="userSpaceOnUse"><stop stop-color="#233C63"/><stop offset="1" stop-color="#09152C"/></linearGradient>
+    <linearGradient id="ribbon" x1="356" y1="238" x2="690" y2="716" gradientUnits="userSpaceOnUse"><stop stop-color="#C7F1FF"/><stop offset=".48" stop-color="#7FCFFF"/><stop offset="1" stop-color="#6088F5"/></linearGradient>
+    <linearGradient id="rim" x1="220" y1="130" x2="850" y2="900" gradientUnits="userSpaceOnUse"><stop stop-color="#7699C4" stop-opacity=".7"/><stop offset="1" stop-color="#304E76" stop-opacity=".2"/></linearGradient>
+  </defs>
+  <rect x="80" y="80" width="864" height="864" rx="208" fill="url(#base)"/>
+  <rect x="82" y="82" width="860" height="860" rx="206" stroke="url(#rim)" stroke-width="4"/>
+  <path d="M304 278C304 256 322 238 344 238H680V342H416V422H616V526H416V630H304V278Z" fill="url(#ribbon)"/>
+  <path d="M524 422H636V548H724L580 700L436 548H524V422Z" fill="url(#ribbon)"/>
+  <path d="M524 422H636V454L524 526V422Z" fill="#285F9B" fill-opacity=".45"/>
+  <path d="M306 722V742C306 764 324 782 346 782H678C700 782 718 764 718 742V722" stroke="#B9D9F3" stroke-width="36" stroke-linecap="round"/>
+</svg>

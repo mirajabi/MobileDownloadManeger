@@ -1,0 +1,3 @@
+filterMs=15
+scrollTo9000Ms=15
+rows=10000

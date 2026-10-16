@@ -1,10 +1,26 @@
 # Fetch
 
+**Editions:** [KMP Desktop](multiplatform/desktopApp/README.md) · [Desktop website & downloads](https://mirajabi.github.io/MobileDownloadManeger/desktop/) · [Android SDK documentation](https://mirajabi.github.io/MobileDownloadManeger/)
+
 [![JitPack](https://www.jitpack.io/v/mirajabi/MobileDownloadManeger.svg)](https://www.jitpack.io/#mirajabi/MobileDownloadManeger)
 [![minSdk 23](https://img.shields.io/badge/minSdk-23-6750A4)](docs/01-configuration.md)
 [![release](https://img.shields.io/badge/release-v1.3.7-1C1B1F)](https://github.com/mirajabi/MobileDownloadManeger/releases/tag/v1.3.7)
 
-**Fetch** is the download desk. **Mobile Download Manager** is the Android SDK underneath it.
+**Fetch** is the download desk. This repository contains the Android SDK/app and an independent **Kotlin Multiplatform desktop app**.
+
+## Fetch Desktop · KMP
+
+A compact Compose workspace with six Material palettes, frosted panels, a resizable/collapsible sidebar, resumable downloads and YouTube/Instagram Media Studio. Desktop releases use separate `desktop-v…` tags.
+
+[![Fetch Desktop on macOS](docs/desktop/images/theme-dark.png)](https://mirajabi.github.io/MobileDownloadManeger/desktop/)
+
+[Desktop README](multiplatform/desktopApp/README.md) · [Explore themes & macOS screenshots](https://mirajabi.github.io/MobileDownloadManeger/desktop/) · [macOS release](https://github.com/mirajabi/MobileDownloadManeger/releases/tag/desktop-v1.0.0) · [Windows/Linux build workflow](.github/workflows/desktop-installers.yml)
+
+*The image shows actual desktop UI components with sample download data. The macOS release is Apple Silicon; Windows/Linux are configured build targets.*
+
+## Android SDK & app
+
+**Mobile Download Manager** is the Android SDK underneath the Android Fetch app.
 
 Fetch keeps the screen: paste a link or a list, pick a time, and watch the queue. The SDK moves the bytes. Your app still extracts the archive and installs the package. The current release is `v1.3.7`.
 

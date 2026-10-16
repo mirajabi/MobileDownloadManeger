@@ -1,0 +1,49 @@
+name: Fetch desktop installers
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: multiplatform
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Prepare verified media helpers
+        run: python tools/media/prepare.py
+      - name: Linux desktop test dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libasound2t64
+      - name: Tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a ./gradlew :engine:jvmTest :desktopApp:jvmTest --console=plain
+      - name: Tests (macOS and Windows)
+        if: runner.os != 'Linux'
+        run: ./gradlew :engine:jvmTest :desktopApp:jvmTest --console=plain
+      - name: Build native installer
+        run: ./gradlew :desktopApp:packageDistributionForCurrentOS --console=plain
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fetch-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            multiplatform/desktopApp/build/compose/binaries/main/dmg/*.dmg
+            multiplatform/desktopApp/build/compose/binaries/main/msi/*.msi
+            multiplatform/desktopApp/build/compose/binaries/main/exe/*.exe
+            multiplatform/desktopApp/build/compose/binaries/main/deb/*.deb
+          if-no-files-found: error

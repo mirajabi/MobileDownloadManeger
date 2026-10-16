@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07151d">
+  <title>Fetch Desktop — A calmer place for your downloads</title>
+  <meta name="description" content="Meet Fetch Desktop: a Kotlin Multiplatform download manager with six Material palettes, a flexible glass workspace and YouTube and Instagram Media Studio.">
+  <meta property="og:title" content="Fetch Desktop · Kotlin Multiplatform">
+  <meta property="og:description" content="Your downloads. A little more composed. Explore the desktop app, its six themes and Media Studio.">
+  <meta property="og:image" content="https://mirajabi.github.io/MobileDownloadManeger/desktop/images/theme-dark.png">
+  <link rel="icon" type="image/svg+xml" href="images/fetch.svg">
+  <link rel="stylesheet" href="desktop.css">
+  <script src="desktop.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="./"><img src="images/fetch.svg" alt="" width="38" height="38"><span>Fetch <small>DESKTOP</small></span></a>
+    <nav class="project-tabs" aria-label="Project editions">
+      <a href="../index.html">Android SDK</a>
+      <a href="../fetch/">Android app</a>
+      <a href="./" aria-current="page">KMP Desktop</a>
+    </nav>
+    <a class="source-link" href="https://github.com/mirajabi/MobileDownloadManeger/tree/main/multiplatform">Source <span aria-hidden="true">↗</span></a>
+  </header>
+  <main id="main">
+    <section class="hero wrap">
+      <p class="eyebrow"><span class="live-dot"></span> FETCH 1.0 · KOTLIN MULTIPLATFORM</p>
+      <h1>Your downloads.<br><span>A little more composed.</span></h1>
+      <p class="intro">A focused desktop download manager. Soft glass, expressive Material colors, and a workspace that fits the way you work.</p>
+      <div class="actions"><a class="button primary" href="#download">Get Fetch Desktop <span aria-hidden="true">↓</span></a><a class="button quiet" href="#themes">Find your color <span aria-hidden="true">↗</span></a></div>
+      <p class="platform-note">macOS release · Windows &amp; Linux build targets</p>
+      <figure class="hero-device">
+        <div class="laptop">
+          <div class="display"><div class="camera" aria-hidden="true"></div><img src="images/theme-dark.png" alt="Fetch's Tidal theme with active, paused and completed sample downloads" width="1040" height="680" fetchpriority="high"></div>
+          <div class="laptop-base" aria-hidden="true"><span></span></div>
+        </div>
+        <figcaption>Compose UI rendered on macOS with sample downloads. MacBook-style presentation.</figcaption>
+      </figure>
+      <div class="facts"><div><strong>6</strong><span>Material palettes</span></div><div><strong>1040 × 680</strong><span>A compact starting window</span></div><div><strong>One workspace</strong><span>Files, queues &amp; video</span></div></div>
+    </section>
+
+    <section class="wrap section" id="workspace">
+      <div class="section-heading"><p class="eyebrow">ROOM TO FOCUS</p><h2>Everything in its place.<br>Nothing in your way.</h2><p>A compact window with the detail you need, exactly when you need it.</p></div>
+      <div class="feature-grid">
+        <article class="feature"><span class="feature-symbol" aria-hidden="true">↔</span><h3>A workspace that adapts</h3><p>Drag the sidebar to your preferred width, collapse it to an animated icon rail, or make the window smaller. Navigation keeps scrolling.</p><span class="feature-tag">Resizable · Collapsible</span></article>
+        <article class="feature"><span class="feature-symbol" aria-hidden="true">↓</span><h3>Clarity in every download</h3><p>Scan progress, speed and remaining time. Expand a card for details, switch to a table, or right-click for actions at your pointer.</p><span class="feature-tag">Cards · Table · Details</span></article>
+        <article class="feature"><span class="feature-symbol" aria-hidden="true">Ⅱ</span><h3>Pause. Carry on later.</h3><p>Resumable transfers preserve their progress. Queue controls and a useful tray menu keep the essentials within reach.</p><span class="feature-tag">Pause · Resume · Queues</span></article>
+      </div>
+    </section>
+
+    <section class="theme-section section" id="themes">
+      <div class="wrap">
+        <div class="section-heading centered"><p class="eyebrow">SIX DISTINCT PERSONALITIES</p><h2>Make it feel like you.</h2><p>Each Material HCT palette brings its own surfaces, accents and tonal depth.</p></div>
+        <div class="theme-picker" role="group" aria-label="Preview a Fetch theme">
+          <button type="button" data-theme="light" aria-pressed="false"><i style="--swatch:#285fe8"></i>Cobalt</button>
+          <button type="button" data-theme="dark" aria-pressed="true"><i style="--swatch:#79d2ff"></i>Tidal</button>
+          <button type="button" data-theme="black" aria-pressed="false"><i style="--swatch:#ffba66"></i>Amber</button>
+          <button type="button" data-theme="forest" aria-pressed="false"><i style="--swatch:#65dca5"></i>Forest</button>
+          <button type="button" data-theme="orchid" aria-pressed="false"><i style="--swatch:#d5b6ff"></i>Orchid</button>
+          <button type="button" data-theme="rose" aria-pressed="false"><i style="--swatch:#bd356d"></i>Rose</button>
+        </div>
+        <figure class="theme-preview"><div class="preview-chrome" aria-hidden="true"><span></span><span></span><span></span><b>Fetch · Appearance</b></div><img id="theme-image" src="images/theme-dark.png" alt="Tidal theme preview with sample downloads" width="1040" height="680" loading="lazy"><figcaption id="theme-caption" aria-live="polite">Tidal — cool cyan over deep ocean surfaces.</figcaption></figure>
+        <p class="fine-print centered">These are renders of the app's actual Compose components with sample data.</p>
+        <noscript><p class="centered">Theme previews: <a href="images/theme-light.png">Cobalt</a> · <a href="images/theme-dark.png">Tidal</a> · <a href="images/theme-black.png">Amber</a> · <a href="images/theme-forest.png">Forest</a> · <a href="images/theme-orchid.png">Orchid</a> · <a href="images/theme-rose.png">Rose</a></p></noscript>
+      </div>
+    </section>
+
+    <section class="wrap section media-section" id="media">
+      <div class="media-copy"><p class="eyebrow">MEET MEDIA STUDIO</p><h2>See it.<br>Choose it.<br>Keep it.</h2><p>Paste a YouTube or Instagram link to find its thumbnail and available files. Preview supported video, pick a quality, then add it to your download queue.</p><div class="service-chips"><span><b class="youtube" aria-hidden="true">▶</b> YouTube</span><span><b class="instagram" aria-hidden="true">◎</b> Instagram</span></div><ul class="check-list"><li>Inline player with seeking and volume</li><li>Video + audio choices when separate tracks are available</li><li>Resumable downloads and automatic audio/video joining</li></ul><p class="fine-print">Availability depends on the source. Private, audience-restricted or sign-in-required media may be unavailable. Preview supports compatible codecs; segmented-only and DRM formats are excluded.</p></div>
+      <figure class="media-shot"><a href="images/fetch-media-macos.png" data-lightbox><img src="images/fetch-media-macos.png" alt="Media Studio running on macOS, ready for a YouTube or Instagram link" width="740" height="780" loading="lazy"></a><figcaption>Actual macOS application · Media Studio</figcaption></figure>
+    </section>
+
+    <section class="wrap section" id="gallery">
+      <div class="section-heading"><p class="eyebrow">ON THE DESKTOP</p><h2>A closer look on macOS.</h2><p>Captured from the packaged app in a clean demonstration workspace. Open an image to inspect it.</p></div>
+      <div class="gallery"><figure><a href="images/fetch-macos.png" data-lightbox><img src="images/fetch-macos.png" alt="Fetch's compact macOS window in the Tidal theme" width="1040" height="680" loading="lazy"></a><figcaption><b>Your starting point</b><span>A quiet workspace with room to grow.</span></figcaption></figure><figure><a href="images/fetch-add-macos.png" data-lightbox><img src="images/fetch-add-macos.png" alt="The Add a download dialog running in Fetch on macOS" width="1040" height="680" loading="lazy"></a><figcaption><b>A considered first step</b><span>One link, a destination, and a clear check before starting.</span></figcaption></figure></div>
+    </section>
+
+    <section class="wrap section" id="download">
+      <div class="download-panel"><div class="section-heading centered"><img class="download-icon" src="images/fetch.svg" alt="" width="76" height="76" loading="lazy"><p class="eyebrow">BRING FETCH TO YOUR DESKTOP</p><h2>Ready for your next download.</h2><p>A self-contained app with its Java runtime and media tools included.</p></div>
+        <div class="platform-picker" role="group" aria-label="Choose your operating system"><button type="button" aria-pressed="true" data-platform="mac">macOS</button><button type="button" aria-pressed="false" data-platform="windows">Windows</button><button type="button" aria-pressed="false" data-platform="linux">Linux</button></div>
+        <div class="platform-panel" id="platform-mac"><span class="release-status">AVAILABLE · APPLE SILICON</span><h3>Fetch 1.0.0 for macOS</h3><p>Download the DMG, open it, and drag Fetch to Applications.</p><a class="button primary" href="https://github.com/mirajabi/MobileDownloadManeger/releases/download/desktop-v1.0.0/Fetch-1.0.0-macos-arm64.dmg">Download for Mac <span aria-hidden="true">↓</span></a><p class="fine-print">Apple Silicon (M-series) · Unsigned, not notarized.<br>Intel Macs require a build on an Intel Mac. Review the release notes before installing.</p></div>
+        <div class="platform-panel" id="platform-windows" hidden><span class="release-status pending">BUILD TARGET</span><h3>Fetch for Windows</h3><p>MSI and EXE packaging is configured. A verified Windows installer is not included in this release.</p><a class="button primary" href="https://github.com/mirajabi/MobileDownloadManeger/actions/workflows/desktop-installers.yml">Open installer workflow <span aria-hidden="true">↗</span></a><p class="fine-print">Build on Windows x64 with JDK 17. See the desktop README for prerequisites and commands.</p></div>
+        <div class="platform-panel" id="platform-linux" hidden><span class="release-status pending">BUILD TARGET</span><h3>Fetch for Linux</h3><p>DEB packaging is configured. A verified Linux installer is not included in this release.</p><a class="button primary" href="https://github.com/mirajabi/MobileDownloadManeger/actions/workflows/desktop-installers.yml">Open installer workflow <span aria-hidden="true">↗</span></a><p class="fine-print">Build on Linux with JDK 17 and desktop media libraries. The workflow uses Ubuntu x64.</p></div>
+        <noscript><p class="centered">Windows MSI/EXE and Linux DEB are build targets. See the <a href="https://github.com/mirajabi/MobileDownloadManeger/actions/workflows/desktop-installers.yml">installer workflow</a>.</p></noscript>
+        <div class="download-links"><a href="https://github.com/mirajabi/MobileDownloadManeger/releases/tag/desktop-v1.0.0">Release notes &amp; checksum ↗</a><a href="https://github.com/mirajabi/MobileDownloadManeger/blob/main/multiplatform/desktopApp/README.md">Desktop README ↗</a></div>
+      </div>
+    </section>
+
+    <section class="wrap section developer-section" id="developers"><div><p class="eyebrow">BUILT IN THE OPEN</p><h2>Kotlin at the core.<br>Compose on the desktop.</h2><p>The independent KMP build shares the Span transfer engine. Desktop uses Compose, with JavaFX for inline media. The Android SDK and sample app keep their own documentation.</p><a class="text-link" href="https://github.com/mirajabi/MobileDownloadManeger/blob/main/multiplatform/desktopApp/README.md">Explore the architecture and build guide ↗</a></div><div class="code-panel"><span>From the repository root · JDK 17</span><pre><code>cd multiplatform
+python3 tools/media/prepare.py
+./gradlew :desktopApp:run
+
+# Build on the target OS
+./gradlew :desktopApp:packageDistributionForCurrentOS</code></pre><p>The README covers Android SDK setup, platform requirements and bundled-tool licenses.</p></div></section>
+  </main>
+  <footer class="wrap footer"><a class="brand" href="./"><img src="images/fetch.svg" alt="" width="30" height="30"><span>Fetch</span></a><p>Built by Miaad Rajabi · Kotlin Multiplatform</p><nav aria-label="Footer"><a href="../">Android SDK</a><a href="https://github.com/mirajabi/MobileDownloadManeger">GitHub ↗</a></nav></footer>
+  <dialog id="image-viewer" aria-label="Expanded application screenshot"><button type="button" id="close-viewer" aria-label="Close screenshot">Close <span aria-hidden="true">×</span></button><img id="expanded-image" alt=""><p id="expanded-caption"></p></dialog>
+</body>
+</html>
